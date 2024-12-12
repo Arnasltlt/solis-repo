@@ -1,4 +1,7 @@
 import { Button } from "@/components/ui/button"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface SidebarProps {
   className?: string;
@@ -30,16 +33,19 @@ export function Sidebar({
       <div className="space-y-6">
         <div>
           <h2 className="text-lg font-semibold mb-4">Amžiaus grupė</h2>
-          <div className="space-y-2">
-            {ageGroups.map((group) => (
-              <Button
-                key={group}
-                variant={selectedAgeGroup === group ? "default" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => onAgeGroupChange(group)}
-              >
-                {group}
-              </Button>
+          <div className="mb-6 px-4">
+            {ageGroups.map((age) => (
+              <div key={age} className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="ageGroup"
+                  value={age}
+                  id={age}
+                  onChange={(e) => onAgeGroupChange(e.target.value)}
+                  checked={selectedAgeGroup === age}
+                />
+                <label htmlFor={age} className="text-sm text-gray-700">{age}</label>
+              </div>
             ))}
           </div>
         </div>
@@ -47,18 +53,17 @@ export function Sidebar({
           <h2 className="text-lg font-semibold mb-4">Kategorijos</h2>
           <div className="space-y-2">
             {categories.map((category) => (
-              <label
-                key={category}
-                className="flex items-center space-x-2 cursor-pointer"
-              >
+              <div key={category} className="flex items-center space-x-2 px-4">
                 <input
                   type="checkbox"
+                  id={category}
                   checked={selectedCategories.includes(category)}
                   onChange={(e) => onCategoryChange(category, e.target.checked)}
-                  className="rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
                 />
-                <span className="text-sm">{category}</span>
-              </label>
+                <label htmlFor={category} className="text-sm text-gray-700">
+                  {category}
+                </label>
+              </div>
             ))}
           </div>
         </div>

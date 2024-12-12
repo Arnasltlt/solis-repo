@@ -55,10 +55,10 @@ export function Sidebar({ className, onAgeGroupChange, onCategoryChange }: Sideb
         <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight text-gray-800">
           Categories
         </h2>
-        <Accordion type="multiple" className="w-full">
+        <Accordion>
           {categories.map((category, index) => (
-            <AccordionItem value={`item-${index}`} key={index}>
-              <AccordionTrigger className="py-2 px-4 text-sm hover:bg-gray-200 hover:no-underline text-gray-700">
+            <AccordionItem key={index}>
+              <AccordionTrigger onClick={() => {}}>
                 {category.name}
               </AccordionTrigger>
               <AccordionContent>
@@ -67,7 +67,7 @@ export function Sidebar({ className, onAgeGroupChange, onCategoryChange }: Sideb
                     <div key={subIndex} className="flex items-center space-x-2 px-4 py-2">
                       <Checkbox
                         id={`${category.name}-${subcategory}`}
-                        onCheckedChange={(checked) => onCategoryChange(`${category.name}-${subcategory}`, checked as boolean)}
+                        onChange={(event) => onCategoryChange(`${category.name}-${subcategory}`, event.target.checked)}
                       />
                       <label
                         htmlFor={`${category.name}-${subcategory}`}
