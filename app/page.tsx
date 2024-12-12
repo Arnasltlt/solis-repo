@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Sidebar } from "@/components/sidebar"
-import { ContentArea, ContentItem } from "@/components/content-area"
+import { ContentArea } from "@/components/content-area"
 import { Header } from "@/components/header"
 import { Breadcrumb } from "@/components/breadcrumb"
-import { allContentItems } from "@/lib/content-data"
+import { allContentItems, type ContentItem } from "@/lib/content-data"
 
 export default function Home() {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("4-6 metai")

@@ -1,7 +1,6 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, Music, FileText, Download } from 'lucide-react'
 import type { ContentItem } from "@/lib/content-data"
 
 interface ContentAreaProps {
