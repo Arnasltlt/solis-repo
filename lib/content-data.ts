@@ -1,5 +1,24 @@
 import { Play, Music, FileText, Download } from 'lucide-react'
-import { ContentItem } from '@/components/content-area'
+import type { LucideIcon } from 'lucide-react'
+
+export type ContentType = "Vaizdo įrašas" | "Daina" | "Pamokos planas" | "Žaidimas"
+
+export interface ContentItem {
+  id: number
+  title: string
+  type: ContentType
+  ageGroup: string
+  description: string
+  icon: LucideIcon
+  category: string
+}
+
+const iconMap: Record<ContentType, LucideIcon> = {
+  "Vaizdo įrašas": Play,
+  "Daina": Music,
+  "Pamokos planas": FileText,
+  "Žaidimas": Download,
+}
 
 export const allContentItems: ContentItem[] = [
   {
@@ -8,7 +27,7 @@ export const allContentItems: ContentItem[] = [
     type: "Vaizdo įrašas",
     ageGroup: "4-6 metai",
     description: "Linksma šokių rutina, švenčianti pavasarį mažiems vaikams.",
-    icon: Play,
+    icon: iconMap["Vaizdo įrašas"],
     category: "Šokis-Baletas",
   },
   {
@@ -17,7 +36,7 @@ export const allContentItems: ContentItem[] = [
     type: "Daina",
     ageGroup: "2-4 metai",
     description: "Interaktyvi daina apie vėją mažyliams.",
-    icon: Music,
+    icon: iconMap["Daina"],
     category: "Muzika-Dainos",
   },
   {
@@ -26,7 +45,7 @@ export const allContentItems: ContentItem[] = [
     type: "Pamokos planas",
     ageGroup: "6+ metai",
     description: "Edukacinė medžiaga, mokanti vaikus apie apsaugą nuo saulės.",
-    icon: FileText,
+    icon: iconMap["Pamokos planas"],
     category: "Pamokų planai-Kultūrinės studijos",
   },
   {
@@ -35,7 +54,7 @@ export const allContentItems: ContentItem[] = [
     type: "Žaidimas",
     ageGroup: "4-6 metai",
     description: "Linksmas žaidimas, mokantis ritmo naudojant šventines temas.",
-    icon: Download,
+    icon: iconMap["Žaidimas"],
     category: "Muzika-Ritmo žaidimai",
   },
   {
@@ -44,7 +63,7 @@ export const allContentItems: ContentItem[] = [
     type: "Vaizdo įrašas",
     ageGroup: "6+ metai",
     description: "Pradedantiesiems draugiškas hiphopo šokių pamokų vadovas vaikams.",
-    icon: Play,
+    icon: iconMap["Vaizdo įrašas"],
     category: "Šokis-Hiphopas",
   },
   {
@@ -53,7 +72,7 @@ export const allContentItems: ContentItem[] = [
     type: "Pamokos planas",
     ageGroup: "4-6 metai",
     description: "Tyrinėkite įvairius muzikos instrumentus iš skirtingų kultūrų.",
-    icon: FileText,
+    icon: iconMap["Pamokos planas"],
     category: "Muzika-Instrumentai",
   },
 ]

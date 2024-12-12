@@ -2,26 +2,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Play, Music, FileText, Download } from 'lucide-react'
-
-export interface ContentItem {
-  id: number;
-  title: string;
-  type: string;
-  ageGroup: string;
-  description: string;
-  icon: any;
-  category: string;
-}
+import type { ContentItem } from "@/lib/content-data"
 
 interface ContentAreaProps {
   filteredContent: ContentItem[];
-}
-
-const iconMap = {
-  "Vaizdo įrašas": Play,
-  "Daina": Music,
-  "Pamokos planas": FileText,
-  "Žaidimas": Download,
 }
 
 export function ContentArea({ filteredContent }: ContentAreaProps) {

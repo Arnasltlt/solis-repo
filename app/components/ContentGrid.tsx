@@ -1,6 +1,18 @@
 import { Play, Music, FileText, Download } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
-const contentItems = [
+type ContentType = "Video for Kids" | "Song" | "Lesson Plan" | "Text-based Game" | "Downloadable Resource"
+
+interface ContentItem {
+  id: number
+  title: string
+  type: ContentType
+  ageGroup: string
+  description: string
+  thumbnail: string
+}
+
+const contentItems: ContentItem[] = [
   {
     id: 1,
     title: "Spring Dance for Kids",
@@ -35,9 +47,9 @@ const contentItems = [
   },
 ]
 
-const iconMap = {
+const iconMap: Record<ContentType, LucideIcon> = {
   "Video for Kids": Play,
-  Song: Music,
+  "Song": Music,
   "Lesson Plan": FileText,
   "Text-based Game": FileText,
   "Downloadable Resource": Download,
