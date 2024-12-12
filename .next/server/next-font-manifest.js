@@ -1,0 +1,1 @@
+self.__NEXT_FONT_MANIFEST="{\"pages\":{},\"app\":{\"/Users/seima/Documents/cursor/Solis/solis-fe/app/layout\":[\"static/media/a34f9d1faa5f3315-s.p.woff2\",\"static/media/6d93bde91c0c2823-s.p.woff2\"]},\"appUsingSizeAdjust\":true,\"pagesUsingSizeAdjust\":false}"
