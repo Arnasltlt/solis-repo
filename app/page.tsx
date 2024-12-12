@@ -5,12 +5,13 @@ import { Sidebar } from "@/components/sidebar"
 import { ContentArea } from "@/components/content-area"
 import { Header } from "@/components/header"
 import { Breadcrumb } from "@/components/breadcrumb"
-import { allContentItems, type ContentItem } from "@/lib/content-data"
+import { allContentItems } from "@/lib/content-data"
+import type { ContentItem } from "@/lib/content-data"
 
 export default function Home() {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("4-6 metai")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [filteredContent, setFilteredContent] = useState(allContentItems)
+  const [filteredContent, setFilteredContent] = useState<ContentItem[]>(allContentItems)
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
