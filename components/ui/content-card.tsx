@@ -25,7 +25,7 @@ export function ContentCard({ content }: ContentCardProps) {
             {content.age_groups.map(group => (
               <span
                 key={group.id}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-black"
               >
                 {group.range}
               </span>
@@ -40,7 +40,7 @@ export function ContentCard({ content }: ContentCardProps) {
             {content.categories.map(category => (
               <span
                 key={category.id}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-900 text-white"
               >
                 {category.name}
               </span>
@@ -50,7 +50,7 @@ export function ContentCard({ content }: ContentCardProps) {
 
         {/* Content Type */}
         <div className="mt-4 flex items-center justify-between">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-black">
             {content.type === 'video' && 'Video'}
             {content.type === 'audio' && 'Audio'}
             {content.type === 'lesson_plan' && 'Lesson Plan'}

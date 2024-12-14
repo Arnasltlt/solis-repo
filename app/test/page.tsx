@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { testDatabaseConnection } from '@/lib/test-utils'
+import { testDatabaseConnection, testAuth } from '@/lib/test-utils'
 import { insertSampleContent, getContentItems } from '@/lib/services/content'
 import { AuthForm } from '@/components/auth/auth-form'
 import { useAuth } from '@/lib/context/auth'
@@ -16,6 +16,17 @@ export default function TestPage() {
     setIsLoading(true)
     try {
       const result = await testDatabaseConnection()
+      setResults(JSON.stringify(result, null, 2))
+    } catch (error) {
+      setResults(JSON.stringify(error, null, 2))
+    }
+    setIsLoading(false)
+  }
+
+  const checkAuth = async () => {
+    setIsLoading(true)
+    try {
+      const result = await testAuth()
       setResults(JSON.stringify(result, null, 2))
     } catch (error) {
       setResults(JSON.stringify(error, null, 2))
@@ -79,15 +90,23 @@ export default function TestPage() {
         <button
           onClick={runTests}
           disabled={isLoading}
-          className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
+          className="bg-yellow-500 text-black px-4 py-2 rounded disabled:bg-gray-400"
         >
           {isLoading ? 'Running Tests...' : 'Run Tests'}
         </button>
 
         <button
+          onClick={checkAuth}
+          disabled={isLoading}
+          className="bg-black text-white px-4 py-2 rounded disabled:bg-gray-400"
+        >
+          Check Auth State
+        </button>
+
+        <button
           onClick={addSampleContent}
           disabled={isLoading || !user}
-          className="bg-green-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
+          className="bg-yellow-500 text-black px-4 py-2 rounded disabled:bg-gray-400"
         >
           Add Sample Content
         </button>
@@ -95,7 +114,7 @@ export default function TestPage() {
         <button
           onClick={viewCurrentContent}
           disabled={isLoading}
-          className="bg-purple-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
+          className="bg-black text-white px-4 py-2 rounded disabled:bg-gray-400"
         >
           View Current Content
         </button>

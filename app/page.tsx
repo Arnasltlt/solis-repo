@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/context/auth'
 import { AuthForm } from '@/components/auth/auth-form'
 import { useRouter } from 'next/navigation'
 import type { AgeGroup, Category } from '@/lib/types/database'
+import { toast } from 'react-hot-toast'
+import { Logo } from '@/components/ui/logo'
 
 export default function Home() {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string | undefined>()
@@ -18,7 +20,7 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([])
   const [error, setError] = useState<Error | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, signOut } = useAuth()
   const router = useRouter()
 
   const { 
@@ -78,9 +80,7 @@ export default function Home() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Solis
-            </h1>
+            <Logo size="medium" />
             <div className="flex items-center gap-4">
               <input
                 type="search"
@@ -93,16 +93,26 @@ export default function Home() {
                 <>
                   <button
                     onClick={() => router.push('/manage/content')}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    className="px-4 py-2 bg-yellow-500 text-black font-medium rounded-lg hover:bg-yellow-600 transition-colors"
                   >
                     + Pridėti turinį
                   </button>
-                  <button
-                    onClick={() => {}} // We'll add profile/logout functionality later
-                    className="text-sm text-gray-600 hover:text-gray-900"
-                  >
-                    {user.email}
-                  </button>
+                  <div className="relative group">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await signOut()
+                          router.push('/')
+                        } catch (error) {
+                          toast.error('Nepavyko atsijungti')
+                        }
+                      }}
+                      className="text-sm text-gray-600 hover:text-black flex items-center gap-2"
+                    >
+                      <span>{user.email}</span>
+                      <span className="text-xs">(Atsijungti)</span>
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -129,8 +139,8 @@ export default function Home() {
                     )}
                     className={`px-4 py-2 rounded-full text-sm font-medium ${
                       selectedAgeGroup === group.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-100'
+                        ? 'bg-yellow-500 text-black'
+                        : 'bg-white text-gray-700 hover:bg-yellow-50'
                     }`}
                   >
                     {group.range}
@@ -150,8 +160,8 @@ export default function Home() {
                     )}
                     className={`px-4 py-2 rounded-full text-sm font-medium ${
                       selectedCategories.includes(category.id)
-                        ? 'bg-green-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-100'
+                        ? 'bg-black text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     {category.name}

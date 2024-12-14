@@ -10,6 +10,26 @@ export async function testDatabaseConnection() {
   const results: Record<string, any> = {}
 
   try {
+    // Test 0: Check authentication state
+    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    if (authError) {
+      results.auth = { success: false, error: authError.message }
+      console.log('❌ Auth check failed:', authError.message)
+    } else {
+      results.auth = { 
+        success: true, 
+        data: { 
+          isAuthenticated: !!session,
+          user: session?.user ? {
+            id: session.user.id,
+            email: session.user.email,
+            role: session.user.role
+          } : null
+        } 
+      }
+      console.log('✅ Auth check successful:', session ? 'Authenticated' : 'Not authenticated')
+    }
+
     // Test 1: Query age groups
     const { data: ageGroups, error: ageError } = await supabase
       .from('age_groups')
@@ -92,6 +112,37 @@ export async function testDatabaseConnection() {
       success: false, 
       results,
       message: error instanceof Error ? error.message : 'Unknown error' 
+    }
+  }
+} 
+
+export async function testAuth() {
+  try {
+    // Check current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw sessionError
+
+    // Try to refresh the session
+    const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
+    if (refreshError) throw refreshError
+
+    return {
+      success: true,
+      data: {
+        hasSession: !!session,
+        sessionRefreshed: !!refreshedSession,
+        user: session?.user ? {
+          id: session.user.id,
+          email: session.user.email,
+          role: session.user.role,
+          lastSignInAt: session.user.last_sign_in_at
+        } : null
+      }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error checking auth state'
     }
   }
 } 
