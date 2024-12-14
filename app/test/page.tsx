@@ -2,11 +2,15 @@
 
 import { useState } from 'react'
 import { testDatabaseConnection } from '@/lib/test-utils'
-import { insertSampleContent, getContentItems } from '@/lib/content-service'
+import { insertSampleContent, getContentItems } from '@/lib/services/content'
+import { AuthForm } from '@/components/auth/auth-form'
+import { useAuth } from '@/lib/context/auth'
 
 export default function TestPage() {
   const [results, setResults] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
+  const { user, loading: authLoading } = useAuth()
 
   const runTests = async () => {
     setIsLoading(true)
@@ -22,10 +26,20 @@ export default function TestPage() {
   const addSampleContent = async () => {
     setIsLoading(true)
     try {
+      if (!user) {
+        setAuthError('You must be signed in to add sample content')
+        return
+      }
+
       const result = await insertSampleContent()
       setResults(JSON.stringify({ message: 'Sample content added:', data: result }, null, 2))
+      setAuthError(null)
     } catch (error) {
-      setResults(JSON.stringify({ error: 'Error adding sample content:', details: error }, null, 2))
+      if (error instanceof Error && error.message.includes('authenticated')) {
+        setAuthError(error.message)
+      } else {
+        setResults(JSON.stringify({ error: 'Error adding sample content:', details: error }, null, 2))
+      }
     }
     setIsLoading(false)
   }
@@ -41,9 +55,26 @@ export default function TestPage() {
     setIsLoading(false)
   }
 
+  if (authLoading) {
+    return <div className="p-8">Loading...</div>
+  }
+
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Supabase Connection Test</h1>
+      
+      {!user && (
+        <div className="mb-8">
+          <AuthForm />
+        </div>
+      )}
+
+      {authError && (
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
+          {authError}
+        </div>
+      )}
+
       <div className="space-x-4 mb-4">
         <button
           onClick={runTests}
@@ -55,7 +86,7 @@ export default function TestPage() {
 
         <button
           onClick={addSampleContent}
-          disabled={isLoading}
+          disabled={isLoading || !user}
           className="bg-green-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
         >
           Add Sample Content
