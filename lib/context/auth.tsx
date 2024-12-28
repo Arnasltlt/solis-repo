@@ -1,8 +1,10 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
+import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+import type { User } from '@/lib/types/auth'
+import { useRouter } from 'next/navigation'
 
 type AuthContextType = {
   user: User | null
@@ -19,24 +21,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
-      setUser(session?.user ?? null)
+      if (session?.user) {
+        // Get subscription tier details if user is logged in
+        const { data: tierData } = await supabase
+          .from('access_tiers')
+          .select('*')
+          .eq('id', session.user.subscription_tier_id)
+          .single()
+
+        setUser({
+          ...session.user,
+          subscription_tier: tierData || null
+        })
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
-      setUser(session?.user ?? null)
+      if (session?.user) {
+        // Get subscription tier details if user is logged in
+        const { data: tierData } = await supabase
+          .from('access_tiers')
+          .select('*')
+          .eq('id', session.user.subscription_tier_id)
+          .single()
+
+        setUser({
+          ...session.user,
+          subscription_tier: tierData || null
+        })
+        // Refresh the page to ensure all server components are updated
+        router.refresh()
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [router])
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -57,6 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
+    // Refresh the page to ensure all server components are updated
+    router.refresh()
   }
 
   const value = {

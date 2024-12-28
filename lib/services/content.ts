@@ -1,8 +1,16 @@
 import { supabase } from '@/lib/supabase/client'
 import { uploadMedia } from '@/lib/services/storage'
+import type { ContentType } from '@/lib/types/content'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-export async function getAgeGroups() {
-  const { data, error } = await supabase
+// Helper function to get the appropriate client
+function getClient(adminClient?: SupabaseClient) {
+  return adminClient || supabase
+}
+
+export async function getAgeGroups(adminClient?: SupabaseClient) {
+  const client = getClient(adminClient)
+  const { data, error } = await client
     .from('age_groups')
     .select('*')
     .order('range')
@@ -11,8 +19,9 @@ export async function getAgeGroups() {
   return data
 }
 
-export async function getCategories() {
-  const { data, error } = await supabase
+export async function getCategories(adminClient?: SupabaseClient) {
+  const client = getClient(adminClient)
+  const { data, error } = await client
     .from('categories')
     .select('*')
     .order('name')
@@ -24,13 +33,16 @@ export async function getCategories() {
 export async function getContentItems({
   ageGroup,
   categories,
-  searchQuery
+  searchQuery,
+  adminClient
 }: {
   ageGroup?: string
   categories?: string[]
   searchQuery?: string
+  adminClient?: SupabaseClient
 } = {}) {
-  let query = supabase
+  const client = getClient(adminClient)
+  let query = client
     .from('content_items')
     .select(`
       *,
@@ -39,7 +51,8 @@ export async function getContentItems({
       ),
       categories:content_categories(
         category:categories(*)
-      )
+      ),
+      access_tier:access_tiers(*)
     `)
     .eq('published', true)
 
@@ -55,34 +68,53 @@ export async function getContentItems({
     query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
   }
 
+  console.log('Fetching content with query:', query) // Debug log
+
   const { data, error } = await query.order('created_at', { ascending: false })
   
-  if (error) throw error
+  if (error) {
+    console.error('Error fetching content:', error) // Debug log
+    throw error
+  }
+
+  console.log('Content fetch successful:', data) // Debug log
 
   // Transform the data to match the expected format
   return data.map(item => ({
     ...item,
     age_groups: item.age_groups.map((ag: any) => ag.age_group),
-    categories: item.categories.map((cc: any) => cc.category)
+    categories: item.categories.map((cc: any) => cc.category),
+    access_tier: item.access_tier // Don't need to access [0] since it's already a single object
   }))
 }
 
 // Insert sample content items for testing
-export async function insertSampleContent() {
+export async function insertSampleContent(adminClient?: SupabaseClient) {
+  const client = getClient(adminClient)
+  
   // Check if we're authenticated
-  const { data: { session }, error: authError } = await supabase.auth.getSession()
+  const { data: { session }, error: authError } = await client.auth.getSession()
   if (!session?.user) {
     throw new Error('Must be authenticated to insert content')
   }
 
-  // First get an age group and category
-  const [ageGroups, categories] = await Promise.all([
-    getAgeGroups(),
-    getCategories()
+  // First get an age group, category, and access tiers
+  const [ageGroups, categories, accessTiers] = await Promise.all([
+    getAgeGroups(client),
+    getCategories(client),
+    getAccessTiers(client)
   ])
 
-  if (!ageGroups.length || !categories.length) {
-    throw new Error('No age groups or categories found')
+  if (!ageGroups.length || !categories.length || !accessTiers.length) {
+    throw new Error('Required data not found')
+  }
+
+  // Get tier IDs
+  const freeTierId = accessTiers.find(tier => tier.name === 'free')?.id
+  const premiumTierId = accessTiers.find(tier => tier.name === 'premium')?.id
+
+  if (!freeTierId || !premiumTierId) {
+    throw new Error('Access tiers not found')
   }
 
   const sampleContents = [
@@ -93,7 +125,8 @@ export async function insertSampleContent() {
       published: true,
       vimeo_id: '123456789',
       thumbnail_url: 'https://picsum.photos/seed/dance/400/300',
-      author_id: session.user.id
+      author_id: session.user.id,
+      access_tier_id: freeTierId
     },
     {
       title: 'Muzikos ritmo pamoka',
@@ -102,7 +135,8 @@ export async function insertSampleContent() {
       published: true,
       audio_url: 'https://example.com/sample-audio.mp3',
       thumbnail_url: 'https://picsum.photos/seed/music/400/300',
-      author_id: session.user.id
+      author_id: session.user.id,
+      access_tier_id: premiumTierId
     },
     {
       title: 'Kultūros pažinimo užduotys',
@@ -111,7 +145,8 @@ export async function insertSampleContent() {
       published: true,
       document_url: 'https://example.com/sample-doc.pdf',
       thumbnail_url: 'https://picsum.photos/seed/culture/400/300',
-      author_id: session.user.id
+      author_id: session.user.id,
+      access_tier_id: premiumTierId
     },
     {
       title: 'Ritmo žaidimas',
@@ -120,12 +155,13 @@ export async function insertSampleContent() {
       published: true,
       game_assets_url: 'https://example.com/game-assets.zip',
       thumbnail_url: 'https://picsum.photos/seed/game/400/300',
-      author_id: session.user.id
+      author_id: session.user.id,
+      access_tier_id: freeTierId
     }
   ]
 
   // Insert content items first
-  const { data: contentItems, error: contentError } = await supabase
+  const { data: contentItems, error: contentError } = await client
     .from('content_items')
     .insert(sampleContents)
     .select()
@@ -157,8 +193,8 @@ export async function insertSampleContent() {
 
   // Insert relationships
   const [{ error: ageGroupError }, { error: categoryError }] = await Promise.all([
-    supabase.from('content_age_groups').insert(ageGroupRelations),
-    supabase.from('content_categories').insert(categoryRelations)
+    client.from('content_age_groups').insert(ageGroupRelations),
+    client.from('content_categories').insert(categoryRelations)
   ])
 
   if (ageGroupError) throw ageGroupError
@@ -174,30 +210,30 @@ export async function createContent({
   ageGroups,
   categories,
   thumbnail,
-  vimeoId,
-  audioFile,
-  documentFile,
-  gameFiles,
-  published = false
+  contentBody,
+  accessTierId,
+  published = false,
+  adminClient
 }: {
-  type: 'video' | 'audio' | 'lesson_plan' | 'game'
+  type: ContentType | null
   title: string
   description: string
   ageGroups: string[]
   categories: string[]
   thumbnail: File | null
-  vimeoId?: string
-  audioFile?: File
-  documentFile?: File
-  gameFiles?: File[]
+  contentBody: string
+  accessTierId: string
   published?: boolean
+  adminClient?: SupabaseClient
 }) {
-  const { data: { session }, error: authError } = await supabase.auth.getSession()
+  const client = getClient(adminClient)
+  
+  const { data: { session }, error: authError } = await client.auth.getSession()
   if (!session?.user) {
     throw new Error('Must be authenticated to create content')
   }
 
-  // First upload the thumbnail if provided
+  // Upload the thumbnail if provided
   let thumbnailUrl = null
   if (thumbnail) {
     const { url, error } = await uploadMedia(thumbnail, 'thumbnail', { generateUniqueName: true })
@@ -205,40 +241,16 @@ export async function createContent({
     thumbnailUrl = url
   }
 
-  // Upload type-specific files
-  let audioUrl = null, documentUrl = null, gameAssetsUrl = null
-  
-  if (type === 'audio' && audioFile) {
-    const { url, error } = await uploadMedia(audioFile, 'audio', { generateUniqueName: true })
-    if (error) throw error
-    audioUrl = url
-  }
-
-  if (type === 'lesson_plan' && documentFile) {
-    const { url, error } = await uploadMedia(documentFile, 'document', { generateUniqueName: true })
-    if (error) throw error
-    documentUrl = url
-  }
-
-  if (type === 'game' && gameFiles?.length) {
-    // For now, just handle the first game file
-    const { url, error } = await uploadMedia(gameFiles[0], 'game', { generateUniqueName: true })
-    if (error) throw error
-    gameAssetsUrl = url
-  }
-
   // Insert the content item
-  const { data: contentItem, error: contentError } = await supabase
+  const { data: contentItem, error: contentError } = await client
     .from('content_items')
     .insert({
       title,
       description,
       type,
       thumbnail_url: thumbnailUrl,
-      vimeo_id: vimeoId,
-      audio_url: audioUrl,
-      document_url: documentUrl,
-      game_assets_url: gameAssetsUrl,
+      content_body: contentBody,
+      access_tier_id: accessTierId,
       published,
       author_id: session.user.id
     })
@@ -260,12 +272,23 @@ export async function createContent({
 
   // Insert relationships
   const [{ error: ageGroupError }, { error: categoryError }] = await Promise.all([
-    supabase.from('content_age_groups').insert(ageGroupRelations),
-    supabase.from('content_categories').insert(categoryRelations)
+    client.from('content_age_groups').insert(ageGroupRelations),
+    client.from('content_categories').insert(categoryRelations)
   ])
 
   if (ageGroupError) throw ageGroupError
   if (categoryError) throw categoryError
 
   return contentItem
+}
+
+export async function getAccessTiers(adminClient?: SupabaseClient) {
+  const client = getClient(adminClient)
+  const { data, error } = await client
+    .from('access_tiers')
+    .select('*')
+    .order('level')
+  
+  if (error) throw error
+  return data
 } 

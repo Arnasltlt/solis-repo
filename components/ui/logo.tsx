@@ -30,8 +30,8 @@ export function Logo({ size = 'medium' }: LogoProps) {
         <Image
           src="/images/logo.png"
           alt="Solis Logo"
-          width={width}
           height={height}
+          width={width}
           style={{ objectFit: 'contain' }}
           priority
         />
