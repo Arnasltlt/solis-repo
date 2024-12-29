@@ -1,6 +1,11 @@
 export const theme = {
   colors: {
-    primary: '#ffd300', // Brand yellow
+    primary: '#FFD300', // Brand yellow
+    secondary: {
+      navy: '#002D62',
+      mint: '#AEE4D4',
+      white: '#F5F5F5'
+    },
     black: '#000000',
     white: '#FFFFFF',
     yellow: {
@@ -9,14 +14,38 @@ export const theme = {
       200: '#fff5a3',
       300: '#fff17a',
       400: '#ffed52',
-      500: '#ffd300', // Brand yellow
+      500: '#FFD300', // Brand yellow
       600: '#e6be00',
       700: '#b39300',
       800: '#806900',
       900: '#4d4000',
     },
+    navy: {
+      50: '#e6edf4',
+      100: '#ccdbe9',
+      200: '#99b7d3',
+      300: '#6693bd',
+      400: '#336fa7',
+      500: '#002D62', // Brand navy
+      600: '#002455',
+      700: '#001b48',
+      800: '#00123b',
+      900: '#00092e',
+    },
+    mint: {
+      50: '#f4fbf9',
+      100: '#e9f7f3',
+      200: '#d3efe7',
+      300: '#AEE4D4', // Brand mint
+      400: '#8ed9c1',
+      500: '#6ecfae',
+      600: '#4ec49b',
+      700: '#3da981',
+      800: '#2c8e67',
+      900: '#1b734d',
+    },
     gray: {
-      50: '#F9FAFB',
+      50: '#F5F5F5', // Brand white/off-white
       100: '#F3F4F6',
       200: '#E5E7EB',
       300: '#D1D5DB',
@@ -29,7 +58,8 @@ export const theme = {
     }
   },
   fonts: {
-    base: 'Arial, Helvetica, sans-serif',
+    base: 'var(--font-roboto), Arial, sans-serif',
+    heading: 'var(--font-amatic), cursive',
   },
   spacing: {
     px: '1px',

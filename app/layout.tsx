@@ -2,6 +2,21 @@ import './globals.css'
 import { AuthProvider } from '@/lib/context/auth'
 import { Toaster } from 'react-hot-toast'
 import { theme } from '@/styles/theme'
+import { Amatic_SC, Roboto } from 'next/font/google'
+
+const amatic = Amatic_SC({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-amatic',
+})
+
+const roboto = Roboto({
+  weight: ['300'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto',
+})
 
 export const metadata = {
   title: 'Solis - Vaikų ugdymo platforma',
@@ -14,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="lt">
+    <html lang="lt" className={`${amatic.variable} ${roboto.variable}`}>
       <head>
         <style>
           {`
@@ -22,6 +37,11 @@ export default function RootLayout({
               font-family: ${theme.fonts.base};
               background-color: ${theme.colors.gray[50]};
               color: ${theme.colors.black};
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+              font-family: var(--font-amatic);
+              font-weight: 700;
             }
 
             /* Brand Button Styles */
@@ -66,16 +86,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           {children}
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: theme.colors.black,
-                color: theme.colors.white,
-                borderRadius: theme.borderRadius.md,
-              },
-            }}
-          />
+          <Toaster />
         </AuthProvider>
       </body>
     </html>

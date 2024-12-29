@@ -150,21 +150,13 @@ export default function ManageContent() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: theme.colors.gray[50] }}>
-      <header style={{ 
-        backgroundColor: theme.colors.white,
-        borderBottom: `1px solid ${theme.colors.gray[200]}`,
-        padding: theme.spacing[4]
-      }}>
+    <div className="min-h-screen bg-background">
+      <header className="bg-white border-b border-gray-200 py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-8">
               <Logo />
-              <h1 style={{ 
-                fontSize: '1.5rem',
-                fontWeight: 'bold',
-                color: theme.colors.black
-              }}>
+              <h1 className="font-heading text-3xl text-foreground">
                 Turinio valdymas
               </h1>
             </div>
@@ -185,14 +177,14 @@ export default function ManageContent() {
             <div className="card-brand p-6 space-y-8">
               {/* Card Information Section */}
               <div>
-                <h2 className="text-lg font-medium mb-6" style={{ color: theme.colors.black }}>
+                <h2 className="font-heading text-2xl mb-6 text-foreground">
                   Kortelės informacija
                 </h2>
-                
+
                 <div className="space-y-6">
                   {/* Content Type Selection - Simplified */}
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.gray[700] }}>
+                    <label className="block text-sm font-medium mb-2 text-foreground">
                       Turinio tipas
                     </label>
                     <select
@@ -200,7 +192,7 @@ export default function ManageContent() {
                       onChange={(e) => handleInputChange('type', e.target.value as ContentType)}
                       className="input-brand w-full"
                     >
-                      <option value="">Pasirinkite tip��</option>
+                      <option value="">Pasirinkite tipą</option>
                       <option value="video">Video</option>
                       <option value="audio">Daina</option>
                       <option value="lesson_plan">Pamoka</option>
@@ -210,7 +202,7 @@ export default function ManageContent() {
 
                   {/* Title */}
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.gray[700] }}>
+                    <label className="block text-sm font-medium mb-2 text-foreground">
                       Pavadinimas
                     </label>
                     <input
@@ -224,7 +216,7 @@ export default function ManageContent() {
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.gray[700] }}>
+                    <label className="block text-sm font-medium mb-2 text-foreground">
                       Trumpas aprašymas
                     </label>
                     <textarea
@@ -238,7 +230,7 @@ export default function ManageContent() {
 
                   {/* Thumbnail */}
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.gray[700] }}>
+                    <label className="block text-sm font-medium mb-2 text-foreground">
                       Paveikslėlis
                     </label>
                     <div className="flex items-center gap-4">
@@ -251,8 +243,8 @@ export default function ManageContent() {
                             file:mr-4 file:py-2 file:px-4
                             file:rounded-full file:border-0
                             file:text-sm file:font-semibold
-                            file:bg-yellow-50 file:text-yellow-700
-                            hover:file:bg-yellow-100"
+                            file:bg-primary/10 file:text-foreground
+                            hover:file:bg-primary/20"
                         />
                       </div>
                       {previewUrl && (
@@ -271,14 +263,14 @@ export default function ManageContent() {
 
               {/* Administration Section */}
               <div>
-                <h2 className="text-lg font-medium mb-6" style={{ color: theme.colors.black }}>
+                <h2 className="font-heading text-2xl mb-6 text-foreground">
                   Administravimas
                 </h2>
                 
                 <div className="space-y-6">
                   {/* Access Tier Selection */}
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.gray[700] }}>
+                    <label className="block text-sm font-medium mb-2 text-foreground">
                       Prieigos lygis
                     </label>
                     <div className="grid grid-cols-2 gap-3">
@@ -287,8 +279,8 @@ export default function ManageContent() {
                           key={tier.id}
                           className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
                             formData.accessTierId === tier.id
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50'
+                              ? 'border-primary bg-primary/10'
+                              : 'border-gray-200 hover:border-primary/20 hover:bg-primary/5'
                           }`}
                         >
                           <input
@@ -302,16 +294,16 @@ export default function ManageContent() {
                             <div
                               className={`w-5 h-5 flex items-center justify-center border-2 rounded-full transition-colors ${
                                 formData.accessTierId === tier.id
-                                  ? 'border-blue-500 bg-blue-500'
+                                  ? 'border-primary bg-primary'
                                   : 'border-gray-300'
                               }`}
                             >
                               {formData.accessTierId === tier.id && (
-                                <div className="w-2 h-2 rounded-full bg-white" />
+                                <div className="w-2 h-2 rounded-full bg-primary-foreground" />
                               )}
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-sm font-medium text-gray-900">
+                              <span className="text-sm font-medium text-foreground">
                                 {tier.name === 'free' ? 'Nemokamas' : 'Premium'}
                               </span>
                               {typeof tier.features === 'object' && tier.features !== null && 'description' in tier.features && (
@@ -328,7 +320,7 @@ export default function ManageContent() {
 
                   {/* Age Groups */}
                   <div>
-                    <label className="block text-sm font-medium mb-4" style={{ color: theme.colors.gray[700] }}>
+                    <label className="block text-sm font-medium mb-4 text-foreground">
                       Amžiaus grupės
                     </label>
                     <div className="grid grid-cols-2 gap-3">
@@ -337,8 +329,8 @@ export default function ManageContent() {
                           key={group.id}
                           className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
                             formData.ageGroups.includes(group.id)
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50'
+                              ? 'border-primary bg-primary/10'
+                              : 'border-gray-200 hover:border-primary/20 hover:bg-primary/5'
                           }`}
                         >
                           <input
@@ -356,12 +348,12 @@ export default function ManageContent() {
                             <div
                               className={`w-5 h-5 flex items-center justify-center border-2 rounded transition-colors ${
                                 formData.ageGroups.includes(group.id)
-                                  ? 'border-blue-500 bg-blue-500'
+                                  ? 'border-primary bg-primary'
                                   : 'border-gray-300'
                               }`}
                             >
                               {formData.ageGroups.includes(group.id) && (
-                                <svg className="w-3 h-3 text-white" viewBox="0 0 12 12">
+                                <svg className="w-3 h-3 text-primary-foreground" viewBox="0 0 12 12">
                                   <path
                                     d="M3.795 6.795L2.295 5.295C2.105 5.105 1.795 5.105 1.605 5.295C1.415 5.485 1.415 5.795 1.605 5.985L3.505 7.885C3.695 8.075 4.005 8.075 4.195 7.885L8.395 3.685C8.585 3.495 8.585 3.185 8.395 2.995C8.205 2.805 7.895 2.805 7.705 2.995L3.795 6.795Z"
                                     fill="currentColor"
@@ -370,7 +362,7 @@ export default function ManageContent() {
                               )}
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-sm font-medium text-gray-900">{group.range}</span>
+                              <span className="text-sm font-medium text-foreground">{group.range}</span>
                               {group.description && (
                                 <span className="text-xs text-gray-500">{group.description}</span>
                               )}
@@ -383,7 +375,7 @@ export default function ManageContent() {
 
                   {/* Categories */}
                   <div>
-                    <label className="block text-sm font-medium mb-4" style={{ color: theme.colors.gray[700] }}>
+                    <label className="block text-sm font-medium mb-4 text-foreground">
                       Kategorijos
                     </label>
                     <div className="grid grid-cols-2 gap-3">
@@ -392,8 +384,8 @@ export default function ManageContent() {
                           key={category.id}
                           className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
                             formData.categories.includes(category.id)
-                              ? 'border-green-500 bg-green-50'
-                              : 'border-gray-200 hover:border-green-200 hover:bg-green-50'
+                              ? 'border-secondary-mint bg-secondary-mint/10'
+                              : 'border-gray-200 hover:border-secondary-mint/20 hover:bg-secondary-mint/5'
                           }`}
                         >
                           <input
@@ -411,12 +403,12 @@ export default function ManageContent() {
                             <div
                               className={`w-5 h-5 flex items-center justify-center border-2 rounded transition-colors ${
                                 formData.categories.includes(category.id)
-                                  ? 'border-green-500 bg-green-500'
+                                  ? 'border-secondary-mint bg-secondary-mint'
                                   : 'border-gray-300'
                               }`}
                             >
                               {formData.categories.includes(category.id) && (
-                                <svg className="w-3 h-3 text-white" viewBox="0 0 12 12">
+                                <svg className="w-3 h-3 text-secondary-mint-foreground" viewBox="0 0 12 12">
                                   <path
                                     d="M3.795 6.795L2.295 5.295C2.105 5.105 1.795 5.105 1.605 5.295C1.415 5.485 1.415 5.795 1.605 5.985L3.505 7.885C3.695 8.075 4.005 8.075 4.195 7.885L8.395 3.685C8.585 3.495 8.585 3.185 8.395 2.995C8.205 2.805 7.895 2.805 7.705 2.995L3.795 6.795Z"
                                     fill="currentColor"
@@ -424,7 +416,7 @@ export default function ManageContent() {
                                 </svg>
                               )}
                             </div>
-                            <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                            <span className="text-sm font-medium text-foreground">{category.name}</span>
                           </div>
                         </label>
                       ))}
@@ -435,7 +427,7 @@ export default function ManageContent() {
 
               {/* Content Section */}
               <div>
-                <h2 className="text-lg font-medium mb-6" style={{ color: theme.colors.black }}>
+                <h2 className="font-heading text-2xl mb-6 text-foreground">
                   Turinys
                 </h2>
                 
@@ -460,7 +452,7 @@ export default function ManageContent() {
                 >
                   {isSaving ? (
                     <div className="flex items-center">
-                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin mr-2" />
+                      <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
                       Saugoma...
                     </div>
                   ) : (
@@ -474,7 +466,7 @@ export default function ManageContent() {
           {/* Preview Column */}
           <div className="w-96">
             <div className="card-brand p-6 sticky top-6">
-              <h2 className="text-lg font-medium mb-4" style={{ color: theme.colors.black }}>
+              <h2 className="font-heading text-2xl mb-4 text-foreground">
                 Peržiūra
               </h2>
               <div className="aspect-video bg-gray-100 rounded-lg mb-4 overflow-hidden">
@@ -485,16 +477,16 @@ export default function ManageContent() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center" style={{ color: theme.colors.gray[400] }}>
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
                     Nėra paveikslėlio
                   </div>
                 )}
               </div>
               <div className="space-y-2">
-                <h3 style={{ fontWeight: 500, color: theme.colors.black }}>
+                <h3 className="font-heading text-xl text-foreground">
                   {formData.title || 'Pavadinimas'}
                 </h3>
-                <p style={{ fontSize: '0.875rem', color: theme.colors.gray[500] }}>
+                <p className="text-sm text-gray-500">
                   {formData.description || 'Aprašymas'}
                 </p>
                 {formData.ageGroups.length > 0 && (
@@ -504,14 +496,7 @@ export default function ManageContent() {
                       return group ? (
                         <span
                           key={id}
-                          style={{
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 500,
-                            backgroundColor: `${theme.colors.primary}20`,
-                            color: theme.colors.black,
-                            borderRadius: theme.borderRadius.full
-                          }}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary-foreground"
                         >
                           {group.range}
                         </span>
@@ -526,14 +511,7 @@ export default function ManageContent() {
                       return category ? (
                         <span
                           key={id}
-                          style={{
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 500,
-                            backgroundColor: theme.colors.gray[100],
-                            color: theme.colors.gray[700],
-                            borderRadius: theme.borderRadius.full
-                          }}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-mint/20 text-secondary-mint-foreground"
                         >
                           {category.name}
                         </span>
@@ -543,7 +521,7 @@ export default function ManageContent() {
                 )}
                 {formData.type && (
                   <div className="mt-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-black">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary-foreground">
                       {formData.type === 'video' && 'Video'}
                       {formData.type === 'audio' && 'Daina'}
                       {formData.type === 'lesson_plan' && 'Pamoka'}

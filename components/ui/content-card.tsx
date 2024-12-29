@@ -47,7 +47,7 @@ export function ContentCard({ content }: ContentCardProps) {
       {/* Premium Badge */}
       {isPremium && (
         <div className="absolute top-3 right-3 z-20">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg">
             <SparklesIcon className="w-4 h-4" />
             Premium
           </div>
@@ -77,7 +77,7 @@ export function ContentCard({ content }: ContentCardProps) {
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+        <h3 className="font-heading text-2xl mb-2 flex items-center gap-2">
           {content.title}
           {isPremium && (
             <SparklesIcon className="w-4 h-4 text-yellow-500" />
@@ -92,7 +92,7 @@ export function ContentCard({ content }: ContentCardProps) {
             {content.age_groups.map((group: AgeGroup) => (
               <span
                 key={group.id}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-black"
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-yellow-100 text-black"
               >
                 {group.range}
               </span>
@@ -107,7 +107,7 @@ export function ContentCard({ content }: ContentCardProps) {
             {content.categories.map((category: Category) => (
               <span
                 key={category.id}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-900 text-white"
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-gray-900 text-white"
               >
                 {category.name}
               </span>
@@ -117,14 +117,14 @@ export function ContentCard({ content }: ContentCardProps) {
 
         {/* Footer: Type and Access Level */}
         <div className="mt-4 flex items-center justify-between">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-black">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-yellow-50 text-black">
             {content.type === 'video' && 'Video'}
             {content.type === 'audio' && 'Daina'}
             {content.type === 'lesson_plan' && 'Pamoka'}
             {content.type === 'game' && 'Žaidimas'}
           </span>
           {isPremium && (
-            <span className="text-xs text-gray-500 font-medium">
+            <span className="text-sm text-gray-500 font-medium">
               Premium turinys
             </span>
           )}

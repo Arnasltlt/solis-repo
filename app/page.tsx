@@ -82,9 +82,9 @@ export default function Home() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <Logo size="medium" />
@@ -92,7 +92,7 @@ export default function Home() {
               <input
                 type="search"
                 placeholder="Ieškoti..."
-                className="px-4 py-2 border rounded-lg"
+                className="input-brand"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -100,7 +100,7 @@ export default function Home() {
                 <>
                   <button
                     onClick={() => router.push('/manage/content')}
-                    className="px-4 py-2 bg-yellow-500 text-black font-medium rounded-lg hover:bg-yellow-600 transition-colors"
+                    className="btn-primary"
                   >
                     + Pridėti turinį
                   </button>
@@ -114,7 +114,7 @@ export default function Home() {
                           toast.error('Nepavyko atsijungti')
                         }
                       }}
-                      className="text-sm text-gray-600 hover:text-black flex items-center gap-2"
+                      className="text-sm text-gray-600 hover:text-foreground flex items-center gap-2"
                     >
                       <span>{user.email}</span>
                       <span className="text-xs">(Atsijungti)</span>
@@ -142,8 +142,8 @@ export default function Home() {
                   onClick={() => setShowPremiumOnly(!showPremiumOnly)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     showPremiumOnly
-                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-md'
-                      : 'bg-white text-gray-700 hover:bg-yellow-50'
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : 'bg-white text-foreground hover:bg-primary/10'
                   }`}
                 >
                   <SparklesIcon className="w-4 h-4" />
@@ -166,8 +166,8 @@ export default function Home() {
                     )}
                     className={`px-4 py-2 rounded-full text-sm font-medium ${
                       selectedAgeGroup === group.id
-                        ? 'bg-yellow-500 text-black'
-                        : 'bg-white text-gray-700 hover:bg-yellow-50'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-white text-foreground hover:bg-primary/10'
                     }`}
                   >
                     {group.range}
@@ -187,8 +187,8 @@ export default function Home() {
                     )}
                     className={`px-4 py-2 rounded-full text-sm font-medium ${
                       selectedCategories.includes(category.id)
-                        ? 'bg-black text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                        ? 'bg-secondary-navy text-secondary-navy-foreground'
+                        : 'bg-white text-foreground hover:bg-secondary-navy/10'
                     }`}
                   >
                     {category.name}
@@ -210,7 +210,7 @@ export default function Home() {
                   </span>
                   <button
                     onClick={refreshContent}
-                    className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    className="btn-accent"
                   >
                     Atnaujinti turinį
                   </button>

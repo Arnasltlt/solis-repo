@@ -4,14 +4,31 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 96%;
+    --foreground: 211 100% 19%;
+
+    --primary: 47 100% 50%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary-navy: 211 100% 19%;
+    --secondary-navy-foreground: 0 0% 100%;
+
+    --secondary-mint: 164 47% 79%;
+    --secondary-mint-foreground: 211 100% 19%;
   }
 }
 
 @layer components {
   .btn-primary {
     @apply bg-primary text-black font-bold py-2 px-4 rounded-md hover:opacity-90 transition-opacity;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-navy text-white font-bold py-2 px-4 rounded-md hover:opacity-90 transition-opacity;
+  }
+
+  .btn-accent {
+    @apply bg-secondary-mint text-secondary-navy font-bold py-2 px-4 rounded-md hover:opacity-90 transition-opacity;
   }
 
   .input-brand {

@@ -71,8 +71,8 @@ export default function TestPage() {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Supabase Connection Test</h1>
+    <div className="min-h-screen bg-background p-8">
+      <h1 className="font-heading text-3xl text-foreground mb-4">Supabase Connection Test</h1>
       
       {!user && (
         <div className="mb-8">
@@ -90,7 +90,7 @@ export default function TestPage() {
         <button
           onClick={runTests}
           disabled={isLoading}
-          className="bg-yellow-500 text-black px-4 py-2 rounded disabled:bg-gray-400"
+          className="btn-primary disabled:opacity-50"
         >
           {isLoading ? 'Running Tests...' : 'Run Tests'}
         </button>
@@ -98,7 +98,7 @@ export default function TestPage() {
         <button
           onClick={checkAuth}
           disabled={isLoading}
-          className="bg-black text-white px-4 py-2 rounded disabled:bg-gray-400"
+          className="btn-secondary disabled:opacity-50"
         >
           Check Auth State
         </button>
@@ -106,7 +106,7 @@ export default function TestPage() {
         <button
           onClick={addSampleContent}
           disabled={isLoading || !user}
-          className="bg-yellow-500 text-black px-4 py-2 rounded disabled:bg-gray-400"
+          className="btn-primary disabled:opacity-50"
         >
           Add Sample Content
         </button>
@@ -114,14 +114,14 @@ export default function TestPage() {
         <button
           onClick={viewCurrentContent}
           disabled={isLoading}
-          className="bg-black text-white px-4 py-2 rounded disabled:bg-gray-400"
+          className="btn-accent disabled:opacity-50"
         >
           View Current Content
         </button>
       </div>
       
       {results && (
-        <pre className="mt-4 p-4 bg-gray-100 rounded overflow-auto max-h-[600px]">
+        <pre className="mt-4 p-4 bg-white rounded-lg shadow-sm overflow-auto max-h-[600px] text-foreground">
           {results}
         </pre>
       )}
