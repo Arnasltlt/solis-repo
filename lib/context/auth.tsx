@@ -28,15 +28,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
       if (session?.user) {
+        // Get user metadata including subscription tier
+        const { data: userData } = await supabase
+          .from('users')
+          .select('subscription_tier_id')
+          .eq('id', session.user.id)
+          .single()
+
         // Get subscription tier details if user is logged in
         const { data: tierData } = await supabase
           .from('access_tiers')
           .select('*')
-          .eq('id', session.user.subscription_tier_id)
+          .eq('id', userData?.subscription_tier_id)
           .single()
 
         setUser({
           ...session.user,
+          subscription_tier_id: userData?.subscription_tier_id,
           subscription_tier: tierData || null
         })
       } else {
@@ -49,15 +57,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       if (session?.user) {
+        // Get user metadata including subscription tier
+        const { data: userData } = await supabase
+          .from('users')
+          .select('subscription_tier_id')
+          .eq('id', session.user.id)
+          .single()
+
         // Get subscription tier details if user is logged in
         const { data: tierData } = await supabase
           .from('access_tiers')
           .select('*')
-          .eq('id', session.user.subscription_tier_id)
+          .eq('id', userData?.subscription_tier_id)
           .single()
 
         setUser({
           ...session.user,
+          subscription_tier_id: userData?.subscription_tier_id,
           subscription_tier: tierData || null
         })
         // Refresh the page to ensure all server components are updated
