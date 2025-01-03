@@ -10,13 +10,13 @@ export interface Attachment {
 }
 
 export interface ContentFormData {
-  type: ContentType | null
+  type: ContentType
   title: string
-  description: string
+  description?: string
   ageGroups: string[]
   categories: string[]
   thumbnail: File | null
-  contentBody: string
+  contentBody?: string
   accessTierId: string
   published: boolean
 } 

@@ -215,13 +215,13 @@ export async function createContent({
   published = false,
   adminClient
 }: {
-  type: ContentType | null
+  type: ContentType
   title: string
-  description: string
+  description?: string
   ageGroups: string[]
   categories: string[]
   thumbnail: File | null
-  contentBody: string
+  contentBody?: string
   accessTierId: string
   published?: boolean
   adminClient?: SupabaseClient
@@ -246,10 +246,10 @@ export async function createContent({
     .from('content_items')
     .insert({
       title,
-      description,
+      description: description || '',
       type,
       thumbnail_url: thumbnailUrl,
-      content_body: contentBody,
+      content_body: contentBody || '',
       access_tier_id: accessTierId,
       published,
       author_id: session.user.id
