@@ -1,6 +1,6 @@
 import './globals.css'
 import { AuthProvider } from '@/lib/context/auth'
-import { Toaster } from 'react-hot-toast'
+import { Toaster } from '@/components/ui/toaster'
 import { theme } from '@/styles/theme'
 import { Amatic_SC, Roboto } from 'next/font/google'
 

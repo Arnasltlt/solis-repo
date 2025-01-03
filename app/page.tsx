@@ -2,16 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { getAgeGroups, getCategories } from '@/lib/services/content'
-import { ContentCard } from '@/components/ui/content-card'
 import { useContent } from '@/lib/hooks/useContent'
 import { handleError } from '@/lib/utils/error'
 import { useAuth } from '@/lib/context/auth'
-import { AuthForm } from '@/components/auth/auth-form'
 import { useRouter } from 'next/navigation'
 import type { AgeGroup, Category } from '@/lib/types/database'
-import { toast } from 'react-hot-toast'
+import { toast } from '@/hooks/use-toast'
 import { Logo } from '@/components/ui/logo'
-import { SparklesIcon } from '@heroicons/react/24/solid'
+import { Button } from '@/components/ui/button'
+import { ContentLayout } from '@/components/content/content-layout'
 
 export default function Home() {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string | undefined>()
@@ -76,11 +75,6 @@ export default function Home() {
 
   const isLoading = isInitializing || isLoadingContent || authLoading
 
-  // Filter content based on premium status
-  const filteredContent = content.filter(item => 
-    !showPremiumOnly || (item.access_tier?.name === 'premium')
-  )
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -96,14 +90,14 @@ export default function Home() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              {user && (
+              {user ? (
                 <>
-                  <button
+                  <Button
                     onClick={() => router.push('/manage/content')}
                     className="btn-primary"
                   >
                     + Pridėti turinį
-                  </button>
+                  </Button>
                   <div className="relative group">
                     <button
                       onClick={async () => {
@@ -111,7 +105,11 @@ export default function Home() {
                           await signOut()
                           router.push('/')
                         } catch (error) {
-                          toast.error('Nepavyko atsijungti')
+                          toast({
+                            variant: "destructive",
+                            title: "Error",
+                            description: "Nepavyko atsijungti"
+                          })
                         }
                       }}
                       className="text-sm text-gray-600 hover:text-foreground flex items-center gap-2"
@@ -121,126 +119,48 @@ export default function Home() {
                     </button>
                   </div>
                 </>
+              ) : (
+                <Button
+                  onClick={() => router.push('/login')}
+                  className="btn-primary"
+                >
+                  Prisijungti
+                </Button>
               )}
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {!user ? (
-          <div className="max-w-md mx-auto">
-            <AuthForm />
-          </div>
-        ) : (
-          <>
-            {/* Filters */}
-            <div className="mb-8 space-y-4">
-              {/* Premium Filter */}
-              <div className="flex items-center gap-4 mb-4">
-                <button
-                  onClick={() => setShowPremiumOnly(!showPremiumOnly)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    showPremiumOnly
-                      ? 'bg-primary text-primary-foreground shadow-md'
-                      : 'bg-white text-foreground hover:bg-primary/10'
-                  }`}
-                >
-                  <SparklesIcon className="w-4 h-4" />
-                  Premium turinys
-                </button>
-                {showPremiumOnly && (
-                  <span className="text-sm text-gray-500">
-                    Rodomi tik premium turinio elementai
-                  </span>
-                )}
-              </div>
-
-              {/* Age Groups */}
-              <div className="flex flex-wrap gap-2">
-                {ageGroups.map((group) => (
-                  <button
-                    key={group.id}
-                    onClick={() => setSelectedAgeGroup(
-                      selectedAgeGroup === group.id ? undefined : group.id
-                    )}
-                    className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      selectedAgeGroup === group.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-white text-foreground hover:bg-primary/10'
-                    }`}
-                  >
-                    {group.range}
-                  </button>
-                ))}
-              </div>
-
-              {/* Categories */}
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategories(prev => 
-                      prev.includes(category.id)
-                        ? prev.filter(id => id !== category.id)
-                        : [...prev, category.id]
-                    )}
-                    className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      selectedCategories.includes(category.id)
-                        ? 'bg-secondary-navy text-secondary-navy-foreground'
-                        : 'bg-white text-foreground hover:bg-secondary-navy/10'
-                    }`}
-                  >
-                    {category.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Content Grid */}
-            {isLoading ? (
-              <div className="text-center py-12">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-              </div>
-            ) : filteredContent.length > 0 ? (
-              <>
-                <div className="mb-4 flex justify-between items-center">
-                  <span className="text-sm text-gray-500">
-                    Rasta: {filteredContent.length} {showPremiumOnly ? 'premium' : ''} elementų
-                  </span>
-                  <button
-                    onClick={refreshContent}
-                    className="btn-accent"
-                  >
-                    Atnaujinti turinį
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredContent.map((item) => (
-                    <ContentCard key={item.id} content={item} />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500">
-                  {showPremiumOnly 
-                    ? 'Nerasta premium turinio pagal pasirinktus filtrus'
-                    : 'Nėra turinio pagal pasirinktus filtrus'}
-                </p>
-              </div>
-            )}
-
-            {contentError && (
-              <div className="text-center py-4">
-                <p className="text-red-600">
-                  Klaida kraunant turinį: {contentError.message}
-                </p>
-              </div>
-            )}
-          </>
-        )}
+      <main className="max-w-7xl mx-auto">
+        <ContentLayout 
+          content={content}
+          ageGroups={ageGroups}
+          categories={categories}
+          selectedAgeGroup={selectedAgeGroup}
+          selectedCategories={selectedCategories}
+          showPremiumOnly={showPremiumOnly}
+          isLoading={isLoading}
+          onAgeGroupSelect={setSelectedAgeGroup}
+          onCategorySelect={(id) => {
+            setSelectedCategories(prev => 
+              prev.includes(id)
+                ? prev.filter(catId => catId !== id)
+                : [...prev, id]
+            )
+          }}
+          onPremiumToggle={() => setShowPremiumOnly(!showPremiumOnly)}
+          onRefresh={refreshContent}
+        />
       </main>
+
+      {contentError && (
+        <div className="text-center py-4">
+          <p className="text-red-600">
+            Klaida kraunant turinį: {contentError.message}
+          </p>
+        </div>
+      )}
     </div>
   )
 }

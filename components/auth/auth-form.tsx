@@ -2,86 +2,108 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/lib/context/auth'
-import { theme } from '@/styles/theme'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 
 export function AuthForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const { signIn, signUp } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
+    setIsLoading(true)
 
     try {
       if (isSignUp) {
         await signUp(email, password)
+        toast({
+          title: "Account created",
+          description: "Please check your email to verify your account.",
+        })
       } else {
         await signIn(email, password)
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully signed in.",
+        })
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err instanceof Error ? err.message : 'An error occurred',
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-black">
-        {isSignUp ? 'Create Account' : 'Sign In'}
-      </h2>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-black bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-        >
-          {isSignUp ? 'Sign Up' : 'Sign In'}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setIsSignUp(!isSignUp)}
-          className="w-full text-sm text-gray-600 hover:text-black"
-        >
-          {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
-        </button>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>{isSignUp ? 'Create Account' : 'Sign In'}</CardTitle>
+        <CardDescription>
+          {isSignUp 
+            ? 'Create a new account to get started' 
+            : 'Sign in to your account to continue'}
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-2">
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading 
+              ? 'Loading...' 
+              : isSignUp 
+                ? 'Create Account' 
+                : 'Sign In'
+            }
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => setIsSignUp(!isSignUp)}
+          >
+            {isSignUp 
+              ? 'Already have an account? Sign in' 
+              : 'Need an account? Sign up'
+            }
+          </Button>
+        </CardFooter>
       </form>
-    </div>
+    </Card>
   )
 } 
