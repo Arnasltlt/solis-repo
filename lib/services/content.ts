@@ -30,6 +30,17 @@ export async function getCategories(adminClient?: SupabaseClient) {
   return data
 }
 
+export async function getAccessTiers(adminClient?: SupabaseClient) {
+  const client = getClient(adminClient)
+  const { data, error } = await client
+    .from('access_tiers')
+    .select('*')
+    .order('level')
+  
+  if (error) throw error
+  return data
+}
+
 export async function getContentItems({
   ageGroup,
   categories,
@@ -46,23 +57,15 @@ export async function getContentItems({
     .from('content_items')
     .select(`
       *,
+      access_tier:access_tiers!content_items_access_tier_id_fkey(*),
       age_groups:content_age_groups(
         age_group:age_groups(*)
       ),
       categories:content_categories(
         category:categories(*)
-      ),
-      access_tier:access_tiers(*)
+      )
     `)
     .eq('published', true)
-
-  if (ageGroup) {
-    query = query.eq('content_age_groups.age_group_id', ageGroup)
-  }
-
-  if (categories && categories.length > 0) {
-    query = query.in('content_categories.category_id', categories)
-  }
 
   if (searchQuery) {
     query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
@@ -77,14 +80,17 @@ export async function getContentItems({
     throw error
   }
 
-  console.log('Content fetch successful:', data) // Debug log
-
   // Transform the data to match the expected format
   return data.map(item => ({
     ...item,
-    age_groups: item.age_groups.map((ag: any) => ag.age_group),
-    categories: item.categories.map((cc: any) => cc.category),
-    access_tier: item.access_tier // Don't need to access [0] since it's already a single object
+    age_groups: item.age_groups?.map((ag: any) => ag.age_group) || [],
+    categories: item.categories?.map((cc: any) => cc.category) || [],
+    access_tier: {
+      id: item.access_tier_id,
+      name: item.access_tier?.name || 'free',
+      level: item.access_tier?.level || 0,
+      features: item.access_tier?.features || {}
+    }
   }))
 }
 
@@ -110,8 +116,8 @@ export async function insertSampleContent(adminClient?: SupabaseClient) {
   }
 
   // Get tier IDs
-  const freeTierId = accessTiers.find(tier => tier.name === 'free')?.id
-  const premiumTierId = accessTiers.find(tier => tier.name === 'premium')?.id
+  const freeTierId = accessTiers.find((tier: { name: string }) => tier.name === 'free')?.id
+  const premiumTierId = accessTiers.find((tier: { name: string }) => tier.name === 'premium')?.id
 
   if (!freeTierId || !premiumTierId) {
     throw new Error('Access tiers not found')
@@ -280,15 +286,4 @@ export async function createContent({
   if (categoryError) throw categoryError
 
   return contentItem
-}
-
-export async function getAccessTiers(adminClient?: SupabaseClient) {
-  const client = getClient(adminClient)
-  const { data, error } = await client
-    .from('access_tiers')
-    .select('*')
-    .order('level')
-  
-  if (error) throw error
-  return data
 } 
