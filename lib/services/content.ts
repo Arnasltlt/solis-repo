@@ -71,12 +71,10 @@ export async function getContentItems({
     query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
   }
 
-  console.log('Fetching content with query:', query) // Debug log
-
   const { data, error } = await query.order('created_at', { ascending: false })
   
   if (error) {
-    console.error('Error fetching content:', error) // Debug log
+    console.error('Error fetching content:', error)
     throw error
   }
 
@@ -242,12 +240,31 @@ export async function createContent({
   // Upload the thumbnail if provided
   let thumbnailUrl = null
   if (thumbnail) {
+    console.log('Uploading thumbnail:', {
+      name: thumbnail.name,
+      size: thumbnail.size,
+      type: thumbnail.type
+    })
     const { url, error } = await uploadMedia(thumbnail, 'thumbnail', { generateUniqueName: true })
-    if (error) throw error
+    if (error) {
+      console.error('Error uploading thumbnail:', error)
+      throw error
+    }
+    console.log('Thumbnail uploaded successfully:', url)
     thumbnailUrl = url
+  } else {
+    console.log('No thumbnail provided')
   }
 
   // Insert the content item
+  console.log('Creating content with data:', {
+    title,
+    type,
+    thumbnail_url: thumbnailUrl,
+    access_tier_id: accessTierId,
+    published
+  })
+  
   const { data: contentItem, error: contentError } = await client
     .from('content_items')
     .insert({

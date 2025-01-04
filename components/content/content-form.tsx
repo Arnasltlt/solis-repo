@@ -39,11 +39,10 @@ const formSchema = z.object({
   }),
   contentBody: z.string().optional(),
   published: z.boolean().default(true),
+  thumbnail: z.instanceof(File, { message: "Įkelkite paveikslėlį" })
 })
 
-type FormData = z.infer<typeof formSchema> & {
-  thumbnail: File | null
-}
+type FormData = z.infer<typeof formSchema>
 
 interface ContentFormProps {
   ageGroups: AgeGroup[]
@@ -60,7 +59,6 @@ export function ContentForm({
   onSubmit,
   isLoading = false
 }: ContentFormProps) {
-  const [thumbnail, setThumbnail] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const form = useForm<FormData>({
@@ -70,7 +68,6 @@ export function ContentForm({
       ageGroups: [],
       categories: [],
       accessTierId: accessTiers.find(tier => tier.name === 'free')?.id || '',
-      thumbnail: null,
       contentBody: '',
     },
   })
@@ -78,7 +75,6 @@ export function ContentForm({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setThumbnail(file)
       form.setValue('thumbnail', file)
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
@@ -87,15 +83,16 @@ export function ContentForm({
 
   const handleSubmit = async (values: FormData) => {
     try {
+      console.log('Form values before submit:', values)
       await onSubmit(values)
       form.reset()
-      setThumbnail(null)
       setPreviewUrl(null)
       toast({
         title: "Sėkmingai išsaugota",
         description: "Turinys buvo sėkmingai sukurtas",
       })
     } catch (error) {
+      console.error('Form submission error:', error)
       toast({
         variant: "destructive",
         title: "Klaida",
@@ -171,28 +168,35 @@ export function ContentForm({
               )}
             />
 
-            <FormItem>
-              <FormLabel>Paveikslėlis</FormLabel>
-              <FormControl>
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-foreground hover:file:bg-primary/20"
-                  />
-                  {previewUrl && (
-                    <div className="h-20 aspect-square rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
+            <FormField
+              control={form.control}
+              name="thumbnail"
+              render={({ field: { onChange, value, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Paveikslėlis</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-foreground hover:file:bg-primary/20"
                       />
+                      {previewUrl && (
+                        <div className="h-20 aspect-square rounded-lg overflow-hidden flex-shrink-0">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </FormControl>
-            </FormItem>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 
@@ -213,33 +217,35 @@ export function ContentForm({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                       className="grid grid-cols-2 gap-4"
                     >
-                      {accessTiers.map((tier) => (
-                        <FormItem key={tier.id}>
-                          <FormLabel className="[&:has([data-state=checked])>div]:border-primary">
-                            <FormControl>
-                              <RadioGroupItem value={tier.id} className="sr-only" />
-                            </FormControl>
-                            <div className="flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-primary/5">
-                              {tier.name === 'premium' && (
-                                <SparklesIcon className="w-4 h-4 text-yellow-500" />
-                              )}
-                              <div>
-                                <div className="font-medium">
-                                  {tier.name === 'free' ? 'Nemokamas' : 'Premium'}
-                                </div>
-                                {typeof tier.features === 'object' && tier.features !== null && 'description' in tier.features && (
-                                  <div className="text-sm text-muted-foreground">
-                                    {String(tier.features.description)}
-                                  </div>
+                      {accessTiers
+                        .filter(tier => ['free', 'premium'].includes(tier.name))
+                        .sort((a, b) => (a.name === 'free' ? -1 : 1))
+                        .map((tier) => (
+                          <FormItem key={tier.id}>
+                            <FormLabel className="cursor-pointer">
+                              <FormControl>
+                                <RadioGroupItem value={tier.id} className="sr-only" />
+                              </FormControl>
+                              <div className={`
+                                flex items-center gap-3 p-4 border-2 rounded-lg
+                                transition-colors
+                                ${field.value === tier.id ? 'border-primary bg-primary/5' : 'hover:bg-primary/5'}
+                              `}>
+                                {tier.name === 'premium' && (
+                                  <SparklesIcon className="w-4 h-4 text-yellow-500" />
                                 )}
+                                <div>
+                                  <div className="font-medium">
+                                    {tier.name === 'free' ? 'Nemokamas' : 'Premium'}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </FormLabel>
-                        </FormItem>
-                      ))}
+                            </FormLabel>
+                          </FormItem>
+                        ))}
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />

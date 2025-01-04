@@ -1,7 +1,11 @@
+import { useEffect } from 'react'
 import type { ContentItem } from '@/lib/types/database'
 import type { User } from '@/lib/types/auth'
 import { useAuth } from '@/lib/context/auth'
 import { LockClosedIcon, SparklesIcon } from '@heroicons/react/24/solid'
+
+// Keep track of already logged content IDs
+const loggedMissingThumbnails = new Set<string>()
 
 interface ContentCardProps {
   content: ContentItem
@@ -19,28 +23,21 @@ interface Category {
 
 export function ContentCard({ content }: ContentCardProps) {
   const { user } = useAuth()
-  
-  // Debug logs
-  console.log('Content Item:', {
-    id: content.id,
-    title: content.title,
-    access_tier_id: content.access_tier_id,
-    access_tier: content.access_tier,
-    raw_content: content
-  })
+
+  useEffect(() => {
+    // Only log if thumbnail is missing and hasn't been logged before
+    if (!content.thumbnail_url && !loggedMissingThumbnails.has(content.id)) {
+      console.log('Content missing thumbnail:', {
+        id: content.id,
+        title: content.title
+      })
+      loggedMissingThumbnails.add(content.id)
+    }
+  }, [content.id, content.thumbnail_url, content.title])
 
   const isPremium = content.access_tier?.name === 'premium'
   const isUserPremium = user?.subscription_tier?.name === 'premium'
   const isLocked = isPremium && !isUserPremium
-
-  // Debug logs
-  console.log('Premium Status:', {
-    isPremium,
-    isUserPremium,
-    isLocked,
-    user_subscription: user?.subscription_tier,
-    access_tier_name: content.access_tier?.name
-  })
 
   return (
     <div className={`bg-white rounded-lg shadow-md overflow-hidden relative group ${isLocked ? 'opacity-90' : ''}`}>

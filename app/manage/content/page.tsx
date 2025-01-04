@@ -53,6 +53,7 @@ export default function ManageContent() {
         ...data,
         published: true
       })
+      router.refresh()
       router.push('/')
     } finally {
       setIsSaving(false)

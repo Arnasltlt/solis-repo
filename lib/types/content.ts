@@ -15,7 +15,7 @@ export interface ContentFormData {
   description?: string
   ageGroups: string[]
   categories: string[]
-  thumbnail: File | null
+  thumbnail?: File | null
   contentBody?: string
   accessTierId: string
   published: boolean

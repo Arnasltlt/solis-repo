@@ -28,18 +28,33 @@ export async function uploadMedia(
       ? `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
       : file.name
 
+    console.log('Starting upload to storage:', {
+      bucketName,
+      fileName,
+      fileSize: file.size,
+      fileType: file.type
+    })
+
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(fileName, file)
 
-    if (error) throw error
+    if (error) {
+      console.error('Storage upload error:', error)
+      throw error
+    }
+
+    console.log('File uploaded successfully:', data)
 
     const { data: { publicUrl } } = supabase.storage
       .from(bucketName)
       .getPublicUrl(fileName)
 
+    console.log('Generated public URL:', publicUrl)
+
     return { url: publicUrl, error: null }
   } catch (error) {
+    console.error('Upload media error:', error)
     return { 
       url: '', 
       error: error instanceof Error ? error : new Error('Unknown error during upload') 
