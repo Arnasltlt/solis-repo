@@ -6,3 +6,7 @@ ADD COLUMN content_body TEXT;
 DROP POLICY IF EXISTS "Enable read access for all users" ON content_items;
 CREATE POLICY "Enable read access for all users" ON content_items
     FOR SELECT USING (published = true); 
+
+-- Add policy for authors to edit their own content
+CREATE POLICY "Authors can update their own content" ON content_items
+    FOR UPDATE USING (auth.uid() = author_id); 
