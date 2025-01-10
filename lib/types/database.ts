@@ -28,6 +28,7 @@ export interface ContentItem {
   created_at: string
   title: string
   description: string
+  slug: string
   type: 'video' | 'audio' | 'lesson_plan' | 'game'
   thumbnail_url: string | null
   vimeo_id: string | null

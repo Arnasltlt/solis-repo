@@ -3,6 +3,7 @@ import type { ContentItem } from '@/lib/types/database'
 import type { User } from '@/lib/types/auth'
 import { useAuth } from '@/lib/context/auth'
 import { LockClosedIcon, SparklesIcon } from '@heroicons/react/24/solid'
+import { useRouter } from 'next/navigation'
 
 // Keep track of already logged content IDs
 const loggedMissingThumbnails = new Set<string>()
@@ -23,6 +24,7 @@ interface Category {
 
 export function ContentCard({ content }: ContentCardProps) {
   const { user } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     // Only log if thumbnail is missing and hasn't been logged before
@@ -40,7 +42,10 @@ export function ContentCard({ content }: ContentCardProps) {
   const isLocked = isPremium && !isUserPremium
 
   return (
-    <div className={`bg-white rounded-lg shadow-md overflow-hidden relative group ${isLocked ? 'opacity-90' : ''}`}>
+    <div 
+      onClick={() => router.push(`/medziaga/${content.slug}`)}
+      className={`bg-white rounded-lg shadow-md overflow-hidden relative group ${isLocked ? 'opacity-90' : ''} cursor-pointer hover:shadow-xl transition-shadow duration-200`}
+    >
       {/* Premium Badge */}
       {isPremium && (
         <div className="absolute top-3 right-3 z-20">

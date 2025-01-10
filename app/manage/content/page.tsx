@@ -51,6 +51,7 @@ export default function ManageContent() {
     try {
       await createContent({
         ...data,
+        thumbnail: data.thumbnail || null,
         published: true
       })
       router.refresh()

@@ -303,4 +303,76 @@ export async function createContent({
   if (categoryError) throw categoryError
 
   return contentItem
+}
+
+export async function getContentById(id: string, adminClient?: SupabaseClient) {
+  const client = getClient(adminClient)
+  const { data, error } = await client
+    .from('content_items')
+    .select(`
+      *,
+      access_tier:access_tiers!content_items_access_tier_id_fkey(*),
+      age_groups:content_age_groups(
+        age_group:age_groups(*)
+      ),
+      categories:content_categories(
+        category:categories(*)
+      )
+    `)
+    .eq('id', id)
+    .single()
+  
+  if (error) {
+    console.error('Error fetching content:', error)
+    throw error
+  }
+
+  // Transform the data to match the expected format
+  return {
+    ...data,
+    age_groups: data.age_groups?.map((ag: any) => ag.age_group) || [],
+    categories: data.categories?.map((cc: any) => cc.category) || [],
+    access_tier: {
+      id: data.access_tier_id,
+      name: data.access_tier?.name || 'free',
+      level: data.access_tier?.level || 0,
+      features: data.access_tier?.features || {}
+    }
+  }
+}
+
+export async function getContentBySlug(slug: string, adminClient?: SupabaseClient) {
+  const client = getClient(adminClient)
+  const { data, error } = await client
+    .from('content_items')
+    .select(`
+      *,
+      access_tier:access_tiers!content_items_access_tier_id_fkey(*),
+      age_groups:content_age_groups(
+        age_group:age_groups(*)
+      ),
+      categories:content_categories(
+        category:categories(*)
+      )
+    `)
+    .eq('slug', slug)
+    .single()
+  
+  if (error) {
+    console.error('Error fetching content:', error)
+    throw error
+  }
+
+  // Transform the data to match the expected format
+  return {
+    ...data,
+    age_groups: data.age_groups?.map((ag: any) => ag.age_group) || [],
+    categories: data.categories?.map((cc: any) => cc.category) || [],
+    access_tier: {
+      id: data.access_tier_id,
+      name: data.access_tier?.name || 'free',
+      level: data.access_tier?.level || 0,
+      features: data.access_tier?.features || {}
+    }
+  }
 } 
