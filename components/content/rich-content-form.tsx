@@ -20,11 +20,13 @@ const Editor = dynamic(() => import('../editor/editor-wrapper').then(mod => mod.
 interface RichContentFormProps {
   contentBody: string
   onChange: (field: string, value: any) => void
+  readOnly?: boolean
 }
 
 export function RichContentForm({ 
   contentBody,
-  onChange 
+  onChange,
+  readOnly = false
 }: RichContentFormProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -36,24 +38,27 @@ export function RichContentForm({
     <div className={cn("relative", isFullscreen && "fixed inset-0 z-50 bg-background")}>
       <div className="mb-4 space-y-4">
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Content Body</Label>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-            >
-              {isFullscreen ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="flex items-center justify-between">
+              <Label>Content Body</Label>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          )}
           <Editor
             holder="editorjs"
             initialData={contentBody}
             onChange={handleEditorChange}
+            readOnly={readOnly}
           />
         </div>
       </div>

@@ -100,9 +100,10 @@ interface EditorProps {
   onChange: (data: any) => void
   initialData?: string
   holder: string
+  readOnly?: boolean
 }
 
-export function Editor({ onChange, initialData, holder }: EditorProps) {
+export function Editor({ onChange, initialData, holder, readOnly = false }: EditorProps) {
   const editorRef = useRef<EditorJS>()
 
   useEffect(() => {
@@ -116,8 +117,9 @@ export function Editor({ onChange, initialData, holder }: EditorProps) {
           onChange(data)
         },
         data: initialData ? JSON.parse(initialData) : undefined,
-        inlineToolbar: ['bold', 'italic', 'marker', 'inlineCode', 'link'],
-        defaultBlock: 'paragraph'
+        inlineToolbar: readOnly ? false : ['bold', 'italic', 'marker', 'inlineCode', 'link'],
+        defaultBlock: 'paragraph',
+        readOnly: readOnly
       })
 
       editorRef.current = editor
@@ -130,5 +132,10 @@ export function Editor({ onChange, initialData, holder }: EditorProps) {
     }
   }, [])
 
-  return <div id={holder} className="min-h-[200px] rounded-md border" />
+  return (
+    <div 
+      id={holder} 
+      className={`min-h-[200px] rounded-md border ${readOnly ? 'prose max-w-none' : ''}`}
+    />
+  )
 } 

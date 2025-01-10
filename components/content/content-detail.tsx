@@ -6,6 +6,7 @@ import { Logo } from '@/components/ui/logo'
 import { Button } from '@/components/ui/button'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/react/24/solid'
 import type { ContentItem } from '@/lib/types/database'
+import { RichContentForm } from './rich-content-form'
 
 interface ContentDetailProps {
   content: ContentItem
@@ -18,6 +19,16 @@ export function ContentDetail({ content }: ContentDetailProps) {
   const isPremium = content.access_tier?.name === 'premium'
   const isUserPremium = user?.subscription_tier?.name === 'premium'
   const isLocked = isPremium && !isUserPremium
+
+  // Parse content body if it exists
+  const contentData = content.content_body ? (() => {
+    try {
+      return JSON.parse(content.content_body)
+    } catch {
+      console.error('Failed to parse content body')
+      return null
+    }
+  })() : null
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,6 +90,21 @@ export function ContentDetail({ content }: ContentDetailProps) {
 
             {/* Description */}
             <p className="text-gray-600 text-lg mb-6">{content.description}</p>
+
+            {/* Content Body */}
+            {!isLocked && (
+              <div className="mb-8">
+                {contentData ? (
+                  <RichContentForm
+                    contentBody={content.content_body || ''}
+                    onChange={() => {}}
+                    readOnly
+                  />
+                ) : (
+                  <p className="text-gray-500 italic">No content available.</p>
+                )}
+              </div>
+            )}
 
             {/* Age Groups */}
             <div className="mb-6">

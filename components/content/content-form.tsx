@@ -37,7 +37,17 @@ const formSchema = z.object({
   accessTierId: z.string({
     required_error: "Pasirinkite prieigos lygį",
   }),
-  contentBody: z.string().optional(),
+  contentBody: z.string().min(1, "Įveskite turinį").refine(
+    (val) => {
+      try {
+        const parsed = JSON.parse(val)
+        return parsed && typeof parsed === 'object'
+      } catch {
+        return false
+      }
+    },
+    "Neteisingas turinio formatas"
+  ),
   published: z.boolean().default(true),
   thumbnail: z.instanceof(File, { message: "Įkelkite paveikslėlį" })
 })
@@ -354,7 +364,7 @@ export function ContentForm({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mt-6">
           <CardHeader>
             <CardTitle>Turinys</CardTitle>
             <CardDescription>
@@ -367,10 +377,12 @@ export function ContentForm({
               name="contentBody"
               render={({ field }) => (
                 <FormItem>
-                  <RichContentForm
-                    contentBody={field.value || ''}
-                    onChange={(_, value) => field.onChange(value)}
-                  />
+                  <FormControl>
+                    <RichContentForm
+                      contentBody={field.value || ''}
+                      onChange={(_, value) => field.onChange(value)}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

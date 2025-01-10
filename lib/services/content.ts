@@ -240,39 +240,20 @@ export async function createContent({
   // Upload the thumbnail if provided
   let thumbnailUrl = null
   if (thumbnail) {
-    console.log('Uploading thumbnail:', {
-      name: thumbnail.name,
-      size: thumbnail.size,
-      type: thumbnail.type
-    })
     const { url, error } = await uploadMedia(thumbnail, 'thumbnail', { generateUniqueName: true })
-    if (error) {
-      console.error('Error uploading thumbnail:', error)
-      throw error
-    }
-    console.log('Thumbnail uploaded successfully:', url)
+    if (error) throw error
     thumbnailUrl = url
-  } else {
-    console.log('No thumbnail provided')
   }
 
-  // Insert the content item
-  console.log('Creating content with data:', {
-    title,
-    type,
-    thumbnail_url: thumbnailUrl,
-    access_tier_id: accessTierId,
-    published
-  })
-  
-  const { data: contentItem, error: contentError } = await client
+  // Create the content item
+  const { data: content, error: contentError } = await client
     .from('content_items')
     .insert({
-      title,
-      description: description || '',
       type,
+      title,
+      description,
       thumbnail_url: thumbnailUrl,
-      content_body: contentBody || '',
+      content_body: contentBody,
       access_tier_id: accessTierId,
       published,
       author_id: session.user.id
@@ -282,27 +263,31 @@ export async function createContent({
 
   if (contentError) throw contentError
 
-  // Prepare age group and category relationships
-  const ageGroupRelations = ageGroups.map(ageGroupId => ({
-    content_id: contentItem.id,
-    age_group_id: ageGroupId
+  // Create age group relationships
+  const ageGroupRelations = ageGroups.map(groupId => ({
+    content_id: content.id,
+    age_group_id: groupId
   }))
 
+  const { error: ageGroupError } = await client
+    .from('content_age_groups')
+    .insert(ageGroupRelations)
+
+  if (ageGroupError) throw ageGroupError
+
+  // Create category relationships
   const categoryRelations = categories.map(categoryId => ({
-    content_id: contentItem.id,
+    content_id: content.id,
     category_id: categoryId
   }))
 
-  // Insert relationships
-  const [{ error: ageGroupError }, { error: categoryError }] = await Promise.all([
-    client.from('content_age_groups').insert(ageGroupRelations),
-    client.from('content_categories').insert(categoryRelations)
-  ])
+  const { error: categoryError } = await client
+    .from('content_categories')
+    .insert(categoryRelations)
 
-  if (ageGroupError) throw ageGroupError
   if (categoryError) throw categoryError
 
-  return contentItem
+  return content
 }
 
 export async function getContentById(id: string, adminClient?: SupabaseClient) {
@@ -356,12 +341,11 @@ export async function getContentBySlug(slug: string, adminClient?: SupabaseClien
       )
     `)
     .eq('slug', slug)
+    .eq('published', true)
     .single()
-  
-  if (error) {
-    console.error('Error fetching content:', error)
-    throw error
-  }
+
+  if (error) throw error
+  if (!data) throw new Error('Content not found')
 
   // Transform the data to match the expected format
   return {
