@@ -43,6 +43,15 @@ export interface ContentItem {
   age_groups: AgeGroup[]
   categories: Category[]
   content_body?: string
+  feedback_count?: number
+}
+
+export interface ContentFeedback {
+  id: string
+  content_id: string
+  user_id: string
+  used_in_class: boolean
+  created_at: string
 }
 
 export interface Database {
@@ -65,8 +74,13 @@ export interface Database {
       }
       content_items: {
         Row: ContentItem
-        Insert: Omit<ContentItem, 'id' | 'created_at' | 'age_groups' | 'categories' | 'access_tier'>
-        Update: Partial<Omit<ContentItem, 'id' | 'created_at' | 'age_groups' | 'categories' | 'access_tier'>>
+        Insert: Omit<ContentItem, 'id' | 'created_at' | 'age_groups' | 'categories' | 'access_tier' | 'feedback_count'>
+        Update: Partial<Omit<ContentItem, 'id' | 'created_at' | 'age_groups' | 'categories' | 'access_tier' | 'feedback_count'>>
+      }
+      content_feedback: {
+        Row: ContentFeedback
+        Insert: Omit<ContentFeedback, 'id' | 'created_at'>
+        Update: Partial<Omit<ContentFeedback, 'id' | 'created_at'>>
       }
     }
     Views: {

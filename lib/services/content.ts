@@ -359,4 +359,64 @@ export async function getContentBySlug(slug: string, adminClient?: SupabaseClien
       features: data.access_tier?.features || {}
     }
   }
+}
+
+export async function toggleContentFeedback(contentId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('User not authenticated')
+
+  const { data: existingFeedback, error: fetchError } = await supabase
+    .from('content_feedback')
+    .select('*')
+    .eq('content_id', contentId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+    throw fetchError
+  }
+
+  if (existingFeedback) {
+    // Remove feedback if it exists
+    const { error } = await supabase
+      .from('content_feedback')
+      .delete()
+      .eq('id', existingFeedback.id)
+
+    if (error) throw error
+    return false
+  } else {
+    // Add new feedback
+    const { error } = await supabase
+      .from('content_feedback')
+      .insert({
+        content_id: contentId,
+        user_id: user.id,
+        used_in_class: true
+      })
+
+    if (error) throw error
+    return true
+  }
+}
+
+export async function getContentFeedbackStatus(contentId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { hasGivenFeedback: false, feedbackCount: 0 }
+
+  const [feedbackResult, countResult] = await Promise.all([
+    supabase
+      .from('content_feedback')
+      .select('*')
+      .eq('content_id', contentId)
+      .eq('user_id', user.id)
+      .single(),
+    supabase
+      .rpc('get_content_feedback_count', { content_id: contentId })
+  ])
+
+  return {
+    hasGivenFeedback: !feedbackResult.error && feedbackResult.data !== null,
+    feedbackCount: countResult.data || 0
+  }
 } 

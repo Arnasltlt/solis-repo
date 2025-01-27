@@ -5,8 +5,19 @@ import { useAuth } from '@/lib/context/auth'
 import { Logo } from '@/components/ui/logo'
 import { Button } from '@/components/ui/button'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/react/24/solid'
+import { HandThumbUpIcon } from '@heroicons/react/24/solid'
+import { HandThumbUpIcon as HandThumbUpOutlineIcon } from '@heroicons/react/24/outline'
 import type { ContentItem } from '@/lib/types/database'
 import { RichContentForm } from './rich-content-form'
+import { getContentFeedbackStatus, toggleContentFeedback } from '@/lib/services/content'
+import { useState, useEffect } from 'react'
+import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface ContentDetailProps {
   content: ContentItem
@@ -15,10 +26,37 @@ interface ContentDetailProps {
 export function ContentDetail({ content }: ContentDetailProps) {
   const router = useRouter()
   const { user } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [feedbackStatus, setFeedbackStatus] = useState({ hasGivenFeedback: false, feedbackCount: 0 })
 
   const isPremium = content.access_tier?.name === 'premium'
   const isUserPremium = user?.subscription_tier?.name === 'premium'
   const isLocked = isPremium && !isUserPremium
+
+  useEffect(() => {
+    if (user) {
+      getContentFeedbackStatus(content.id).then(setFeedbackStatus)
+    }
+  }, [content.id, user])
+
+  const handleFeedback = async () => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+    setIsLoading(true)
+    try {
+      const hasGivenFeedback = await toggleContentFeedback(content.id)
+      setFeedbackStatus(prev => ({
+        hasGivenFeedback,
+        feedbackCount: prev.feedbackCount + (hasGivenFeedback ? 1 : -1)
+      }))
+    } catch (error) {
+      console.error('Error toggling feedback:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Parse content body if it exists
   const contentData = content.content_body ? (() => {
@@ -136,14 +174,50 @@ export function ContentDetail({ content }: ContentDetailProps) {
               </div>
             </div>
 
-            {/* Content Type */}
+            {/* Content Type and Feedback */}
             <div className="mt-8 flex items-center justify-between">
-              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-yellow-50 text-black">
-                {content.type === 'video' && 'Video'}
-                {content.type === 'audio' && 'Daina'}
-                {content.type === 'lesson_plan' && 'Pamoka'}
-                {content.type === 'game' && 'Žaidimas'}
-              </span>
+              <div className="flex items-center gap-4">
+                <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-yellow-50 text-black">
+                  {content.type === 'video' && 'Video'}
+                  {content.type === 'audio' && 'Daina'}
+                  {content.type === 'lesson_plan' && 'Pamoka'}
+                  {content.type === 'game' && 'Žaidimas'}
+                </span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "gap-2 text-muted-foreground hover:text-foreground",
+                          feedbackStatus.hasGivenFeedback && "text-primary hover:text-primary"
+                        )}
+                        onClick={handleFeedback}
+                        disabled={isLoading}
+                      >
+                        {feedbackStatus.hasGivenFeedback ? (
+                          <HandThumbUpIcon className="h-4 w-4" />
+                        ) : (
+                          <HandThumbUpOutlineIcon className="h-4 w-4" />
+                        )}
+                        <span>
+                          {feedbackStatus.feedbackCount} {feedbackStatus.feedbackCount === 1 ? 'mokytojas naudoja' : 'mokytojai naudoja'}
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {user ? (
+                        feedbackStatus.hasGivenFeedback ? 
+                          'Pažymėta, kad naudojate šią medžiagą. Spauskite dar kartą, jei norite atšaukti.' :
+                          'Pažymėkite, jei naudojate šią medžiagą savo pamokose.'
+                      ) : (
+                        'Prisijunkite, kad galėtumėte pažymėti naudojamą medžiagą.'
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               {isPremium && !isUserPremium && (
                 <Button
                   onClick={() => router.push('/pricing')}
