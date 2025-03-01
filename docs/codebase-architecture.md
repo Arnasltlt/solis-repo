@@ -209,4 +209,90 @@ The codebase includes various testing utilities to verify functionality:
 - Content creation tests
 - Database schema inspection
 
-These utilities help developers troubleshoot issues with the Supabase connection, environment configuration, and content operations. 
+These utilities help developers troubleshoot issues with the Supabase connection, environment configuration, and content operations.
+
+## Editor Implementation
+
+The rich text editor is a critical component of the content creation experience. It is implemented using the TipTap editor, which is built on top of ProseMirror.
+
+### Key Components
+
+- `components/editor/editor-wrapper.tsx` - The main editor component that provides:
+  - Text formatting (bold, italic, headings)
+  - Block formatting (quotes, lists)
+  - Text alignment options
+  - YouTube video embedding
+  - Link insertion
+  - Focus management
+  - Toolbar with formatting buttons
+
+### Editor Extensions
+
+The editor uses several TipTap extensions to provide functionality:
+
+1. **StarterKit** - Provides basic editor functionality:
+   - Headings (levels 1-3)
+   - Paragraphs
+   - Bold and italic formatting
+   - Lists (bullet and ordered)
+   - Blockquotes
+   - Horizontal rules
+
+2. **Link** - Enables adding and editing links in the content
+
+3. **TextAlign** - Provides text alignment options (left, center, right)
+
+4. **Iframe** - Custom extension for embedding YouTube videos
+
+### Editor Styling
+
+The editor styling is implemented using:
+
+1. **Global CSS** - Defined in `app/globals.css`:
+   - Basic styling for editor elements
+   - Text color definitions to ensure visibility
+   - Consistent styling for different content types
+
+2. **Component-specific CSS** - Defined in the editor component:
+   - Toolbar styling
+   - Active state indicators
+   - Consistent text colors for all editor content
+
+### Recent Improvements
+
+1. **Text Color Fixes**:
+   - Fixed issues with text becoming white/invisible during editing
+   - Added explicit text color styles to ensure content is visible in all contexts
+   - Implemented consistent color handling for both editor and rendered content
+
+2. **Focus Management**:
+   - Improved focus handling during formatting operations
+   - Added focus restoration after button clicks
+   - Implemented proper event handling to prevent form validation during editing
+
+3. **Form Integration**:
+   - Enhanced integration with React Hook Form
+   - Improved validation to prevent interrupting editing
+   - Added better error handling for form submissions
+
+4. **Debugging and Logging**:
+   - Added comprehensive logging throughout the editor
+   - Implemented unique identifiers for editor instances
+   - Added tracking for editor interactions and state changes
+
+## Future Editor Enhancements
+
+1. **Image Support**:
+   - Add image upload functionality
+   - Implement image resizing and alignment
+   - Add caption support for images
+
+2. **Advanced Formatting**:
+   - Add table support
+   - Implement code blocks with syntax highlighting
+   - Add more text formatting options
+
+3. **Collaboration Features**:
+   - Implement real-time collaboration
+   - Add commenting functionality
+   - Implement version history 
