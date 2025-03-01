@@ -32,8 +32,11 @@ export function Logo({ size = 'medium' }: LogoProps) {
           alt="Solis Logo"
           height={height}
           width={width}
-          style={{ objectFit: 'contain' }}
+          style={{ 
+            objectFit: 'contain'
+          }}
           priority
+          sizes="(max-width: 768px) 100px, 200px"
         />
       </div>
     </Link>

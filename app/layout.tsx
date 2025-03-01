@@ -1,33 +1,45 @@
 import './globals.css'
-import { AuthProvider } from '@/lib/context/auth'
-import { Toaster } from '@/components/ui/toaster'
 import { theme } from '@/styles/theme'
 import { Amatic_SC, Roboto } from 'next/font/google'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import Providers from './providers'
+import { Toaster } from '@/components/ui/toaster'
+import { cn } from '@/lib/utils/index'
+import { ThemeProvider } from '@/components/ui/theme-provider'
+import { SupabaseProvider } from '@/components/supabase-provider'
+import { ToastProvider } from '@/components/ui/use-toast'
+import type { Database } from '@/lib/types/database'
 
 const amatic = Amatic_SC({
   weight: ['400', '700'],
   subsets: ['latin'],
-  display: 'swap',
   variable: '--font-amatic',
 })
 
 const roboto = Roboto({
   weight: ['300'],
   subsets: ['latin'],
-  display: 'swap',
   variable: '--font-roboto',
 })
+
+const fontSans = roboto
 
 export const metadata = {
   title: 'Solis - Vaikų ugdymo platforma',
   description: 'Šokio, muzikos ir kultūros ugdymo platforma vaikams',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const supabase = createServerComponentClient<Database>({ cookies })
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  
   return (
     <html lang="lt" className={`${amatic.variable} ${roboto.variable}`}>
       <head>
@@ -83,11 +95,21 @@ export default function RootLayout({
           `}
         </style>
       </head>
-      <body>
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+      <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <div className="relative flex min-h-screen flex-col">
+            <div className="flex-1">
+              <SupabaseProvider session={session}>
+                <ToastProvider>
+                  <Providers>
+                    {children}
+                    <Toaster />
+                  </Providers>
+                </ToastProvider>
+              </SupabaseProvider>
+            </div>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   )

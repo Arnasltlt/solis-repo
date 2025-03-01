@@ -40,7 +40,11 @@ export async function generateMetadata(
 export default async function ContentPage({ params }: Props) {
   try {
     const content = await getContentBySlug(params.slug)
-    return <ContentDetail content={content} />
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <ContentDetail content={content} />
+      </div>
+    )
   } catch (error) {
     notFound()
   }

@@ -257,6 +257,40 @@ h3.ce-header {
   color: #666;
 }
 
+/* Embed tool */
+.embed-tool {
+  margin: 1em 0;
+  position: relative;
+  width: 100%;
+}
+
+.embed-tool__input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.embed-tool__input:focus {
+  border-color: var(--front-color);
+}
+
+.embed-tool__caption {
+  margin-top: 0.5em;
+  text-align: center;
+  color: #666;
+}
+
+.embed-responsive-item {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 /* Fullscreen mode */
 .fullscreen-editor {
   position: fixed !important;

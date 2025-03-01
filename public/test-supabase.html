@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase Direct Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    .error {
+      color: red;
+    }
+    .success {
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <h1>Supabase Direct Browser Test</h1>
+  <p>This page tests the Supabase connection directly in the browser using hardcoded credentials.</p>
+  
+  <button id="testButton">Test Connection</button>
+  
+  <div>
+    <h2>Result:</h2>
+    <div id="result">Click the button to test</div>
+  </div>
+  
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+    const resultDiv = document.getElementById('result');
+    const testButton = document.getElementById('testButton');
+    
+    testButton.addEventListener('click', async () => {
+      resultDiv.innerHTML = '<p>Testing connection...</p>';
+      testButton.disabled = true;
+      
+      try {
+        // Create Supabase client with hardcoded credentials
+        const supabase = createClient(
+          'https://pybqaehxthpxjlboboaq.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5YnFhZWh4dGhweGpsYm9ib2FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQxMjgzMTcsImV4cCI6MjA0OTcwNDMxN30.WpnpFGbFfiy-Trp516zL-oJyAI5kX0vZuO1met_MaHc'
+        );
+        
+        console.log('Supabase client created, testing query...');
+        
+        // Test a simple query
+        const { data, error } = await supabase
+          .from('age_groups')
+          .select('*')
+          .limit(3);
+        
+        if (error) {
+          resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+          console.error('Supabase query error:', error);
+        } else {
+          resultDiv.innerHTML = `
+            <p class="success">Success! Found ${data.length} age groups.</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+          console.log('Age groups:', data);
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Exception: ${error.message}</p>`;
+        console.error('Exception:', error);
+      } finally {
+        testButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html> 

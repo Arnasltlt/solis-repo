@@ -1,8 +1,14 @@
 import { supabase } from '@/lib/supabase/client'
+import { v4 as uuidv4 } from 'uuid'
 
 export type UploadResult = {
   url: string
   error: Error | null
+}
+
+export type FileUploadResult = {
+  path: string
+  publicUrl: string
 }
 
 export type MediaType = 'audio' | 'document' | 'thumbnail' | 'game'
@@ -28,13 +34,6 @@ export async function uploadMedia(
       ? `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
       : file.name
 
-    console.log('Starting upload to storage:', {
-      bucketName,
-      fileName,
-      fileSize: file.size,
-      fileType: file.type
-    })
-
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(fileName, file)
@@ -44,13 +43,9 @@ export async function uploadMedia(
       throw error
     }
 
-    console.log('File uploaded successfully:', data)
-
     const { data: { publicUrl } } = supabase.storage
       .from(bucketName)
       .getPublicUrl(fileName)
-
-    console.log('Generated public URL:', publicUrl)
 
     return { url: publicUrl, error: null }
   } catch (error) {
@@ -97,5 +92,41 @@ export async function listMediaInBucket(type: MediaType) {
       data: null, 
       error: error instanceof Error ? error : new Error('Unknown error listing bucket contents') 
     }
+  }
+}
+
+export async function uploadFile(file: File, bucket: string, path: string): Promise<FileUploadResult> {
+  try {
+    // Validate inputs
+    if (!file) throw new Error('No file provided')
+    if (!bucket) throw new Error('No bucket specified')
+    if (!path) throw new Error('No path specified')
+    
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${path}/${uuidv4()}.${fileExt}`
+    
+    // Upload the file
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+    
+    if (error) throw error
+    
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path)
+    
+    return {
+      path: data.path,
+      publicUrl
+    }
+  } catch (error) {
+    console.error('Error uploading file:', error)
+    throw error
   }
 } 

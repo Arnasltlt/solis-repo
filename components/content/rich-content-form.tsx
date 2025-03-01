@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Minimize2, Maximize2 } from 'lucide-react'
@@ -29,6 +29,11 @@ export function RichContentForm({
   readOnly = false
 }: RichContentFormProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [key, setKey] = useState(Date.now())
+
+  if (contentBody === '' && key !== Date.now()) {
+    setKey(Date.now())
+  }
 
   const handleEditorChange = (data: any) => {
     onChange('contentBody', JSON.stringify(data))
@@ -55,7 +60,7 @@ export function RichContentForm({
             </div>
           )}
           <Editor
-            holder="editorjs"
+            key={key}
             initialData={contentBody}
             onChange={handleEditorChange}
             readOnly={readOnly}
