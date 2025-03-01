@@ -5,6 +5,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils/index"
 import { UseFormReturn, FieldPath, FieldValues } from "react-hook-form"
+import { CheckIcon } from "lucide-react"
 
 interface CheckboxCardGroupProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -50,18 +51,18 @@ export function CheckboxCardGroup<
   const hasError = !!form.formState.errors[name]
   const accentClasses = {
     primary: {
-      checked: "border-primary",
+      checked: "border-primary bg-primary/5",
       hover: "hover:bg-primary/5"
     },
     secondary: {
-      checked: "border-secondary",
+      checked: "border-secondary bg-secondary/5",
       hover: "hover:bg-secondary/5"
     },
     "secondary-mint": {
-      checked: "border-secondary-mint",
+      checked: "border-secondary-mint bg-secondary-mint/5",
       hover: "hover:bg-secondary-mint/5"
     }
-  }[accentColor] || { checked: "border-primary", hover: "hover:bg-primary/5" }
+  }[accentColor] || { checked: "border-primary bg-primary/5", hover: "hover:bg-primary/5" }
   
   return (
     <FormField
@@ -125,9 +126,14 @@ export function CheckboxCardGroup<
                           />
                         </FormControl>
                         <div className={cn(
-                          "flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors",
-                          accentClasses.hover
+                          "flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors relative",
+                          isChecked ? accentClasses.checked : accentClasses.hover
                         )}>
+                          {isChecked && (
+                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                              <CheckIcon className="h-3 w-3 text-white" />
+                            </div>
+                          )}
                           {item.icon && (
                             <div className="flex-shrink-0">
                               {item.icon}

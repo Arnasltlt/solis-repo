@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import type { ContentItem } from '@/lib/types/database'
+import { ContentBodyDisplay } from './content-body-display'
 
 interface ContentDetailBodyProps {
   content: ContentItem
@@ -48,10 +49,7 @@ export function ContentDetailBody({ content }: ContentDetailBodyProps) {
       </div>
       
       {isContentVisible && (
-        <div 
-          className="prose prose-sm max-w-none dark:prose-invert"
-          dangerouslySetInnerHTML={{ __html: content.content_body }}
-        />
+        <ContentBodyDisplay contentBody={content.content_body} />
       )}
     </div>
   )

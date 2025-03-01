@@ -51,32 +51,68 @@ export function ContentFormMetadata({
     label: category.name
   }))
   
+  // Get form values for validation highlighting
+  const selectedCategories = form.watch('categories') || []
+  const selectedAgeGroups = form.watch('ageGroups') || []
+  
   return (
-    <FormSection
-      title="Administravimas"
-      description="Nustatykite turinio prieinamumą ir kategorizaciją"
-    >
-      <RadioCardGroup
-        form={form}
-        name="accessTierId"
-        label="Prieigos lygis"
-        items={accessTierItems}
-      />
+    <div className="space-y-8">
+      <div className="mb-4">
+        <h3 className="text-lg font-medium mb-1">Prieigos nustatymai</h3>
+        <p className="text-sm text-muted-foreground mb-4">Nustatykite, kas galės matyti šį turinį</p>
+        
+        <RadioCardGroup
+          form={form}
+          name="accessTierId"
+          label="Prieigos lygis"
+          items={accessTierItems}
+        />
+      </div>
       
-      <CheckboxCardGroup
-        form={form}
-        name="ageGroups"
-        label="Amžiaus grupės"
-        items={ageGroupItems}
-      />
+      <div className="mb-4">
+        <h3 className="text-lg font-medium mb-1">Amžiaus grupės</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Pasirinkite, kokioms amžiaus grupėms skirtas šis turinys
+          <span className="text-destructive ml-1 font-medium">*</span>
+        </p>
+        
+        <div className={`${selectedAgeGroups.length === 0 && form.formState.isSubmitted ? 'border-2 border-destructive p-4 rounded-lg' : ''}`}>
+          <CheckboxCardGroup
+            form={form}
+            name="ageGroups"
+            label="Amžiaus grupės"
+            items={ageGroupItems}
+            columns={3}
+          />
+          
+          {selectedAgeGroups.length === 0 && form.formState.isSubmitted && (
+            <p className="text-destructive text-sm mt-2">Pasirinkite bent vieną amžiaus grupę</p>
+          )}
+        </div>
+      </div>
       
-      <CheckboxCardGroup
-        form={form}
-        name="categories"
-        label="Kategorijos"
-        items={categoryItems}
-        accentColor="secondary-mint"
-      />
-    </FormSection>
+      <div className="mb-4">
+        <h3 className="text-lg font-medium mb-1">Kategorijos</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Pasirinkite, kokioms kategorijoms priklauso šis turinys
+          <span className="text-destructive ml-1 font-medium">*</span>
+        </p>
+        
+        <div className={`${selectedCategories.length === 0 && form.formState.isSubmitted ? 'border-2 border-destructive p-4 rounded-lg' : ''}`}>
+          <CheckboxCardGroup
+            form={form}
+            name="categories"
+            label="Kategorijos"
+            items={categoryItems}
+            accentColor="secondary-mint"
+            columns={3}
+          />
+          
+          {selectedCategories.length === 0 && form.formState.isSubmitted && (
+            <p className="text-destructive text-sm mt-2">Pasirinkite bent vieną kategoriją</p>
+          )}
+        </div>
+      </div>
+    </div>
   )
 } 

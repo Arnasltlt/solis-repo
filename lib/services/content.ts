@@ -3,6 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@supabase/supabase-js'
 import type { Database, ContentItem } from '@/lib/types/database'
 import slugify from 'slugify'
+import { v4 as uuidv4 } from 'uuid'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface ContentFormData {
   title: string
@@ -71,7 +73,7 @@ export async function getCategories(adminClient?: SupabaseClient) {
   
   if (error) {
     console.error('DEBUG - Error fetching categories:', error)
-    throw error
+    return []
   }
   
   console.log('DEBUG - Categories fetched:', data)
@@ -308,119 +310,79 @@ export async function insertSampleContent(adminClient?: SupabaseClient) {
 }
 
 export async function createContent(data: ContentFormData): Promise<ContentItem> {
+  // Validate required fields
+  if (!data.title || !data.type) {
+    throw new Error('Title and type are required')
+  }
+
   try {
-    // Validate required fields
-    if (!data.title || !data.type) {
-      throw new Error('Title and type are required')
-    }
-
-    // Start a transaction
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      throw new Error('Authentication required')
-    }
-
-    // Upload thumbnail if provided
-    let thumbnailUrl = null
-    if (data.thumbnail instanceof File) {
-      // Upload the thumbnail
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('thumbnails')
-        .upload(`${Date.now()}-${data.thumbnail.name}`, data.thumbnail)
-
-      if (uploadError) {
-        throw new Error(`Failed to upload thumbnail: ${uploadError.message}`)
-      }
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('thumbnails')
-        .getPublicUrl(uploadData.path)
-
-      thumbnailUrl = publicUrl
-    } else if (typeof data.thumbnail === 'string' && data.thumbnail) {
-      // If thumbnail is already a URL string, use it directly
-      thumbnailUrl = data.thumbnail
-    }
-
-    // Generate a slug from the title
-    const slug = slugify(data.title, { lower: true, strict: true })
-
-    // Prepare content data
-    const content = {
+    // Prepare the request payload
+    const payload = {
       title: data.title,
       description: data.description || '',
       type: data.type,
-      content_body: data.contentBody || '',
-      slug,
-      thumbnail_url: thumbnailUrl,
+      contentBody: data.contentBody || '',
       published: data.published,
-      created_by: session.user.id,
+      ageGroups: data.ageGroups,
+      categories: data.categories,
+      accessTierId: data.accessTierId,
+      thumbnailUrl: ''
     }
 
-    // Insert content
-    const { data: contentItem, error: contentError } = await supabase
-      .from('content_items')
-      .insert(content)
-      .select('*')
-      .single()
-
-    if (contentError) {
-      throw new Error(`Failed to create content: ${contentError.message}`)
-    }
-
-    // Create relationships for age groups
-    if (data.ageGroups && data.ageGroups.length > 0) {
-      const ageGroupRelations = data.ageGroups.map(ageGroupId => ({
-        content_id: contentItem.id,
-        age_group_id: ageGroupId
-      }))
-
-      const { error: ageGroupError } = await supabase
-        .from('content_age_groups')
-        .insert(ageGroupRelations)
-
-      if (ageGroupError) {
-        throw new Error(`Failed to associate age groups: ${ageGroupError.message}`)
+    // Handle thumbnail upload if provided
+    if (data.thumbnail) {
+      try {
+        // Sanitize filename - replace spaces with hyphens and remove special characters
+        const originalFilename = data.thumbnail instanceof File ? data.thumbnail.name : String(data.thumbnail)
+        const sanitizedFilename = originalFilename
+          .replace(/\s+/g, '-')
+          .replace(/[^a-zA-Z0-9.-]/g, '')
+        
+        // Create a safe filename with timestamp
+        const timestamp = Date.now()
+        const safeFilename = `${timestamp}-${sanitizedFilename}`
+        
+        // Upload the thumbnail to Supabase storage
+        const supabase = createClientComponentClient<Database>()
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('thumbnails')
+          .upload(safeFilename, data.thumbnail)
+        
+        if (uploadError) {
+          console.error('Thumbnail upload error:', uploadError)
+          throw new Error(`Failed to upload thumbnail: ${uploadError.message}`)
+        }
+        
+        // Get the public URL of the uploaded thumbnail
+        const { data: urlData } = await supabase.storage
+          .from('thumbnails')
+          .getPublicUrl(safeFilename)
+        
+        payload.thumbnailUrl = urlData.publicUrl
+      } catch (error) {
+        console.error('Error uploading thumbnail:', error)
+        // Continue without thumbnail if upload fails
       }
     }
 
-    // Create relationships for categories
-    if (data.categories && data.categories.length > 0) {
-      const categoryRelations = data.categories.map(categoryId => ({
-        content_id: contentItem.id,
-        category_id: categoryId
-      }))
+    // Call the API endpoint
+    const response = await fetch('/api/content', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
 
-      const { error: categoryError } = await supabase
-        .from('content_categories')
-        .insert(categoryRelations)
-
-      if (categoryError) {
-        throw new Error(`Failed to associate categories: ${categoryError.message}`)
-      }
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to create content')
     }
 
-    // Associate with access tier
-    if (data.accessTierId) {
-      const { error: accessTierError } = await supabase
-        .from('content_access_tiers')
-        .insert({
-          content_id: contentItem.id,
-          access_tier_id: data.accessTierId
-        })
-
-      if (accessTierError) {
-        throw new Error(`Failed to associate access tier: ${accessTierError.message}`)
-      }
-    }
-
-    return contentItem
+    return await response.json()
   } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('An unknown error occurred while creating content')
+    console.error('Content creation error:', error)
+    throw error
   }
 }
 

@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
 import { SparklesIcon } from "@heroicons/react/24/solid"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
 import type { AgeGroup, Category, AccessTier } from "@/lib/types/database"
 import type { ContentFormData } from "@/lib/types/content"
@@ -41,8 +41,7 @@ const formSchema = z.object({
   ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
   categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną kategoriją" }),
   accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
-  content_body: z.string().optional(),
-  content_url: z.string().optional(),
+  content_body: z.string().min(1, { message: "Įveskite turinio turinį" }),
   published: z.boolean().default(true),
   thumbnail: z.union([z.instanceof(File), z.null()]).optional(),
 })
@@ -68,6 +67,7 @@ export function ContentForm({
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [formSubmitted, setFormSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,7 +79,6 @@ export function ContentForm({
       categories: [],
       accessTierId: accessTiers.find(tier => tier.name === 'free')?.id || '',
       content_body: '',
-      content_url: '',
       published: true,
       thumbnail: null,
     },
@@ -109,6 +108,7 @@ export function ContentForm({
     setValidationErrors([])
     setSubmitting(true)
     setFormSubmitted(true)
+    setSubmitSuccess(false)
     
     try {
       // Prepare data for API submission
@@ -119,11 +119,12 @@ export function ContentForm({
         ageGroups: values.ageGroups,
         categories: values.categories,
         accessTierId: values.accessTierId,
-        contentBody: values.content_body || '',
+        contentBody: values.content_body,
         published: values.published,
         thumbnail: values.thumbnail,
       }
 
+      console.log('Submitting form data:', formData)
       await onSubmit(formData)
       
       toast({
@@ -140,12 +141,17 @@ export function ContentForm({
         categories: [],
         accessTierId: accessTiers.find(tier => tier.name === 'free')?.id || '',
         content_body: '',
-        content_url: '',
         published: true,
         thumbnail: null,
       })
       
       setFormSubmitted(false)
+      setSubmitSuccess(true)
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSubmitSuccess(false)
+      }, 5000)
     } catch (error) {
       console.error('Form submission error:', error)
       
@@ -168,9 +174,17 @@ export function ContentForm({
   const isLoading = externalLoading || submitting;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+          <p className="text-lg font-medium text-primary">Saugoma...</p>
+          <p className="text-sm text-muted-foreground mt-1">Prašome palaukti, kol turinys bus išsaugotas</p>
+        </div>
+      )}
+      
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           {validationErrors.length > 0 && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -185,32 +199,99 @@ export function ContentForm({
             </Alert>
           )}
 
-          <div className="grid gap-6">
-            <ContentFormBasic form={form} />
-            
-            <ContentFormMedia form={form} />
-            
-            <ContentFormMetadata 
-              form={form} 
-              ageGroups={ageGroups} 
-              categories={categories} 
-              accessTiers={accessTiers} 
-            />
-            
-            <ContentFormBody 
-              form={form} 
-              loading={isLoading} 
-              contentSchema={formSchema} 
-            />
+          {submitSuccess && (
+            <Alert className="bg-green-50 border-green-200">
+              <SparklesIcon className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-700">Sėkmingai išsaugota</AlertTitle>
+              <AlertDescription className="text-green-600">
+                Turinys buvo sėkmingai sukurtas ir išsaugotas.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Form progress indicator */}
+          <div className="mb-8">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm font-medium">Turinio informacija</span>
+              <span className="text-sm font-medium">Kategorijos</span>
+              <span className="text-sm font-medium">Turinys</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="bg-primary h-2.5 rounded-full" style={{ 
+                width: form.formState.isSubmitted 
+                  ? '100%' 
+                  : form.watch('categories')?.length > 0 && form.watch('ageGroups')?.length > 0
+                    ? '66%'
+                    : form.watch('title') && form.watch('type')
+                      ? '33%'
+                      : '10%'
+              }}></div>
+            </div>
           </div>
 
-          <div className="flex justify-end space-x-4">
+          <div className="grid gap-8">
+            <Card className="border-2 border-muted shadow-sm hover:border-muted-foreground/20 transition-colors">
+              <CardHeader className="bg-muted/10">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">1</span>
+                  Pagrindinė informacija
+                </CardTitle>
+                <CardDescription>Įveskite pagrindinę informaciją apie turinį</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ContentFormBasic form={form} />
+                <ContentFormMedia form={form} />
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2 border-muted shadow-sm hover:border-muted-foreground/20 transition-colors">
+              <CardHeader className="bg-muted/10">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
+                  Kategorijos ir prieiga
+                </CardTitle>
+                <CardDescription>Nustatykite turinio prieinamumą ir kategorizaciją</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ContentFormMetadata 
+                  form={form} 
+                  ageGroups={ageGroups} 
+                  categories={categories} 
+                  accessTiers={accessTiers} 
+                />
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2 border-muted shadow-sm hover:border-muted-foreground/20 transition-colors">
+              <CardHeader className="bg-muted/10">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">3</span>
+                  Turinio kūrimas
+                </CardTitle>
+                <CardDescription>Sukurkite ir redaguokite turinio turinį</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ContentFormBody 
+                  form={form} 
+                  loading={isLoading} 
+                  contentSchema={formSchema} 
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-end space-x-4 mt-8 sticky bottom-4 z-10 bg-background p-4 rounded-lg shadow-lg border border-muted">
             <Button 
               type="submit" 
               disabled={isLoading}
-              className="min-w-24"
+              className="min-w-32 h-12 text-base font-medium shadow-md hover:shadow-lg transition-all"
             >
-              {isLoading ? "Saugoma..." : "Išsaugoti"}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Saugoma...
+                </span>
+              ) : "Išsaugoti turinį"}
             </Button>
           </div>
         </form>

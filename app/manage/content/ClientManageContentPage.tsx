@@ -56,18 +56,32 @@ export function ClientManageContentPage({
         // Only fetch data if not provided via props
         if (initialAgeGroups.length === 0 || initialCategories.length === 0 || initialAccessTiers.length === 0) {
           const [ageGroupsData, categoriesData, accessTiersData] = await Promise.all([
-            initialAgeGroups.length === 0 ? getAgeGroups() : Promise.resolve(initialAgeGroups),
-            initialCategories.length === 0 ? getCategories() : Promise.resolve(initialCategories),
-            initialAccessTiers.length === 0 ? getAccessTiers() : Promise.resolve(initialAccessTiers)
+            initialAgeGroups.length === 0 ? getAgeGroups().catch(err => {
+              console.error('Error loading age groups:', err);
+              return initialAgeGroups;
+            }) : Promise.resolve(initialAgeGroups),
+            initialCategories.length === 0 ? getCategories().catch(err => {
+              console.error('Error loading categories:', err);
+              return initialCategories;
+            }) : Promise.resolve(initialCategories),
+            initialAccessTiers.length === 0 ? getAccessTiers().catch(err => {
+              console.error('Error loading access tiers:', err);
+              return initialAccessTiers;
+            }) : Promise.resolve(initialAccessTiers)
           ])
           
-          setAgeGroups(ageGroupsData)
-          setCategories(categoriesData)
-          setAccessTiers(accessTiersData)
+          setAgeGroups(ageGroupsData || [])
+          setCategories(categoriesData || [])
+          setAccessTiers(accessTiersData || [])
         }
       } catch (err) {
         setError('Failed to load form data. Please try again.')
         console.error('Error loading form data:', err)
+        
+        // Ensure we have at least empty arrays to prevent null reference errors
+        if (ageGroups.length === 0) setAgeGroups([])
+        if (categories.length === 0) setCategories([])
+        if (accessTiers.length === 0) setAccessTiers([])
       }
     }
     

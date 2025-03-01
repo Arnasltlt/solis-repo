@@ -5,7 +5,8 @@ const nextConfig = {
   images: {
     domains: [
       'pybqaehxthpxjlboboaq.supabase.co',
-      'picsum.photos'
+      'picsum.photos',
+      'placehold.co'
     ],
   },
   async headers() {
