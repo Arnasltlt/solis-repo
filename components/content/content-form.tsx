@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -68,6 +68,8 @@ export function ContentForm({
   const [formSubmitted, setFormSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const lastActionRef = useRef<string>('init')
+  const isEditingInRichTextRef = useRef(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,8 +84,20 @@ export function ContentForm({
       published: true,
       thumbnail: null,
     },
-    mode: 'onChange',
+    mode: 'onSubmit',
   })
+
+  // Log form state changes
+  useEffect(() => {
+    console.log('Form state updated:', {
+      isDirty: form.formState.isDirty,
+      isSubmitted: form.formState.isSubmitted,
+      isSubmitting: form.formState.isSubmitting,
+      isValid: form.formState.isValid,
+      submitCount: form.formState.submitCount,
+      lastAction: lastActionRef.current
+    });
+  }, [form.formState]);
 
   // Monitor form errors and update validation errors state
   useEffect(() => {
@@ -91,20 +105,39 @@ export function ContentForm({
       const errors = Object.entries(form.formState.errors).map(
         ([field, error]) => `${field}: ${error?.message}`
       );
+      
+      if (errors.length > 0) {
+        console.log('Form validation errors:', errors, form.formState.errors);
+      }
+      
       setValidationErrors(errors);
     }
   }, [form.formState.errors, formSubmitted]);
 
+  // Track form field changes
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      console.log(`Form field changed: ${name || 'unknown'}, type: ${type}`, 
+        name ? { value: name === 'content_body' ? '(content body)' : value[name as keyof typeof value] } : value);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    lastActionRef.current = 'file_change';
     const file = e.target.files?.[0]
     if (file) {
-      form.setValue('thumbnail', file, { shouldValidate: true })
+      console.log('File selected:', file.name);
+      form.setValue('thumbnail', file, { shouldValidate: false })
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
     }
   }
 
   const handleSubmit = async (values: FormData) => {
+    lastActionRef.current = 'submit';
+    console.log('Form submission started', values);
     setValidationErrors([])
     setSubmitting(true)
     setFormSubmitted(true)
@@ -172,6 +205,11 @@ export function ContentForm({
   }
 
   const isLoading = externalLoading || submitting;
+
+  const setIsEditingInRichText = useCallback((isEditing: boolean) => {
+    console.log(`Setting isEditingInRichText: ${isEditing}`);
+    isEditingInRichTextRef.current = isEditing;
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto relative">
@@ -274,7 +312,9 @@ export function ContentForm({
                 <ContentFormBody 
                   form={form} 
                   loading={isLoading} 
-                  contentSchema={formSchema} 
+                  contentSchema={formSchema}
+                  onEditorFocus={() => setIsEditingInRichText(true)}
+                  onEditorBlur={() => setIsEditingInRichText(false)}
                 />
               </CardContent>
             </Card>

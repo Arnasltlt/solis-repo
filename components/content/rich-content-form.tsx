@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { cn } from '@/lib/utils/index'
 import { Label } from '@/components/ui/label'
@@ -30,14 +30,25 @@ export function RichContentForm({
 }: RichContentFormProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [key, setKey] = useState(Date.now())
+  const [editorMounted, setEditorMounted] = useState(false)
 
-  if (contentBody === '' && key !== Date.now()) {
-    setKey(Date.now())
-  }
+  // Reset key when content is cleared
+  useEffect(() => {
+    if (contentBody === '') {
+      setKey(Date.now())
+    }
+  }, [contentBody])
 
-  const handleEditorChange = (data: any) => {
-    onChange('contentBody', JSON.stringify(data))
-  }
+  // Ensure editor is mounted
+  useEffect(() => {
+    setEditorMounted(true)
+    return () => setEditorMounted(false)
+  }, [])
+
+  const handleEditorChange = useCallback((data: any) => {
+    console.log('RichContentForm editor change:', typeof data, data.substring(0, 50) + '...');
+    onChange('contentBody', data)
+  }, [onChange])
 
   return (
     <div className={cn("relative", isFullscreen && "fixed inset-0 z-50 bg-background")}>
@@ -59,12 +70,14 @@ export function RichContentForm({
               </Button>
             </div>
           )}
-          <Editor
-            key={key}
-            initialData={contentBody}
-            onChange={handleEditorChange}
-            readOnly={readOnly}
-          />
+          {editorMounted && (
+            <Editor
+              key={key}
+              initialData={contentBody}
+              onChange={handleEditorChange}
+              readOnly={readOnly}
+            />
+          )}
         </div>
       </div>
     </div>
