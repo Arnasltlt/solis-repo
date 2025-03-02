@@ -6,6 +6,7 @@ import type { ContentItem } from '@/lib/types/database'
 import { ContentImage } from '@/components/ui/content-image'
 import { ContentTypeBadge } from '@/components/ui/content-type-badge'
 import { PremiumBadge } from '@/components/ui/premium-badge'
+import { LockClosedIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/lib/utils/index'
 
 interface ContentCardProps {
@@ -13,6 +14,7 @@ interface ContentCardProps {
   index?: number
   className?: string
   showDescription?: boolean
+  isPremiumLocked?: boolean
 }
 
 /**
@@ -25,7 +27,8 @@ export function ContentCard({
   content, 
   index = 0, 
   className = '',
-  showDescription = true
+  showDescription = true,
+  isPremiumLocked = false
 }: ContentCardProps) {
   const isPremium = content.access_tier?.name === 'premium'
 
@@ -33,6 +36,7 @@ export function ContentCard({
     <Link href={`/medziaga/${content.slug}`}>
       <Card className={cn(
         "overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col",
+        isPremiumLocked && "opacity-80",
         className
       )}>
         <div className="relative">
@@ -48,12 +52,25 @@ export function ContentCard({
               <PremiumBadge />
             </div>
           )}
+          
+          {isPremiumLocked && (
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div className="bg-white/90 rounded-full p-3">
+                <LockClosedIcon className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          )}
         </div>
         <CardContent className="p-4 flex-grow">
           <h3 className="text-lg font-semibold mb-2">{content.title}</h3>
           {showDescription && content.description && (
             <p className="text-gray-600 text-sm line-clamp-2">
               {content.description}
+            </p>
+          )}
+          {isPremiumLocked && (
+            <p className="text-amber-600 text-sm mt-2 font-medium">
+              Premium turinys
             </p>
           )}
         </CardContent>

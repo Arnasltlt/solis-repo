@@ -3,6 +3,10 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ContentCard } from "@/components/ui/content-card"
 import { ContentSkeleton } from "@/components/ui/loading-state"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/useAuth"
+import { useAuthorization } from "@/hooks/useAuthorization"
+import { useRouter } from "next/navigation"
 import type { ContentItem } from "@/lib/types/database"
 import { useEffect } from "react"
 
@@ -28,6 +32,10 @@ export function ContentGrid({
   showPremiumOnly,
   contentType
 }: ContentGridProps) {
+  const { isAuthenticated } = useAuth()
+  const { canAccessPremiumContent } = useAuthorization()
+  const router = useRouter()
+  
   // Add debug logging
   useEffect(() => {
     console.log('DEBUG - ContentGrid rendering with:', {
@@ -38,10 +46,21 @@ export function ContentGrid({
     })
   }, [content.length, isLoading, showPremiumOnly, contentType])
 
-  // Filter content by premium status
+  // Filter content by premium status and user access
   const filteredByPremium = content.filter(item => {
     const isPremium = item.access_tier?.name === 'premium'
-    return !showPremiumOnly || isPremium
+    
+    // If not premium content, show to everyone
+    if (!isPremium) return true
+    
+    // If premium content, check if user can access it
+    if (isAuthenticated && canAccessPremiumContent()) {
+      return true
+    }
+    
+    // If showing premium only, include premium items even if user can't access them
+    // (they'll be shown with a lock icon or upgrade prompt)
+    return showPremiumOnly
   })
   
   // Filter content by type if specified
@@ -58,6 +77,15 @@ export function ContentGrid({
     })
   }, [content.length, filteredByPremium.length, filteredContent.length])
 
+  // Handle premium content access
+  const handlePremiumUpgrade = () => {
+    if (!isAuthenticated) {
+      router.push('/login')
+    } else {
+      router.push('/profile')
+    }
+  }
+
   return (
     <ScrollArea className="h-[calc(100vh-12rem)] rounded-md">
       <div className="p-4">
@@ -70,16 +98,22 @@ export function ContentGrid({
                 key={item.id} 
                 content={item} 
                 index={index}
+                isPremiumLocked={item.access_tier?.name === 'premium' && (!isAuthenticated || !canAccessPremiumContent())}
               />
             ))}
           </div>
         ) : (
-          <div className="flex h-[450px] items-center justify-center">
+          <div className="flex flex-col h-[450px] items-center justify-center gap-4">
             <p className="text-gray-500">
               {showPremiumOnly 
                 ? 'Nerasta premium turinio pagal pasirinktus filtrus'
                 : 'Nėra turinio pagal pasirinktus filtrus'}
             </p>
+            {showPremiumOnly && !canAccessPremiumContent() && (
+              <Button onClick={handlePremiumUpgrade}>
+                {isAuthenticated ? 'Atnaujinti į Premium' : 'Prisijungti'}
+              </Button>
+            )}
           </div>
         )}
       </div>

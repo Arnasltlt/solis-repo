@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import { ContentLayout } from '@/components/content/content-layout'
 import { useContent } from '@/lib/hooks/useContent'
+import { useAuth } from '@/hooks/useAuth'
+import { useAuthorization } from '@/hooks/useAuthorization'
 import type { ContentItem, AgeGroup, Category } from '@/lib/types/database'
 
 interface HomeClientContentProps {
@@ -19,6 +21,8 @@ export function HomeClientContent({
   categories 
 }: HomeClientContentProps) {
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
+  const { canAccessPremiumContent } = useAuthorization()
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showPremiumOnly, setShowPremiumOnly] = useState(false)
@@ -87,8 +91,28 @@ export function HomeClientContent({
   
   // Handle premium toggle
   const handlePremiumToggle = useCallback(() => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Prisijungimas reikalingas",
+        description: "Norėdami matyti premium turinį, turite prisijungti.",
+        variant: "destructive",
+      })
+      router.push('/login')
+      return
+    }
+    
+    if (!canAccessPremiumContent()) {
+      toast({
+        title: "Premium narystė reikalinga",
+        description: "Norėdami matyti premium turinį, turite turėti premium narystę.",
+        variant: "destructive",
+      })
+      router.push('/profile')
+      return
+    }
+    
     setShowPremiumOnly(prev => !prev)
-  }, [])
+  }, [isAuthenticated, canAccessPremiumContent, router])
   
   // Trigger content refresh when filters change
   useEffect(() => {

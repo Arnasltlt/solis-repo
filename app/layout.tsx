@@ -10,6 +10,7 @@ import { ThemeProvider } from 'next-themes'
 import type { Database } from '@/lib/types/database'
 
 import { Footer } from '@/components/ui/footer'
+import { Navigation } from '@/components/ui/navigation'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -47,6 +48,7 @@ export default async function RootLayout({
     <html lang="en" className="h-full">
       <body className={`${inter.className} flex flex-col h-full`}>
         <Providers session={session}>
+          <Navigation />
           <main className="flex-1">{children}</main>
           <Footer />
         </Providers>
