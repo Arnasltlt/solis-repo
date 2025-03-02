@@ -43,6 +43,11 @@ export default function ManageLayout({
                   Turinys
                 </Link>
               </li>
+              <li>
+                <Link href="/manage/users" className="text-sm font-medium hover:text-primary">
+                  Vartotojai
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>

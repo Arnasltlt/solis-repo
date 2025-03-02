@@ -2,11 +2,10 @@ import { getAgeGroups, getCategories, getAccessTiers } from '@/lib/services/cont
 import { ClientManageContentPage } from './ClientManageContentPage'
 
 export default async function ManageContentPage() {
-  const [ageGroups, categories, accessTiers] = await Promise.all([
-    getAgeGroups(),
-    getCategories(),
-    getAccessTiers()
-  ])
+  // Fetch the data needed for the content management page
+  const ageGroups = await getAgeGroups()
+  const categories = await getCategories()
+  const accessTiers = await getAccessTiers()
 
   return (
     <ClientManageContentPage 

@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Settings, Layers, Tag } from 'lucide-react'
+import { Settings, Layers, Tag, Users } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Administravimo skydelis | Solis',
@@ -49,6 +49,26 @@ export default function AdminDashboardPage() {
             <Link href="/manage/content">
               <Button className="w-full">
                 Valdyti turinį
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* User Management Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Vartotojų valdymas
+            </CardTitle>
+            <CardDescription>
+              Valdykite vartotojus ir jų prenumeratas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/manage/users">
+              <Button className="w-full">
+                Valdyti vartotojus
               </Button>
             </Link>
           </CardContent>
