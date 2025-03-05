@@ -27,6 +27,7 @@ import { ContentDetailMetadata } from './content-detail-metadata'
 import { ContentDetailMedia } from './content-detail-media'
 import { ContentDetailBody } from './content-detail-body'
 import { ContentDetailFeedback } from './content-detail-feedback'
+import Image from 'next/image'
 
 interface ContentDetailProps {
   content: ContentItem
@@ -74,8 +75,6 @@ export function ContentDetail({ content }: ContentDetailProps) {
   if (isPremiumLocked) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        <ContentDetailHeader content={content} />
-        
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-8 text-center">
           <div className="flex justify-center mb-4">
             <div className="bg-amber-100 p-4 rounded-full">
@@ -90,28 +89,79 @@ export function ContentDetail({ content }: ContentDetailProps) {
             {isAuthenticated ? 'Atnaujinti į Premium' : 'Prisijungti'}
           </Button>
         </div>
-        
-        <ContentDetailMetadata content={content} />
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-      <ContentDetailHeader content={content} />
-      
-      <ContentDetailMedia content={content} />
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <ContentDetailBody content={content} />
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-9 space-y-6">
+          {/* Title and Date */}
+          <div className="border-b pb-4">
+            <h1 className="text-2xl font-semibold mb-2">{content.title}</h1>
+            <div className="text-sm text-gray-500">
+              <time dateTime={content.created_at}>
+                {new Date(content.created_at).toLocaleDateString('lt-LT', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </time>
+            </div>
+          </div>
+
+          {/* Video Content */}
+          {content.type === 'video' && content.vimeo_id && (
+            <div className="aspect-w-16 aspect-h-9">
+              <iframe
+                src={`https://player.vimeo.com/video/${content.vimeo_id}`}
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                className="rounded-lg"
+              />
+            </div>
+          )}
+
+          {/* Description */}
+          {content.description && (
+            <div className="prose max-w-none">
+              <p className="text-gray-600">{content.description}</p>
+            </div>
+          )}
+
+          {/* Main Content Body */}
+          {content.content_body && (
+            <div className="prose max-w-none">
+              <ContentBodyDisplay contentBody={content.content_body} />
+            </div>
+          )}
+
+          {/* Feedback Section */}
+          <ContentDetailFeedback content={content} />
         </div>
-        <div className="md:col-span-1">
-          <ContentDetailMetadata content={content} />
-        </div>
+
+        {/* Sidebar */}
+        <aside className="lg:col-span-3 space-y-6">
+          {/* Thumbnail */}
+          {content.thumbnail_url && (
+            <div className="rounded-lg overflow-hidden relative aspect-video">
+              <Image
+                src={content.thumbnail_url}
+                alt={content.title}
+                fill
+                className="object-cover"
+              />
+            </div>
+          )}
+
+          {/* Metadata */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+            <ContentDetailMetadata content={content} />
+          </div>
+        </aside>
       </div>
-      
-      <ContentDetailFeedback content={content} />
     </div>
   )
 } 

@@ -34,7 +34,7 @@ import {
 import { cn } from '@/lib/utils/index'
 
 interface EditorProps {
-  onChange: (data: any) => void
+  onChange: (data: string) => void
   initialData?: string
   readOnly?: boolean
   onFocus?: () => void
@@ -83,13 +83,7 @@ function getVideoEmbedHtml(videoUrl: string): string | null {
   return null;
 }
 
-export function Editor({ 
-  onChange, 
-  initialData, 
-  readOnly = false,
-  onFocus,
-  onBlur
-}: EditorProps) {
+export function Editor({ onChange, initialData = '', readOnly = false, onFocus, onBlur }: EditorProps) {
   const [videoDialogOpen, setVideoDialogOpen] = useState(false)
   const [videoUrl, setVideoUrl] = useState('')
   const [videoError, setVideoError] = useState('')
@@ -106,34 +100,59 @@ export function Editor({
     editorKey
   });
 
-  // Parse initialData safely
-  const parsedInitialData = useMemo(() => {
-    console.log(`Parsing initial data (${editorInstanceIdRef.current})`, {
-      hasData: !!initialData,
-      dataPreview: initialData ? initialData.substring(0, 30) + '...' : 'none'
-    });
+  const safeInitialData = useMemo(() => {
+    console.log(`Processing initial data (${editorInstanceIdRef.current})`);
     
-    if (!initialData) return null;
+    if (!initialData) return '';
     
-    try {
-      const parsed = JSON.parse(initialData);
-      console.log('Successfully parsed initial data', {
-        type: parsed.type,
-        contentLength: parsed.content?.length || 0
-      });
-      return parsed;
-    } catch (error) {
-      console.error('Failed to parse editor initial data:', error);
-      return null;
+    // Handle the literal 'contentBody' string case
+    if (initialData === 'contentBody') {
+      console.log('Ignoring literal contentBody string');
+      return '';
     }
+    
+    const tryParseJSON = (str: string) => {
+      try {
+        return JSON.parse(str);
+      } catch (e) {
+        return null;
+      }
+    };
+
+    // Try to parse the content - handles both single and double encoded JSON
+    let parsed = tryParseJSON(initialData);
+    
+    // If first parse succeeded, check if it's still a JSON string (double encoded)
+    if (parsed && typeof parsed === 'string') {
+      // Check for 'contentBody' after first parse
+      if (parsed === 'contentBody') {
+        console.log('Ignoring contentBody string after first parse');
+        return '';
+      }
+      const secondParse = tryParseJSON(parsed);
+      if (secondParse) {
+        parsed = secondParse;
+      }
+    }
+    
+    // If we have valid parsed content in ProseMirror format, use it
+    if (parsed && typeof parsed === 'object' && parsed.type === 'doc' && Array.isArray(parsed.content)) {
+      console.log('Using ProseMirror JSON content');
+      return parsed;
+    }
+    
+    // Otherwise treat as HTML, but do one final check for 'contentBody'
+    if (typeof parsed === 'string' && parsed === 'contentBody') {
+      console.log('Ignoring contentBody string after parsing');
+      return '';
+    }
+    
+    console.log('Using HTML content');
+    return initialData;
   }, [initialData]);
 
   // Force editor reinitialization when initialData changes significantly
   useEffect(() => {
-    console.log(`Checking if editor needs reset (${editorInstanceIdRef.current})`, {
-      initialData: initialData ? initialData.substring(0, 30) + '...' : 'empty'
-    });
-    
     if (initialData === '' || initialData === '{}') {
       console.log('Resetting editor due to empty initialData');
       setEditorKey(Date.now());
@@ -142,95 +161,36 @@ export function Editor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
-      Iframe.configure({
-        HTMLAttributes: {
-          class: 'w-full aspect-video rounded-lg my-4',
-          frameborder: '0',
-          allowfullscreen: true,
-        },
-      }),
+      StarterKit,
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-primary underline decoration-primary cursor-pointer',
-        },
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      Iframe,
     ],
-    content: parsedInitialData || {
-      type: 'doc',
-      content: [
-        {
-          type: 'paragraph'
-        }
-      ]
-    },
+    content: safeInitialData,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
-      editorInteractionsRef.current += 1;
-      const now = Date.now();
-      const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
-      lastUpdateTimeRef.current = now;
-      
-      try {
-        const json = editor.getJSON();
-        const jsonString = JSON.stringify(json);
-        
-        console.log(`Editor update (${editorInstanceIdRef.current}, interaction #${editorInteractionsRef.current})`, {
-          timeSinceLastUpdate,
-          contentLength: jsonString.length,
-          contentPreview: jsonString.substring(0, 50) + '...',
-          selection: editor.state.selection.empty ? 'empty' : 'has selection',
-          activeMarks: Array.from(editor.state.selection.$head.marks().map(m => m.type.name)).join(', ') || 'none'
-        });
-        
-        onChange(jsonString);
-      } catch (error) {
-        console.error('Error in editor update handler:', error);
-      }
+      // Save as ProseMirror JSON to preserve all features
+      const content = editor.getJSON()
+      onChange(JSON.stringify(content))
     },
-    autofocus: !readOnly,
-    onCreate: ({ editor }) => {
-      console.log(`Editor created (${editorInstanceIdRef.current})`, {
-        isEmpty: editor.isEmpty,
-        contentSize: editor.storage.characterCount?.characters() || 'unknown'
-      });
+    onFocus: ({ event }) => {
+      onFocus?.()
     },
-    onFocus: ({ editor, event }) => {
-      console.log(`Editor focused (${editorInstanceIdRef.current})`);
-      onFocus?.();
+    onBlur: ({ event }) => {
+      onBlur?.()
     },
-    onBlur: ({ editor, event }) => {
-      console.log(`Editor blurred (${editorInstanceIdRef.current})`);
-      onBlur?.();
-    },
-    onSelectionUpdate: ({ editor }) => {
-      console.log(`Selection updated (${editorInstanceIdRef.current})`, {
-        selection: editor.state.selection.empty ? 'empty' : 'has selection',
-        activeMarks: Array.from(editor.state.selection.$head.marks().map(m => m.type.name)).join(', ') || 'none'
-      });
-    },
-    onTransaction: ({ transaction }) => {
-      console.log(`Transaction (${editorInstanceIdRef.current})`, {
-        docChanged: transaction.docChanged,
-        selectionChanged: !!transaction.selectionSet,
-        steps: transaction.steps.length
-      });
-    }
   })
 
   // Log when editor is available or not
   useEffect(() => {
     console.log(`Editor instance status (${editorInstanceIdRef.current})`, {
       isAvailable: !!editor,
-      isEditable: editor?.isEditable || false
+      isEditable: editor?.isEditable || false,
+      content: editor?.getJSON()
     });
   }, [editor]);
 
@@ -247,20 +207,29 @@ export function Editor({
     }
 
     try {
-      // Create a temporary div to parse the iframe HTML
+      // Support both direct video URLs and embed codes
+      let src: string | null = null;
+
+      // First try to parse as embed code
       const div = document.createElement('div')
       div.innerHTML = videoUrl.trim()
       const iframe = div.querySelector('iframe')
-
-      if (!iframe) {
-        setVideoError('Please enter a valid embed code')
-        return
+      if (iframe) {
+        src = iframe.getAttribute('src')
       }
 
-      // Get the src from the iframe
-      const src = iframe.getAttribute('src')
+      // If not embed code, try as direct URL
       if (!src) {
-        setVideoError('No video source found in embed code')
+        const embedHtml = getVideoEmbedHtml(videoUrl)
+        if (embedHtml) {
+          div.innerHTML = embedHtml
+          const generatedIframe = div.querySelector('iframe')
+          src = generatedIframe?.getAttribute('src') || null
+        }
+      }
+
+      if (!src) {
+        setVideoError('Could not extract video source. Please enter a valid video URL or embed code')
         return
       }
 

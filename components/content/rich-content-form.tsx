@@ -45,8 +45,7 @@ export function RichContentForm({
     return () => setEditorMounted(false)
   }, [])
 
-  const handleEditorChange = useCallback((data: any) => {
-    console.log('RichContentForm editor change:', typeof data, data.substring(0, 50) + '...');
+  const handleEditorChange = useCallback((data: string) => {
     onChange('contentBody', data)
   }, [onChange])
 
@@ -73,7 +72,7 @@ export function RichContentForm({
           {editorMounted && (
             <Editor
               key={key}
-              initialData={contentBody}
+              initialData={contentBody || ''}
               onChange={handleEditorChange}
               readOnly={readOnly}
             />
