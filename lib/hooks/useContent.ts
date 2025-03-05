@@ -8,13 +8,15 @@ interface UseContentOptions {
   categories?: string[]
   searchQuery?: string
   initialLoad?: boolean
+  showPremiumOnly?: boolean
 }
 
 export function useContent({
   ageGroups,
   categories,
   searchQuery,
-  initialLoad = true
+  initialLoad = true,
+  showPremiumOnly = false
 }: UseContentOptions = {}) {
   const [content, setContent] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(initialLoad)
@@ -28,14 +30,16 @@ export function useContent({
     console.log('DEBUG - useContent.fetchContent called with filters:', { 
       ageGroups: ageGroups?.length ? ageGroups : 'none',
       categories: categories?.length ? categories : 'none',
-      searchQuery: searchQuery || 'none' 
+      searchQuery: searchQuery || 'none',
+      showPremiumOnly
     })
     
     try {
       const data = await getContentItems({ 
         ageGroups, 
         categories, 
-        searchQuery 
+        searchQuery,
+        showPremiumOnly
       })
       console.log(`DEBUG - useContent.fetchContent received ${data.length} items`)
       setContent(data)
@@ -47,7 +51,7 @@ export function useContent({
     } finally {
       setIsLoading(false)
     }
-  }, [ageGroups, categories, searchQuery])
+  }, [ageGroups, categories, searchQuery, showPremiumOnly])
 
   // Initial fetch and when filters change
   useEffect(() => {
@@ -55,11 +59,12 @@ export function useContent({
       console.log('DEBUG - useContent initializing with filters:', { 
         ageGroups: ageGroups?.length ? ageGroups : 'none',
         categories: categories?.length ? categories : 'none',
-        searchQuery: searchQuery || 'none' 
+        searchQuery: searchQuery || 'none',
+        showPremiumOnly
       })
       fetchContent()
     }
-  }, [ageGroups, categories, searchQuery, initialLoad, fetchContent])
+  }, [ageGroups, categories, searchQuery, showPremiumOnly, initialLoad, fetchContent])
 
   // Refresh function that can be called manually
   const refresh = useCallback(async () => {

@@ -36,6 +36,7 @@ export function HomeClientContent({
   } = useContent({
     ageGroups: selectedAgeGroups.length > 0 ? selectedAgeGroups : undefined,
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+    showPremiumOnly,
     initialLoad: false // Don't load on initial render, we already have initialContent
   })
   

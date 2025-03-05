@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase/client'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { Database } from '@/lib/types/database'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Utility functions for handling file storage operations
@@ -15,6 +17,11 @@ export type UploadResult = {
   error: Error | null
 }
 
+export type FileUploadResult = {
+  path: string
+  publicUrl: string
+}
+
 /**
  * Uploads a file to Supabase storage
  * @param file The file to upload
@@ -22,9 +29,15 @@ export type UploadResult = {
  * @param path Optional path within the bucket
  * @returns Object with file path and public URL
  */
-export async function uploadFile(file: File, bucket: string, path?: string) {
+export async function uploadFile(
+  supabase: SupabaseClient<Database>,
+  file: File, 
+  bucket: string, 
+  path?: string
+): Promise<FileUploadResult> {
   try {
     if (!file) throw new Error('No file provided')
+    if (!supabase) throw new Error('Supabase client not initialized')
     
     // Generate a unique filename
     const timestamp = new Date().getTime()
@@ -67,6 +80,9 @@ export async function deleteFile(path: string, bucket: string) {
   try {
     if (!path) throw new Error('No file path provided')
     
+    const { supabase } = useSupabase()
+    if (!supabase) throw new Error('Supabase client not initialized')
+    
     const { error } = await supabase.storage
       .from(bucket)
       .remove([path])
@@ -90,6 +106,9 @@ export async function deleteFile(path: string, bucket: string) {
  */
 export async function listFiles(bucket: string, path?: string) {
   try {
+    const { supabase } = useSupabase()
+    if (!supabase) throw new Error('Supabase client not initialized')
+    
     const { data, error } = await supabase.storage
       .from(bucket)
       .list(path)
@@ -112,13 +131,22 @@ export async function listFiles(bucket: string, path?: string) {
  */
 export async function uploadAudio(file: File): Promise<UploadResult> {
   try {
+    const { supabase } = useSupabase()
+    if (!supabase) throw new Error('Supabase client not initialized')
+    
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
     const { data, error } = await supabase.storage
       .from(AUDIO_BUCKET)
-      .upload(fileName, file)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
 
-    if (error) throw error
+    if (error) {
+      console.error('Audio upload error:', error)
+      throw error
+    }
 
     const { data: { publicUrl } } = supabase.storage
       .from(AUDIO_BUCKET)
@@ -126,7 +154,11 @@ export async function uploadAudio(file: File): Promise<UploadResult> {
 
     return { url: publicUrl, error: null }
   } catch (error) {
-    return { url: '', error: error instanceof Error ? error : new Error('Unknown error') }
+    console.error('Upload audio error:', error)
+    return { 
+      url: '', 
+      error: error instanceof Error ? error : new Error('Unknown error during upload') 
+    }
   }
 }
 
@@ -137,13 +169,22 @@ export async function uploadAudio(file: File): Promise<UploadResult> {
  */
 export async function uploadDocument(file: File): Promise<UploadResult> {
   try {
+    const { supabase } = useSupabase()
+    if (!supabase) throw new Error('Supabase client not initialized')
+    
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
     const { data, error } = await supabase.storage
       .from(DOCUMENTS_BUCKET)
-      .upload(fileName, file)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
 
-    if (error) throw error
+    if (error) {
+      console.error('Document upload error:', error)
+      throw error
+    }
 
     const { data: { publicUrl } } = supabase.storage
       .from(DOCUMENTS_BUCKET)
@@ -151,7 +192,11 @@ export async function uploadDocument(file: File): Promise<UploadResult> {
 
     return { url: publicUrl, error: null }
   } catch (error) {
-    return { url: '', error: error instanceof Error ? error : new Error('Unknown error') }
+    console.error('Upload document error:', error)
+    return { 
+      url: '', 
+      error: error instanceof Error ? error : new Error('Unknown error during upload') 
+    }
   }
 }
 
@@ -160,15 +205,27 @@ export async function uploadDocument(file: File): Promise<UploadResult> {
  * @param file The image file to upload
  * @returns Object with public URL and error (if any)
  */
-export async function uploadThumbnail(file: File): Promise<UploadResult> {
+export async function uploadThumbnail(
+  supabase: SupabaseClient<Database>,
+  file: File
+): Promise<UploadResult> {
   try {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+    
     const { data, error } = await supabase.storage
       .from(THUMBNAILS_BUCKET)
-      .upload(fileName, file)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
 
-    if (error) throw error
+    if (error) {
+      console.error('Storage upload error:', error)
+      throw error
+    }
 
     const { data: { publicUrl } } = supabase.storage
       .from(THUMBNAILS_BUCKET)
@@ -176,7 +233,11 @@ export async function uploadThumbnail(file: File): Promise<UploadResult> {
 
     return { url: publicUrl, error: null }
   } catch (error) {
-    return { url: '', error: error instanceof Error ? error : new Error('Unknown error') }
+    console.error('Upload thumbnail error:', error)
+    return { 
+      url: '', 
+      error: error instanceof Error ? error : new Error('Unknown error during upload') 
+    }
   }
 }
 
@@ -187,13 +248,22 @@ export async function uploadThumbnail(file: File): Promise<UploadResult> {
  */
 export async function uploadGameAssets(file: File): Promise<UploadResult> {
   try {
+    const { supabase } = useSupabase()
+    if (!supabase) throw new Error('Supabase client not initialized')
+    
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
     const { data, error } = await supabase.storage
       .from(GAME_ASSETS_BUCKET)
-      .upload(fileName, file)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
 
-    if (error) throw error
+    if (error) {
+      console.error('Game assets upload error:', error)
+      throw error
+    }
 
     const { data: { publicUrl } } = supabase.storage
       .from(GAME_ASSETS_BUCKET)
@@ -201,6 +271,10 @@ export async function uploadGameAssets(file: File): Promise<UploadResult> {
 
     return { url: publicUrl, error: null }
   } catch (error) {
-    return { url: '', error: error instanceof Error ? error : new Error('Unknown error') }
+    console.error('Upload game assets error:', error)
+    return { 
+      url: '', 
+      error: error instanceof Error ? error : new Error('Unknown error during upload') 
+    }
   }
 } 

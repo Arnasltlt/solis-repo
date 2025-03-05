@@ -19,4 +19,5 @@ export interface ContentFormData {
   contentBody?: string
   accessTierId: string
   published: boolean
+  mediaUrl?: string
 } 

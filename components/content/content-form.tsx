@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Card } from "@/components/ui/card"
 import {
   Form,
   FormControl,
@@ -17,20 +16,18 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { toast } from "@/hooks/use-toast"
-import { SparklesIcon } from "@heroicons/react/24/solid"
-import { AlertCircle, Loader2 } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
+import { Checkbox } from "@/components/ui/checkbox"
+import { SparklesIcon, XMarkIcon } from "@heroicons/react/24/solid"
+import { CheckboxCardGroup } from "@/components/ui/checkbox-card-group"
+import { RichContentForm } from './rich-content-form'
 import type { AgeGroup, Category, AccessTier } from "@/lib/types/database"
 import type { ContentFormData } from "@/lib/types/content"
-import { RichContentForm } from './rich-content-form'
-import { ContentFormBasic } from './content-form-basic'
-import { ContentFormMedia } from './content-form-media'
-import { ContentFormMetadata } from './content-form-metadata'
-import { ContentFormBody } from './content-form-body'
+import { useSupabase } from '@/components/supabase-provider'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Info } from "lucide-react"
 
 const formSchema = z.object({
   type: z.enum(['video', 'audio', 'lesson_plan', 'game'], {
@@ -38,22 +35,21 @@ const formSchema = z.object({
   }),
   title: z.string().min(1, { message: "Įveskite pavadinimą" }),
   description: z.string().optional(),
+  thumbnail: z.any().optional(),
+  contentBody: z.string().min(1, { message: "Įveskite turinio turinį" }),
   ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
   categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną kategoriją" }),
   accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
-  content_body: z.string().min(1, { message: "Įveskite turinio turinį" }),
-  published: z.boolean().default(true),
-  thumbnail: z.union([z.instanceof(File), z.null()]).optional(),
+  published: z.boolean().default(false),
 })
-
-type FormData = z.infer<typeof formSchema>
 
 interface ContentFormProps {
   ageGroups: AgeGroup[]
   categories: Category[]
   accessTiers: AccessTier[]
-  onSubmit: (data: ContentFormData) => Promise<void>
+  onSubmit: (data: ContentFormData, supabase: any) => Promise<void>
   isLoading?: boolean
+  initialData?: Partial<ContentFormData>
 }
 
 export function ContentForm({
@@ -61,281 +57,376 @@ export function ContentForm({
   categories,
   accessTiers,
   onSubmit,
-  isLoading: externalLoading = false
+  isLoading = false,
+  initialData
 }: ContentFormProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
-  const [formSubmitted, setFormSubmitted] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
-  const lastActionRef = useRef<string>('init')
-  const isEditingInRichTextRef = useRef(false)
+  const { supabase, session } = useSupabase()
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!session)
+
+  // Update authentication state when session changes
+  useEffect(() => {
+    setIsAuthenticated(!!session)
+  }, [session])
+
+  // Cleanup preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      type: undefined,
-      title: '',
-      description: '',
-      ageGroups: [],
-      categories: [],
-      accessTierId: accessTiers.find(tier => tier.name === 'free')?.id || '',
-      content_body: '',
-      published: true,
-      thumbnail: null,
+      type: initialData?.type || undefined,
+      title: initialData?.title || '',
+      description: initialData?.description || '',
+      contentBody: initialData?.contentBody || '',
+      ageGroups: initialData?.ageGroups || [],
+      categories: initialData?.categories || [],
+      accessTierId: initialData?.accessTierId || accessTiers.find(tier => tier.name === 'free')?.id || '',
+      published: initialData?.published || false,
     },
-    mode: 'onSubmit',
   })
 
-  // Log form state changes
-  useEffect(() => {
-    console.log('Form state updated:', {
-      isDirty: form.formState.isDirty,
-      isSubmitted: form.formState.isSubmitted,
-      isSubmitting: form.formState.isSubmitting,
-      isValid: form.formState.isValid,
-      submitCount: form.formState.submitCount,
-      lastAction: lastActionRef.current
-    });
-  }, [form.formState]);
-
-  // Monitor form errors and update validation errors state
-  useEffect(() => {
-    if (formSubmitted) {
-      const errors = Object.entries(form.formState.errors).map(
-        ([field, error]) => `${field}: ${error?.message}`
-      );
-      
-      if (errors.length > 0) {
-        console.log('Form validation errors:', errors, form.formState.errors);
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
       }
       
-      setValidationErrors(errors);
+      // Pass the supabase client to onSubmit
+      await onSubmit(values as ContentFormData, supabase)
+    } catch (error) {
+      console.error('Error submitting form:', error)
     }
-  }, [form.formState.errors, formSubmitted]);
+  }
 
-  // Track form field changes
-  useEffect(() => {
-    const subscription = form.watch((value, { name, type }) => {
-      console.log(`Form field changed: ${name || 'unknown'}, type: ${type}`, 
-        name ? { value: name === 'content_body' ? '(content body)' : value[name as keyof typeof value] } : value);
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    lastActionRef.current = 'file_change';
-    const file = e.target.files?.[0]
+  const handleThumbnailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
     if (file) {
-      console.log('File selected:', file.name);
-      form.setValue('thumbnail', file, { shouldValidate: false })
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        form.setError('thumbnail', {
+          type: 'manual',
+          message: 'Failo dydis negali viršyti 10MB'
+        })
+        return
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        form.setError('thumbnail', {
+          type: 'manual',
+          message: 'Galima įkelti tik paveikslėlius'
+        })
+        return
+      }
+
+      form.clearErrors('thumbnail')
+      form.setValue('thumbnail', file)
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
     }
   }
 
-  const handleSubmit = async (values: FormData) => {
-    lastActionRef.current = 'submit';
-    console.log('Form submission started', values);
-    setValidationErrors([])
-    setSubmitting(true)
-    setFormSubmitted(true)
-    setSubmitSuccess(false)
-    
-    try {
-      // Prepare data for API submission
-      const formData: ContentFormData = {
-        type: values.type,
-        title: values.title,
-        description: values.description || '',
-        ageGroups: values.ageGroups,
-        categories: values.categories,
-        accessTierId: values.accessTierId,
-        contentBody: values.content_body,
-        published: values.published,
-        thumbnail: values.thumbnail,
-      }
-
-      console.log('Submitting form data:', formData)
-      await onSubmit(formData)
-      
-      toast({
-        title: "Sėkmingai išsaugota",
-        description: "Turinys buvo sėkmingai sukurtas",
-      })
-      
-      // Reset the form
-      form.reset({
-        type: undefined,
-        title: '',
-        description: '',
-        ageGroups: [],
-        categories: [],
-        accessTierId: accessTiers.find(tier => tier.name === 'free')?.id || '',
-        content_body: '',
-        published: true,
-        thumbnail: null,
-      })
-      
-      setFormSubmitted(false)
-      setSubmitSuccess(true)
-      
-      // Clear success message after 5 seconds
-      setTimeout(() => {
-        setSubmitSuccess(false)
-      }, 5000)
-    } catch (error) {
-      console.error('Form submission error:', error)
-      
-      if (error instanceof Error) {
-        setValidationErrors([error.message])
-      } else {
-        setValidationErrors(['Įvyko nenumatyta klaida. Bandykite dar kartą.'])
-      }
-      
-      toast({
-        variant: "destructive",
-        title: "Klaida",
-        description: "Nepavyko išsaugoti turinio",
-      })
-    } finally {
-      setSubmitting(false)
+  const clearThumbnail = () => {
+    form.setValue('thumbnail', null)
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
     }
   }
 
-  const isLoading = externalLoading || submitting;
-
-  const setIsEditingInRichText = useCallback((isEditing: boolean) => {
-    console.log(`Setting isEditingInRichText: ${isEditing}`);
-    isEditingInRichTextRef.current = isEditing;
-  }, []);
-
   return (
-    <div className="max-w-4xl mx-auto relative">
-      {isLoading && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-          <p className="text-lg font-medium text-primary">Saugoma...</p>
-          <p className="text-sm text-muted-foreground mt-1">Prašome palaukti, kol turinys bus išsaugotas</p>
-        </div>
-      )}
-      
+    <Card className="border-0 shadow-none">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-          {validationErrors.length > 0 && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Klaida</AlertTitle>
-              <AlertDescription>
-                <ul className="list-disc pl-5 mt-2">
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {submitSuccess && (
-            <Alert className="bg-green-50 border-green-200">
-              <SparklesIcon className="h-4 w-4 text-green-600" />
-              <AlertTitle className="text-green-700">Sėkmingai išsaugota</AlertTitle>
-              <AlertDescription className="text-green-600">
-                Turinys buvo sėkmingai sukurtas ir išsaugotas.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Form progress indicator */}
-          <div className="mb-8">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Turinio informacija</span>
-              <span className="text-sm font-medium">Kategorijos</span>
-              <span className="text-sm font-medium">Turinys</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div className="bg-primary h-2.5 rounded-full" style={{ 
-                width: form.formState.isSubmitted 
-                  ? '100%' 
-                  : form.watch('categories')?.length > 0 && form.watch('ageGroups')?.length > 0
-                    ? '66%'
-                    : form.watch('title') && form.watch('type')
-                      ? '33%'
-                      : '10%'
-              }}></div>
-            </div>
-          </div>
-
-          <div className="grid gap-8">
-            <Card className="border-2 border-muted shadow-sm hover:border-muted-foreground/20 transition-colors">
-              <CardHeader className="bg-muted/10">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">1</span>
-                  Pagrindinė informacija
-                </CardTitle>
-                <CardDescription>Įveskite pagrindinę informaciją apie turinį</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <ContentFormBasic form={form} />
-                <ContentFormMedia form={form} />
-              </CardContent>
-            </Card>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 px-8 py-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Pagrindinė informacija</h2>
             
-            <Card className="border-2 border-muted shadow-sm hover:border-muted-foreground/20 transition-colors">
-              <CardHeader className="bg-muted/10">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
-                  Kategorijos ir prieiga
-                </CardTitle>
-                <CardDescription>Nustatykite turinio prieinamumą ir kategorizaciją</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <ContentFormMetadata 
-                  form={form} 
-                  ageGroups={ageGroups} 
-                  categories={categories} 
-                  accessTiers={accessTiers} 
-                />
-              </CardContent>
-            </Card>
-            
-            <Card className="border-2 border-muted shadow-sm hover:border-muted-foreground/20 transition-colors">
-              <CardHeader className="bg-muted/10">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">3</span>
-                  Turinio kūrimas
-                </CardTitle>
-                <CardDescription>Sukurkite ir redaguokite turinio turinį</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <ContentFormBody 
-                  form={form} 
-                  loading={isLoading} 
-                  contentSchema={formSchema}
-                  onEditorFocus={() => setIsEditingInRichText(true)}
-                  onEditorBlur={() => setIsEditingInRichText(false)}
-                />
-              </CardContent>
-            </Card>
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Turinio tipas</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-col space-y-1"
+                    >
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="video" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Video</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="audio" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Daina</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="lesson_plan" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Pamoka</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="game" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Žaidimas</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pavadinimas</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Įveskite pavadinimą" {...field} />
+                  </FormControl>
+                  <FormDescription>Trumpas ir aiškus pavadinimas</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Aprašymas</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Įveskite aprašymą"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>Trumpas turinio aprašymas</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
-          <div className="flex justify-end space-x-4 mt-8 sticky bottom-4 z-10 bg-background p-4 rounded-lg shadow-lg border border-muted">
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="min-w-32 h-12 text-base font-medium shadow-md hover:shadow-lg transition-all"
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Saugoma...
-                </span>
-              ) : "Išsaugoti turinį"}
-            </Button>
+          {/* Media */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Medija</h2>
+            
+            <FormField
+              control={form.control}
+              name="thumbnail"
+              render={({ field: { value, onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Miniatiūra</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleThumbnailChange}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-foreground hover:file:bg-primary/20"
+                        {...field}
+                      />
+                      
+                      {!isAuthenticated && (
+                        <Alert className="bg-blue-50 border-blue-200">
+                          <Info className="h-4 w-4 text-blue-600" />
+                          <AlertDescription className="text-blue-700">
+                            You need to be logged in to upload thumbnails. The content will use a default thumbnail.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      
+                      {previewUrl && (
+                        <div className="relative h-40 w-full rounded-lg overflow-hidden border border-gray-200">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={clearThumbnail}
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Vaizdinė turinio reprezentacija. Rekomenduojamas dydis: 1280x720px.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
+
+          {/* Content */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Turinys</h2>
+            
+            <FormField
+              control={form.control}
+              name="contentBody"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Turinio turinys</FormLabel>
+                  <FormControl>
+                    <RichContentForm
+                      contentBody={field.value}
+                      onChange={(value) => field.onChange(value)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Įveskite turinio tekstą, aprašymą ar taisykles
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Metadata */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Metaduomenys</h2>
+            
+            <FormField
+              control={form.control}
+              name="ageGroups"
+              render={() => (
+                <FormItem>
+                  <CheckboxCardGroup
+                    form={form}
+                    name="ageGroups"
+                    label="Amžiaus grupės"
+                    description="Pasirinkite amžiaus grupes, kurioms skirtas turinys"
+                    items={ageGroups.map(group => ({
+                      id: group.id,
+                      label: group.range,
+                      description: group.description || '',
+                    }))}
+                  />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="categories"
+              render={() => (
+                <FormItem>
+                  <CheckboxCardGroup
+                    form={form}
+                    name="categories"
+                    label="Kategorijos"
+                    description="Pasirinkite kategorijas, kurioms priklauso turinys"
+                    items={categories.map(category => ({
+                      id: category.id,
+                      label: category.name,
+                      description: category.description || '',
+                    }))}
+                  />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="accessTierId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prieigos lygis</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pasirinkite prieigos lygį" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {accessTiers
+                        .filter(tier => ['free', 'premium'].includes(tier.name))
+                        .map((tier) => (
+                          <SelectItem 
+                            key={tier.id} 
+                            value={tier.id}
+                            className="flex items-center gap-2"
+                          >
+                            {tier.name === 'premium' ? (
+                              <div className="flex items-center gap-2">
+                                <SparklesIcon className="w-4 h-4 text-yellow-500" />
+                                Premium
+                              </div>
+                            ) : (
+                              'Nemokamas'
+                            )}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Nustatykite turinio prieigos lygį
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="published"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Publikuoti
+                    </FormLabel>
+                    <FormDescription>
+                      Pažymėkite, jei norite iškart publikuoti turinį
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Saugoma...' : 'Išsaugoti'}
+          </Button>
         </form>
       </Form>
-    </div>
+    </Card>
   )
 } 

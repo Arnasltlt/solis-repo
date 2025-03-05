@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Settings, Layers, Tag, Users } from 'lucide-react'
+import { Layers, Tag, Users } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Administravimo skydelis | Solis',
@@ -42,13 +42,18 @@ export default function AdminDashboardPage() {
               Turinio valdymas
             </CardTitle>
             <CardDescription>
-              Valdykite platformos turinį
+              Kurkite ir valdykite platformos turinį
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Link href="/manage/content">
-              <Button className="w-full">
-                Valdyti turinį
+          <CardContent className="space-y-2">
+            <Link href="/manage/content?tab=create">
+              <Button className="w-full" variant="default">
+                Kurti naują turinį
+              </Button>
+            </Link>
+            <Link href="/manage/content?tab=list">
+              <Button className="w-full" variant="outline">
+                Peržiūrėti turinį
               </Button>
             </Link>
           </CardContent>
@@ -69,26 +74,6 @@ export default function AdminDashboardPage() {
             <Link href="/manage/users">
               <Button className="w-full">
                 Valdyti vartotojus
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-        
-        {/* Settings Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Nustatymai
-            </CardTitle>
-            <CardDescription>
-              Platformos nustatymų konfigūracija
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/manage/settings">
-              <Button className="w-full" variant="outline">
-                Nustatymai
               </Button>
             </Link>
           </CardContent>

@@ -5,6 +5,7 @@ import type { Database, ContentItem } from '@/lib/types/database'
 import slugify from 'slugify'
 import { v4 as uuidv4 } from 'uuid'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { uploadThumbnail } from '@/lib/utils/storage-utils'
 
 interface ContentFormData {
   title: string
@@ -91,19 +92,36 @@ export async function getAccessTiers(adminClient?: SupabaseClient) {
   return data
 }
 
+async function getPremiumTierId(client: SupabaseClient) {
+  const { data, error } = await client
+    .from('access_tiers')
+    .select('id')
+    .eq('name', 'premium')
+    .single()
+  
+  if (error) {
+    console.error('Error fetching premium tier ID:', error)
+    return null
+  }
+  
+  return data?.id
+}
+
 export async function getContentItems({
   ageGroups,
   categories,
   searchQuery,
-  adminClient
+  adminClient,
+  showPremiumOnly = false
 }: {
   ageGroups?: string[]
   categories?: string[]
   searchQuery?: string
   adminClient?: SupabaseClient
+  showPremiumOnly?: boolean
 } = {}) {
   const client = getClient(adminClient)
-  console.log('DEBUG - Fetching content items with filters:', { ageGroups, categories, searchQuery })
+  console.log('DEBUG - Fetching content items with filters:', { ageGroups, categories, searchQuery, showPremiumOnly })
   
   // Start with a base query
   let query = client
@@ -119,6 +137,14 @@ export async function getContentItems({
       )
     `)
     .eq('published', true)
+
+  // Apply premium filter if requested
+  if (showPremiumOnly) {
+    const premiumTierId = await getPremiumTierId(client)
+    if (premiumTierId) {
+      query = query.eq('access_tier_id', premiumTierId)
+    }
+  }
 
   // Apply age groups filter if provided
   if (ageGroups && ageGroups.length > 0) {
@@ -309,79 +335,99 @@ export async function insertSampleContent(adminClient?: SupabaseClient) {
   return contentItems
 }
 
-export async function createContent(data: ContentFormData): Promise<ContentItem> {
+export async function createContent(
+  data: ContentFormData,
+  supabase: SupabaseClient<Database>
+): Promise<ContentItem> {
   // Validate required fields
   if (!data.title || !data.type) {
     throw new Error('Title and type are required')
   }
 
   try {
-    // Prepare the request payload
+    // Get the current user's ID
+    const { data: session } = await supabase.auth.getSession()
+    if (!session?.session?.user?.id) {
+      throw new Error('User must be authenticated to create content')
+    }
+
+    // Prepare the request payload for content_items table
     const payload = {
       title: data.title,
       description: data.description || '',
       type: data.type,
-      contentBody: data.contentBody || '',
+      content_body: data.contentBody || '',
       published: data.published,
-      ageGroups: data.ageGroups,
-      categories: data.categories,
-      accessTierId: data.accessTierId,
-      thumbnailUrl: ''
+      access_tier_id: data.accessTierId,
+      thumbnail_url: '',
+      author_id: session.session.user.id,
+      // Generate a URL-friendly slug from the title
+      slug: slugify(data.title, { lower: true, strict: true })
     }
 
     // Handle thumbnail upload if provided
-    if (data.thumbnail) {
+    if (data.thumbnail instanceof File) {
       try {
-        // Sanitize filename - replace spaces with hyphens and remove special characters
-        const originalFilename = data.thumbnail instanceof File ? data.thumbnail.name : String(data.thumbnail)
-        const sanitizedFilename = originalFilename
-          .replace(/\s+/g, '-')
-          .replace(/[^a-zA-Z0-9.-]/g, '')
-        
-        // Create a safe filename with timestamp
-        const timestamp = Date.now()
-        const safeFilename = `${timestamp}-${sanitizedFilename}`
-        
-        // Upload the thumbnail to Supabase storage
-        const supabase = createClientComponentClient<Database>()
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('thumbnails')
-          .upload(safeFilename, data.thumbnail)
-        
-        if (uploadError) {
-          console.error('Thumbnail upload error:', uploadError)
-          throw new Error(`Failed to upload thumbnail: ${uploadError.message}`)
-        }
-        
-        // Get the public URL of the uploaded thumbnail
-        const { data: urlData } = await supabase.storage
-          .from('thumbnails')
-          .getPublicUrl(safeFilename)
-        
-        payload.thumbnailUrl = urlData.publicUrl
+        const { url, error } = await uploadThumbnail(supabase, data.thumbnail)
+        if (error) throw error
+        payload.thumbnail_url = url
       } catch (error) {
         console.error('Error uploading thumbnail:', error)
         // Continue without thumbnail if upload fails
+        payload.thumbnail_url = 'https://placehold.co/600x400/png?text=No+Thumbnail'
+      }
+    } else {
+      // Use default thumbnail if none provided
+      payload.thumbnail_url = 'https://placehold.co/600x400/png?text=No+Thumbnail'
+    }
+
+    // Insert the content item
+    const { data: contentItem, error: contentError } = await supabase
+      .from('content_items')
+      .insert(payload)
+      .select('*')
+      .single()
+
+    if (contentError) throw contentError
+
+    // Insert age group relationships
+    if (data.ageGroups && data.ageGroups.length > 0) {
+      const ageGroupRelations = data.ageGroups.map(ageGroupId => ({
+        content_id: contentItem.id,
+        age_group_id: ageGroupId
+      }))
+
+      const { error: ageGroupError } = await supabase
+        .from('content_age_groups')
+        .insert(ageGroupRelations)
+
+      if (ageGroupError) {
+        console.error('Error inserting age groups:', ageGroupError)
+        // Don't throw, continue with other operations
       }
     }
 
-    // Call the API endpoint
-    const response = await fetch('/api/content', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
+    // Insert category relationships
+    if (data.categories && data.categories.length > 0) {
+      const categoryRelations = data.categories.map(categoryId => ({
+        content_id: contentItem.id,
+        category_id: categoryId
+      }))
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to create content')
+      const { error: categoryError } = await supabase
+        .from('content_categories')
+        .insert(categoryRelations)
+
+      if (categoryError) {
+        console.error('Error inserting categories:', categoryError)
+        // Don't throw, continue with other operations
+      }
     }
 
-    return await response.json()
+    // Return the created content item
+    return contentItem
   } catch (error) {
-    console.error('Content creation error:', error)
+    console.error('Error creating content:', error)
     throw error
   }
 }
@@ -506,6 +552,129 @@ export async function checkFeedback(contentId: string) {
       feedbackCount: feedbackData?.length || 0
     }
   } catch (error) {
+    throw error
+  }
+}
+
+export async function updateContent(
+  id: string,
+  data: Partial<ContentFormData>,
+  supabase: SupabaseClient<Database>
+): Promise<ContentItem> {
+  if (!id) {
+    throw new Error('Content ID is required')
+  }
+
+  try {
+    // Get the current user's ID
+    const { data: session } = await supabase.auth.getSession()
+    if (!session?.session?.user?.id) {
+      throw new Error('User must be authenticated to update content')
+    }
+
+    // Verify the user owns this content
+    const { data: existingContent, error: fetchError } = await supabase
+      .from('content_items')
+      .select('author_id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError) throw fetchError
+    if (!existingContent) throw new Error('Content not found')
+    if (existingContent.author_id !== session.session.user.id) {
+      throw new Error('You do not have permission to update this content')
+    }
+
+    // Prepare the update payload
+    const payload: any = {
+      title: data.title,
+      description: data.description,
+      type: data.type,
+      content_body: data.contentBody,
+      published: data.published,
+      access_tier_id: data.accessTierId
+    }
+
+    // If title is updated, update the slug
+    if (data.title) {
+      payload.slug = slugify(data.title, { lower: true, strict: true })
+    }
+
+    // Handle thumbnail update if provided
+    if (data.thumbnail instanceof File) {
+      try {
+        const { url, error } = await uploadThumbnail(supabase, data.thumbnail)
+        if (error) throw error
+        payload.thumbnail_url = url
+      } catch (error) {
+        console.error('Error uploading new thumbnail:', error)
+        // Keep existing thumbnail if upload fails
+      }
+    }
+
+    // Update the content item
+    const { data: updatedContent, error: updateError } = await supabase
+      .from('content_items')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .single()
+
+    if (updateError) throw updateError
+
+    // Update age group relationships if provided
+    if (data.ageGroups) {
+      // First delete existing relationships
+      await supabase
+        .from('content_age_groups')
+        .delete()
+        .eq('content_id', id)
+
+      // Then insert new relationships
+      if (data.ageGroups.length > 0) {
+        const ageGroupRelations = data.ageGroups.map(ageGroupId => ({
+          content_id: id,
+          age_group_id: ageGroupId
+        }))
+
+        const { error: ageGroupError } = await supabase
+          .from('content_age_groups')
+          .insert(ageGroupRelations)
+
+        if (ageGroupError) {
+          console.error('Error updating age groups:', ageGroupError)
+        }
+      }
+    }
+
+    // Update category relationships if provided
+    if (data.categories) {
+      // First delete existing relationships
+      await supabase
+        .from('content_categories')
+        .delete()
+        .eq('content_id', id)
+
+      // Then insert new relationships
+      if (data.categories.length > 0) {
+        const categoryRelations = data.categories.map(categoryId => ({
+          content_id: id,
+          category_id: categoryId
+        }))
+
+        const { error: categoryError } = await supabase
+          .from('content_categories')
+          .insert(categoryRelations)
+
+        if (categoryError) {
+          console.error('Error updating categories:', categoryError)
+        }
+      }
+    }
+
+    return updatedContent
+  } catch (error) {
+    console.error('Error updating content:', error)
     throw error
   }
 } 
