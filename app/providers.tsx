@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes"
 import { SupabaseProvider } from '@/components/supabase-provider'
 import { AuthProvider } from '@/hooks/useAuth'
 import { Session } from '@supabase/supabase-js'
+import { ContentDeleteProvider } from '@/components/content/ContentDeleteManager'
 
 export function Providers({ 
   children,
@@ -16,7 +17,9 @@ export function Providers({
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <SupabaseProvider session={session}>
         <AuthProvider>
-          {children}
+          <ContentDeleteProvider>
+            {children}
+          </ContentDeleteProvider>
         </AuthProvider>
       </SupabaseProvider>
     </ThemeProvider>

@@ -10,6 +10,9 @@ import { Logo } from '@/components/ui/logo'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/react/24/solid'
 import { HandThumbUpIcon } from '@heroicons/react/24/solid'
 import { HandThumbUpIcon as HandThumbUpOutlineIcon } from '@heroicons/react/24/outline'
+import { PencilIcon } from '@heroicons/react/24/outline'
+import Link from 'next/link'
+import { DeleteContentDialog } from './DeleteContentDialog'
 import { RichContentForm } from './rich-content-form'
 import { ContentBodyDisplay } from './content-body-display'
 import { cn } from '@/lib/utils/index'
@@ -51,10 +54,11 @@ interface FeedbackItem {
  */
 export function ContentDetail({ content }: ContentDetailProps) {
   const { isAuthenticated } = useAuth()
-  const { canAccessPremiumContent } = useAuthorization()
+  const { canAccessPremiumContent, isAdmin } = useAuthorization()
   const router = useRouter()
   const isPremium = content?.access_tier?.name === 'premium'
   const isPremiumLocked = isPremium && (!isAuthenticated || !canAccessPremiumContent())
+  const canEdit = isAdmin()
 
   if (!content) {
     return (
@@ -99,17 +103,37 @@ export function ContentDetail({ content }: ContentDetailProps) {
         {/* Main Content */}
         <div className="lg:col-span-9 space-y-6">
           {/* Title and Date */}
-          <div className="border-b pb-4">
-            <h1 className="text-2xl font-semibold mb-2">{content.title}</h1>
-            <div className="text-sm text-gray-500">
-              <time dateTime={content.created_at}>
-                {new Date(content.created_at).toLocaleDateString('lt-LT', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </time>
+          <div className="border-b pb-4 flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-semibold mb-2">{content.title}</h1>
+              <div className="text-sm text-gray-500">
+                <time dateTime={content.created_at}>
+                  {new Date(content.created_at).toLocaleDateString('lt-LT', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </time>
+              </div>
             </div>
+            
+            {canEdit && (
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex items-center gap-1"
+                  onClick={() => router.push(`/manage/content/edit/${content.id}`)}
+                >
+                  <PencilIcon className="h-3 w-3" />
+                  Edit
+                </Button>
+                <DeleteContentDialog 
+                  contentId={content.id} 
+                  contentTitle={content.title} 
+                />
+              </div>
+            )}
           </div>
 
           {/* Video Content */}
@@ -152,6 +176,11 @@ export function ContentDetail({ content }: ContentDetailProps) {
                 alt={content.title}
                 fill
                 className="object-cover"
+                onError={(e) => {
+                  console.error('Error loading thumbnail in ContentDetail:', content.thumbnail_url);
+                  // Replace with placeholder
+                  (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/png?text=No+Thumbnail';
+                }}
               />
             </div>
           )}

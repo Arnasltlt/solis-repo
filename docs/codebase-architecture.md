@@ -296,3 +296,211 @@ The editor styling is implemented using:
    - Implement real-time collaboration
    - Add commenting functionality
    - Implement version history 
+
+## Directory Structure
+
+```
+solis-fe/
+├── app/                    # Next.js app router
+│   ├── (auth)/             # Authentication routes
+│   ├── api/                # API routes
+│   ├── manage/             # Content management routes
+│   ├── medziaga/           # Content display routes
+│   ├── profile/            # User profile routes
+│   └── layout.tsx          # Root layout
+├── components/             # React components
+│   ├── auth/               # Authentication components
+│   ├── content/            # Content-related components
+│   ├── editor/             # Rich text editor components
+│   ├── layout/             # Layout components
+│   ├── profile/            # User profile components
+│   └── ui/                 # UI components
+├── lib/                    # Utility libraries
+│   ├── hooks/              # Custom React hooks
+│   ├── services/           # Service functions
+│   ├── supabase/           # Supabase client
+│   ├── types/              # TypeScript types
+│   └── utils/              # Utility functions
+├── public/                 # Static assets
+└── styles/                 # Global styles
+```
+
+## Key Components
+
+### Content Management
+
+1. **Content Form (`components/content/content-form.tsx`)**
+   - Handles content creation and editing
+   - Manages form state and validation
+   - Handles file uploads
+   - Supports rich text editing
+   - Manages form re-initialization when editing existing content
+   - Uses form key to force re-rendering when initialData changes
+
+2. **Rich Content Form (`components/content/rich-content-form.tsx`)**
+   - Wrapper for the rich text editor
+   - Handles content body editing
+   - Manages editor state
+   - Processes content for proper display in read-only mode
+   - Handles iframe rendering in content
+
+3. **Editor Wrapper (`components/editor/editor-wrapper.tsx`)**
+   - TipTap editor integration
+   - Toolbar for formatting options
+   - Handles video embedding
+   - Manages editor extensions
+   - Configures iframe display in read-only mode
+
+4. **Content Detail (`components/content/content-detail.tsx`)**
+   - Displays content details
+   - Handles premium content access
+   - Renders appropriate media based on content type
+   - Displays feedback and ratings
+   - Properly renders embedded iframes and other rich content
+
+5. **Content Image (`components/ui/content-image.tsx`)**
+   - Handles image loading and error states
+   - Provides fallbacks for missing images
+   - Optimizes images with Next.js Image component
+   - Validates image URLs
+   - Includes detailed logging for debugging
+
+### Data Management
+
+1. **Content Service (`lib/services/content.ts`)**
+   - CRUD operations for content
+   - Handles content relationships (age groups, categories)
+   - Manages content metadata
+   - Processes content for display
+   - Handles thumbnail uploads
+
+2. **Storage Utilities (`lib/utils/storage-utils.ts`)**
+   - File upload functions for different content types
+   - Handles thumbnail uploads
+   - Manages file naming and organization
+   - Validates file types
+   - Provides detailed error handling and logging
+   - Accepts Supabase client parameter for flexibility
+
+3. **Content Editor Hook (`lib/hooks/useContentEditor.ts`)**
+   - Centralizes content editing state
+   - Manages draft saving and loading
+   - Handles content submission
+   - Tracks edit mode state
+   - Manages content loading for editing
+
+### Authentication
+
+1. **Auth Provider (`components/auth-provider.tsx`)**
+   - Manages authentication state
+   - Provides login/logout functionality
+   - Handles session persistence
+   - Manages user profile data
+
+2. **Auth Forms (`components/auth/`)**
+   - Login form
+   - Registration form
+   - Password reset
+   - Email verification
+
+### UI Components
+
+1. **UI Components (`components/ui/`)**
+   - Reusable UI elements
+   - Form controls
+   - Layout components
+   - Feedback elements
+   - Content display components
+
+## Data Flow
+
+### Content Creation Flow
+
+1. User navigates to `/manage/content`
+2. `ClientManageContentPage` renders the content form
+3. User fills out the form and uploads files
+4. Form data is validated client-side
+5. On submit, `useContentEditor.submitContent` is called
+6. If thumbnail is provided, it's uploaded via `uploadThumbnail`
+7. Content is created/updated via `createContent`/`updateContent`
+8. User is redirected to content list
+
+### Content Display Flow
+
+1. User navigates to `/medziaga/[slug]`
+2. Server component fetches content via `getContentBySlug`
+3. `ContentDetail` component renders the content
+4. If content is premium, access is checked
+5. Content body is rendered via `ContentBodyDisplay`
+6. Rich content (including iframes) is rendered via `RichContentForm`
+7. User can provide feedback via `ContentDetailFeedback`
+
+## Key Improvements
+
+### Recent Enhancements
+
+1. **Storage Utilities**
+   - Improved error handling in storage functions
+   - Enhanced URL validation for uploaded files
+   - Added better debugging for file uploads
+   - Fixed Supabase client initialization
+   - Updated all functions to accept a Supabase client parameter
+   - Added validation for file types during upload
+   - Implemented fallback images for failed uploads
+
+2. **Content Form**
+   - Fixed thumbnail upload and display issues
+   - Improved form validation
+   - Enhanced visual feedback for selections
+   - Fixed edit button functionality
+   - Added form key to force re-rendering when initialData changes
+   - Improved draft saving and restoration
+   - Enhanced error handling for form submissions
+
+3. **Rich Text Editor**
+   - Fixed iframe rendering in read-only mode
+   - Improved content re-initialization when editing
+   - Enhanced styling for better visibility
+   - Fixed toolbar button interactions
+   - Added comprehensive logging for debugging
+   - Implemented proper event handling for editor actions
+
+4. **Content Display**
+   - Enhanced ContentImage component with better error handling
+   - Improved validateStorageUrl function
+   - Added fallback images for failed uploads
+   - Fixed thumbnail display on content cards and detail pages
+   - Improved iframe rendering in content body
+   - Added detailed logging for image loading issues
+
+## Technical Debt and Future Improvements
+
+1. **Performance Optimization**
+   - Implement pagination for content lists
+   - Add caching for frequently accessed data
+   - Optimize image loading and processing
+   - Implement lazy loading for content components
+
+2. **Error Handling**
+   - Enhance error boundaries for components
+   - Improve error messaging and recovery
+   - Add comprehensive logging for debugging
+   - Implement retry mechanisms for failed operations
+
+3. **Testing**
+   - Add unit tests for critical components
+   - Implement integration tests for key flows
+   - Add end-to-end tests for user journeys
+   - Set up continuous integration
+
+4. **Accessibility**
+   - Improve keyboard navigation
+   - Add ARIA attributes for screen readers
+   - Enhance color contrast for better visibility
+   - Implement focus management for interactive elements
+
+5. **Mobile Experience**
+   - Optimize layouts for mobile devices
+   - Improve touch interactions
+   - Enhance form usability on small screens
+   - Optimize image loading for mobile networks 

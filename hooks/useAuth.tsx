@@ -36,9 +36,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!supabase) return
     
+    console.log('Setting up auth state change listener')
+    
+    // First, immediately check the current session state
+    const checkCurrentSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (data.session) {
+          console.log('Initial session found:', data.session.user.email)
+          setSession(data.session)
+          setUser(data.session.user)
+          setIsAuthenticated(true)
+        } else {
+          console.log('No initial session found')
+        }
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Error checking initial session:', error)
+        setIsLoading(false)
+      }
+    }
+    
+    checkCurrentSession()
+    
+    // Then set up the listener for changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email)
       setSession(session)
       setUser(session?.user || null)
       setIsAuthenticated(!!session?.user)
@@ -46,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
 
     return () => {
+      console.log('Unsubscribing from auth state changes')
       subscription.unsubscribe()
     }
   }, [supabase])

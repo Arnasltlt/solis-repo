@@ -8,6 +8,8 @@ import { useContent } from '@/lib/hooks/useContent'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
 import type { ContentItem, AgeGroup, Category } from '@/lib/types/database'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 interface HomeClientContentProps {
   initialContent: ContentItem[]
@@ -22,7 +24,8 @@ export function HomeClientContent({
 }: HomeClientContentProps) {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const { canAccessPremiumContent } = useAuthorization()
+  const { canAccessPremiumContent, isAdmin } = useAuthorization()
+  const showEditButtons = isAdmin()
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showPremiumOnly, setShowPremiumOnly] = useState(false)
@@ -138,18 +141,34 @@ export function HomeClientContent({
   }, [error])
   
   return (
-    <ContentLayout
-      content={displayContent}
-      ageGroups={ageGroups}
-      categories={categories}
-      selectedAgeGroups={selectedAgeGroups}
-      selectedCategories={selectedCategories}
-      showPremiumOnly={showPremiumOnly}
-      isLoading={isLoading}
-      onAgeGroupSelect={handleAgeGroupSelect}
-      onCategorySelect={handleCategorySelect}
-      onPremiumToggle={handlePremiumToggle}
-      onRefresh={refresh}
-    />
+    <>
+      {showEditButtons && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="font-medium text-yellow-800">Admin Mode</h3>
+              <p className="text-sm text-yellow-600">You can edit content directly from this page.</p>
+            </div>
+            <Link href="/manage/content/new">
+              <Button>Create New Content</Button>
+            </Link>
+          </div>
+        </div>
+      )}
+      <ContentLayout
+        content={displayContent}
+        ageGroups={ageGroups}
+        categories={categories}
+        selectedAgeGroups={selectedAgeGroups}
+        selectedCategories={selectedCategories}
+        showPremiumOnly={showPremiumOnly}
+        isLoading={isLoading}
+        onAgeGroupSelect={handleAgeGroupSelect}
+        onCategorySelect={handleCategorySelect}
+        onPremiumToggle={handlePremiumToggle}
+        onRefresh={refresh}
+        showEditButtons={showEditButtons}
+      />
+    </>
   )
 } 

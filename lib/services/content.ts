@@ -6,6 +6,7 @@ import slugify from 'slugify'
 import { v4 as uuidv4 } from 'uuid'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { uploadThumbnail } from '@/lib/utils/storage-utils'
+import { createFileCopy } from '@/lib/utils/debug-utils'
 
 interface ContentFormData {
   title: string
@@ -352,6 +353,12 @@ export async function createContent(
     }
 
     // Prepare the request payload for content_items table
+    const slug = slugify(data.title, { lower: true, strict: true });
+    
+    // Create a unique slug to avoid conflicts
+    const timestamp = new Date().getTime();
+    const uniqueSlug = `${slug}-${timestamp.toString().slice(-6)}`;
+    
     const payload = {
       title: data.title,
       description: data.description || '',
@@ -361,24 +368,97 @@ export async function createContent(
       access_tier_id: data.accessTierId,
       thumbnail_url: '',
       author_id: session.session.user.id,
-      // Generate a URL-friendly slug from the title
-      slug: slugify(data.title, { lower: true, strict: true })
+      // Use unique slug to avoid conflicts
+      slug: uniqueSlug
     }
+
+    // Debug the content body
+    console.log('createContent payload:', {
+      contentBodyProvided: !!data.contentBody,
+      contentBodyType: typeof data.contentBody,
+      contentBodyLength: data.contentBody?.length || 0,
+      finalContentBody: payload.content_body.substring(0, 100), // First 100 chars
+      hasThumbnail: !!data.thumbnail,
+      thumbnailType: data.thumbnail ? typeof data.thumbnail : 'none',
+      thumbnailIsFile: data.thumbnail instanceof File,
+      thumbnailDetails: data.thumbnail instanceof File ? {
+        name: data.thumbnail.name,
+        size: data.thumbnail.size,
+        type: data.thumbnail.type
+      } : 'not a file'
+    });
 
     // Handle thumbnail upload if provided
     if (data.thumbnail instanceof File) {
       try {
-        const { url, error } = await uploadThumbnail(supabase, data.thumbnail)
-        if (error) throw error
-        payload.thumbnail_url = url
+        console.log('Uploading thumbnail file:', {
+          name: data.thumbnail.name,
+          size: data.thumbnail.size,
+          type: data.thumbnail.type,
+          lastModified: new Date(data.thumbnail.lastModified).toISOString()
+        });
+        
+        // Validate file before upload
+        if (data.thumbnail.size === 0) {
+          throw new Error('Cannot upload empty file');
+        }
+        
+        if (!data.thumbnail.type.startsWith('image/')) {
+          throw new Error('Thumbnail must be an image file');
+        }
+        
+        // Create a unique filename
+        const fileExt = data.thumbnail.name.split('.').pop() || 'jpg';
+        const uniqueFileName = `content-${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+        
+        // Use our utility to create a proper file copy
+        console.log('Creating file copy...');
+        const copyResult = await createFileCopy(data.thumbnail, uniqueFileName);
+        
+        if (!copyResult.success || !copyResult.file) {
+          console.error('Failed to create file copy:', copyResult.error);
+          throw new Error(`Failed to create file copy: ${copyResult.error}`);
+        }
+        
+        console.log('File copy created successfully using method:', copyResult.method);
+        console.log('File copy details:', copyResult.details);
+        
+        // Upload the file copy
+        console.log('Uploading file copy...');
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('thumbnails')
+          .upload(copyResult.file.name, copyResult.file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+        
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
+        
+        console.log('Upload successful:', uploadData);
+        
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('thumbnails')
+          .getPublicUrl(uploadData.path);
+        
+        console.log('Public URL obtained:', publicUrl);
+        payload.thumbnail_url = publicUrl;
       } catch (error) {
-        console.error('Error uploading thumbnail:', error)
+        console.error('Error uploading thumbnail:', error);
         // Continue without thumbnail if upload fails
-        payload.thumbnail_url = 'https://placehold.co/600x400/png?text=No+Thumbnail'
+        payload.thumbnail_url = 'https://placehold.co/600x400/png?text=No+Thumbnail';
       }
+    } else if (typeof data.thumbnail === 'string' && data.thumbnail.trim() !== '') {
+      // If thumbnail is already a URL string, use it directly
+      console.log('Using provided thumbnail URL:', data.thumbnail);
+      payload.thumbnail_url = data.thumbnail;
     } else {
+      console.log('No thumbnail file provided, using default');
       // Use default thumbnail if none provided
-      payload.thumbnail_url = 'https://placehold.co/600x400/png?text=No+Thumbnail'
+      payload.thumbnail_url = 'https://placehold.co/600x400/png?text=No+Thumbnail';
     }
 
     // Insert the content item
@@ -433,37 +513,76 @@ export async function createContent(
 }
 
 export async function getContentById(id: string, adminClient?: SupabaseClient) {
-  const client = getClient(adminClient)
-  const { data, error } = await client
-    .from('content_items')
-    .select(`
-      *,
-      access_tier:access_tiers!content_items_access_tier_id_fkey(*),
-      age_groups:content_age_groups(
-        age_group:age_groups(*)
-      ),
-      categories:content_categories(
-        category:categories(*)
-      )
-    `)
-    .eq('id', id)
-    .single()
+  console.log('Getting content by ID:', id);
   
-  if (error) {
-    throw error
-  }
-
-  // Transform the data to match the expected format
-  return {
-    ...data,
-    age_groups: data.age_groups?.map((ag: any) => ag.age_group) || [],
-    categories: data.categories?.map((cc: any) => cc.category) || [],
-    access_tier: {
-      id: data.access_tier_id,
-      name: data.access_tier?.name || 'free',
-      level: data.access_tier?.level || 0,
-      features: data.access_tier?.features || {}
+  try {
+    const client = getClient(adminClient);
+    
+    // First, check if the content exists
+    const { data: contentExists, error: existsError } = await client
+      .from('content_items')
+      .select('id')
+      .eq('id', id)
+      .single();
+    
+    if (existsError) {
+      console.error('Error checking if content exists:', existsError);
+      if (existsError.code === 'PGRST116') {
+        // PGRST116 is the error code for "no rows returned"
+        console.log('Content not found with ID:', id);
+        return null;
+      }
+      throw existsError;
     }
+    
+    if (!contentExists) {
+      console.log('Content not found with ID:', id);
+      return null;
+    }
+    
+    // If content exists, get the full data
+    const { data, error } = await client
+      .from('content_items')
+      .select(`
+        *,
+        access_tier:access_tiers!content_items_access_tier_id_fkey(*),
+        age_groups:content_age_groups(
+          age_group:age_groups(*)
+        ),
+        categories:content_categories(
+          category:categories(*)
+        )
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching content data:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      console.log('No data returned for content ID:', id);
+      return null;
+    }
+    
+    console.log('Content retrieved successfully for ID:', id);
+    
+    // Transform the data to match the expected format
+    return {
+      ...data,
+      age_groups: data.age_groups?.map((ag: any) => ag.age_group) || [],
+      categories: data.categories?.map((cc: any) => cc.category) || [],
+      access_tier: {
+        id: data.access_tier_id,
+        name: data.access_tier?.name || 'free',
+        level: data.access_tier?.level || 0,
+        features: data.access_tier?.features || {}
+      }
+    };
+  } catch (error) {
+    console.error('Error in getContentById:', error);
+    throw error;
   }
 }
 
@@ -566,50 +685,95 @@ export async function updateContent(
   }
 
   try {
-    // Get the current user's ID
+    // Get the current user's ID and subscription tier
     const { data: session } = await supabase.auth.getSession()
     if (!session?.session?.user?.id) {
       throw new Error('User must be authenticated to update content')
     }
 
-    // Verify the user owns this content
-    const { data: existingContent, error: fetchError } = await supabase
-      .from('content_items')
-      .select('author_id')
-      .eq('id', id)
+    // Get the user's subscription tier
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('subscription_tier_id')
+      .eq('id', session.session.user.id)
       .single()
 
-    if (fetchError) throw fetchError
-    if (!existingContent) throw new Error('Content not found')
-    if (existingContent.author_id !== session.session.user.id) {
-      throw new Error('You do not have permission to update this content')
+    if (userError) throw userError
+
+    // Get the administrator tier ID
+    const { data: adminTier, error: adminTierError } = await supabase
+      .from('access_tiers')
+      .select('id')
+      .eq('name', 'administrator')
+      .single()
+
+    if (adminTierError) throw adminTierError
+
+    // Check if user is an administrator
+    const isAdmin = userData?.subscription_tier_id === adminTier.id
+
+    if (!isAdmin) {
+      // If not admin, verify the user owns this content
+      const { data: existingContent, error: fetchError } = await supabase
+        .from('content_items')
+        .select('author_id')
+        .eq('id', id)
+        .single()
+
+      if (fetchError) throw fetchError
+      if (!existingContent) throw new Error('Content not found')
+      if (existingContent.author_id !== session.session.user.id) {
+        throw new Error('You do not have permission to update this content')
+      }
     }
 
     // Prepare the update payload
-    const payload: any = {
-      title: data.title,
-      description: data.description,
-      type: data.type,
-      content_body: data.contentBody,
-      published: data.published,
-      access_tier_id: data.accessTierId
+    const payload: any = {}
+    
+    // Only include fields that are provided in the update
+    if (data.title !== undefined) payload.title = data.title
+    if (data.description !== undefined) payload.description = data.description
+    if (data.type !== undefined) payload.type = data.type
+    if (data.published !== undefined) payload.published = data.published
+    if (data.accessTierId !== undefined) payload.access_tier_id = data.accessTierId
+    
+    // Special handling for content_body to ensure it's properly updated
+    if (data.contentBody !== undefined) {
+      // Don't save the literal string "content_body"
+      if (data.contentBody === 'content_body') {
+        console.log('Ignoring literal "content_body" string in update');
+        // Don't update content_body if it's the literal string "content_body"
+      } else {
+        payload.content_body = data.contentBody;
+        console.log('Setting content_body in update payload:', {
+          contentBodyProvided: true,
+          contentBodyType: typeof data.contentBody,
+          contentBodyLength: data.contentBody?.length || 0,
+          contentBodySample: data.contentBody?.substring(0, 100) || ''
+        });
+      }
+    } else {
+      console.log('content_body not provided in update data');
     }
 
-    // If title is updated, update the slug
+    // Debug the full update payload
+    console.log('Full updateContent payload:', {
+      id,
+      payloadKeys: Object.keys(payload),
+      hasContentBody: 'content_body' in payload
+    });
+
+    // If title is updated, update the slug with a unique value
     if (data.title) {
-      payload.slug = slugify(data.title, { lower: true, strict: true })
+      const slug = slugify(data.title, { lower: true, strict: true });
+      const timestamp = new Date().getTime();
+      payload.slug = `${slug}-${timestamp.toString().slice(-6)}`;
     }
 
     // Handle thumbnail update if provided
-    if (data.thumbnail instanceof File) {
-      try {
-        const { url, error } = await uploadThumbnail(supabase, data.thumbnail)
-        if (error) throw error
-        payload.thumbnail_url = url
-      } catch (error) {
-        console.error('Error uploading new thumbnail:', error)
-        // Keep existing thumbnail if upload fails
-      }
+    if (data.thumbnail) {
+      console.log('Using provided thumbnail:', data.thumbnail);
+      payload.thumbnail_url = data.thumbnail;
     }
 
     // Update the content item
@@ -676,5 +840,73 @@ export async function updateContent(
   } catch (error) {
     console.error('Error updating content:', error)
     throw error
+  }
+}
+
+/**
+ * Updates only the content body of a content item
+ * This is a simplified version of updateContent that only updates the content_body field
+ */
+export async function updateContentBody(
+  id: string,
+  contentBody: string,
+  adminClient?: SupabaseClient
+) {
+  console.log('Updating content body for content ID:', id);
+  
+  try {
+    const client = getClient(adminClient);
+    
+    // First, check if the content exists
+    const { data: contentExists, error: existsError } = await client
+      .from('content_items')
+      .select('id')
+      .eq('id', id)
+      .single();
+    
+    if (existsError) {
+      console.error('Error checking if content exists:', existsError);
+      if (existsError.code === 'PGRST116') {
+        // PGRST116 is the error code for "no rows returned"
+        throw new Error(`Content not found with ID: ${id}`);
+      }
+      throw existsError;
+    }
+    
+    if (!contentExists) {
+      throw new Error(`Content not found with ID: ${id}`);
+    }
+    
+    // Ensure contentBody is a string
+    const safeContentBody = contentBody || '';
+    
+    console.log('Content body length:', safeContentBody.length);
+    console.log('Content body preview:', safeContentBody.substring(0, 100) + '...');
+    
+    // Update the content body
+    const { data, error } = await client
+      .from('content_items')
+      .update({
+        content_body: safeContentBody,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select();
+    
+    if (error) {
+      console.error('Error updating content body:', error);
+      throw new Error(`Failed to update content body: ${error.message}`);
+    }
+    
+    if (!data || data.length === 0) {
+      console.error('No data returned after update');
+      throw new Error('Failed to update content body: No data returned');
+    }
+    
+    console.log('Content body updated successfully');
+    return data[0];
+  } catch (error) {
+    console.error('Error in updateContentBody:', error);
+    throw error;
   }
 } 

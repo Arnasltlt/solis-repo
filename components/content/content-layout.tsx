@@ -20,6 +20,7 @@ interface ContentLayoutProps {
   onCategorySelect: (id: string) => void
   onPremiumToggle: () => void
   onRefresh: () => void
+  showEditButtons?: boolean
 }
 
 /**
@@ -41,7 +42,8 @@ export function ContentLayout({
   onAgeGroupSelect,
   onCategorySelect,
   onPremiumToggle,
-  onRefresh
+  onRefresh,
+  showEditButtons = false
 }: ContentLayoutProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('all')
@@ -92,6 +94,7 @@ export function ContentLayout({
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="all"
+                showEditButtons={showEditButtons}
               />
             </TabsContent>
 
@@ -102,6 +105,7 @@ export function ContentLayout({
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="video"
+                showEditButtons={showEditButtons}
               />
             </TabsContent>
 
@@ -112,6 +116,7 @@ export function ContentLayout({
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="audio"
+                showEditButtons={showEditButtons}
               />
             </TabsContent>
 
@@ -122,6 +127,7 @@ export function ContentLayout({
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="lesson_plan"
+                showEditButtons={showEditButtons}
               />
             </TabsContent>
 
@@ -132,6 +138,7 @@ export function ContentLayout({
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="game"
+                showEditButtons={showEditButtons}
               />
             </TabsContent>
           </div>
@@ -139,4 +146,4 @@ export function ContentLayout({
       </div>
     </div>
   )
-} 
+}

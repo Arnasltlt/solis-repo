@@ -240,3 +240,37 @@
   max-width: none !important;
 }
 
+/* Ensure iframes are properly displayed in content */
+.rich-content-display iframe {
+  max-width: 100%;
+  border: none;
+  border-radius: 0.5rem;
+  aspect-ratio: 16 / 9;
+  margin: 1rem 0;
+}
+
+/* Make sure the ProseMirror content is properly styled */
+.ProseMirror {
+  min-height: 100px;
+}
+
+/* Ensure iframe nodes are properly displayed */
+.ProseMirror .iframe-wrapper {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
+  max-width: 100%;
+  margin: 1rem 0;
+}
+
+.ProseMirror .iframe-wrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0.5rem;
+}
+

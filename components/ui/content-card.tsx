@@ -7,7 +7,12 @@ import { ContentImage } from '@/components/ui/content-image'
 import { ContentTypeBadge } from '@/components/ui/content-type-badge'
 import { PremiumBadge } from '@/components/ui/premium-badge'
 import { LockClosedIcon } from '@heroicons/react/24/solid'
+import { PencilIcon } from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils/index'
+import { Button } from '@/components/ui/button'
+import { useAuthorization } from '@/hooks/useAuthorization'
+import { DeleteContentDialog } from '@/components/content/DeleteContentDialog'
+import { useRouter } from 'next/navigation'
 
 interface ContentCardProps {
   content: ContentItem
@@ -15,6 +20,7 @@ interface ContentCardProps {
   className?: string
   showDescription?: boolean
   isPremiumLocked?: boolean
+  showEditButton?: boolean
 }
 
 /**
@@ -28,17 +34,29 @@ export function ContentCard({
   index = 0, 
   className = '',
   showDescription = true,
-  isPremiumLocked = false
+  isPremiumLocked = false,
+  showEditButton = false
 }: ContentCardProps) {
   const isPremium = content.access_tier?.name === 'premium'
+  const { isAdmin } = useAuthorization()
+  const canEdit = isAdmin()
+  const router = useRouter()
+  
+  // Handle navigation to content page
+  const handleContentClick = () => {
+    router.push(`/medziaga/${content.slug}`)
+  }
 
   return (
-    <Link href={`/medziaga/${content.slug}`}>
-      <Card className={cn(
-        "overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col",
+    <Card 
+      className={cn(
+        "overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col cursor-pointer",
         isPremiumLocked && "opacity-80",
         className
-      )}>
+      )}
+      onClick={handleContentClick}
+    >
+      <div className="flex flex-col flex-grow">
         <div className="relative">
           <ContentImage 
             src={content.thumbnail_url}
@@ -74,12 +92,34 @@ export function ContentCard({
             </p>
           )}
         </CardContent>
-        <CardFooter className="px-4 py-3 bg-gray-50">
-          <div className="flex items-center gap-2">
-            <ContentTypeBadge type={content.type} variant="outline" />
+      </div>
+      
+      <CardFooter className="px-4 py-3 bg-gray-50 flex justify-between" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <ContentTypeBadge type={content.type} variant="outline" />
+        </div>
+        
+        {canEdit && showEditButton && (
+          <div className="flex gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-8 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/manage/content/edit/${content.id}`);
+              }}
+            >
+              <PencilIcon className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+            <DeleteContentDialog 
+              contentId={content.id} 
+              contentTitle={content.title}
+            />
           </div>
-        </CardFooter>
-      </Card>
-    </Link>
+        )}
+      </CardFooter>
+    </Card>
   )
-} 
+}

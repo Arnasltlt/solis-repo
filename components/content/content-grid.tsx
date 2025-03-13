@@ -9,12 +9,14 @@ import { useAuthorization } from "@/hooks/useAuthorization"
 import { useRouter } from "next/navigation"
 import type { ContentItem } from "@/lib/types/database"
 import { useEffect } from "react"
+import { useContentDelete } from './ContentDeleteManager'
 
 interface ContentGridProps {
   content: ContentItem[]
   isLoading: boolean
   showPremiumOnly: boolean
   contentType?: string
+  showEditButtons?: boolean
 }
 
 /**
@@ -30,11 +32,13 @@ export function ContentGrid({
   content,
   isLoading,
   showPremiumOnly,
-  contentType
+  contentType,
+  showEditButtons = false
 }: ContentGridProps) {
   const { isAuthenticated } = useAuth()
   const { canAccessPremiumContent } = useAuthorization()
   const router = useRouter()
+  const { isDeleted } = useContentDelete()
   
   // Add debug logging
   useEffect(() => {
@@ -64,9 +68,15 @@ export function ContentGrid({
   })
   
   // Filter content by type if specified
-  const filteredContent = contentType && contentType !== 'all'
+  let filteredContent = contentType && contentType !== 'all'
     ? filteredByPremium.filter(item => item.type === contentType)
     : filteredByPremium
+    
+  // Filter out deleted content
+  // But only on the client-side to avoid hydration mismatches
+  if (typeof window !== 'undefined') {
+    filteredContent = filteredContent.filter(item => !isDeleted(item.id))
+  }
 
   // Log filtered results
   useEffect(() => {
@@ -99,6 +109,7 @@ export function ContentGrid({
                 content={item} 
                 index={index}
                 isPremiumLocked={item.access_tier?.name === 'premium' && (!isAuthenticated || !canAccessPremiumContent())}
+                showEditButton={showEditButtons}
               />
             ))}
           </div>
@@ -119,4 +130,4 @@ export function ContentGrid({
       </div>
     </ScrollArea>
   )
-} 
+}

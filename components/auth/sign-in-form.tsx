@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -30,9 +30,28 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export function SignInForm() {
-  const { signIn } = useAuth()
+  const { signIn, isAuthenticated } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
+  const [callbackUrl, setCallbackUrl] = useState('/')
+  
+  // Get the callback URL from the search params
+  useEffect(() => {
+    const callback = searchParams.get('callbackUrl')
+    if (callback) {
+      setCallbackUrl(callback)
+      console.log('Found callback URL:', callback)
+    }
+  }, [searchParams])
+  
+  // If user is already authenticated, redirect to callback URL
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('User is already authenticated, redirecting to:', callbackUrl)
+      router.push(callbackUrl)
+    }
+  }, [isAuthenticated, callbackUrl, router])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -61,7 +80,8 @@ export function SignInForm() {
         description: 'You have been signed in',
       })
       
-      router.push('/')
+      // Redirect to callback URL if provided, otherwise go to homepage
+      router.push(callbackUrl)
       router.refresh()
     } catch (error: any) {
       toast({

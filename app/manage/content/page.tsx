@@ -1,17 +1,6 @@
-import { getAgeGroups, getCategories, getAccessTiers } from '@/lib/services/content'
-import { ClientManageContentPage } from './ClientManageContentPage'
+import { redirect } from 'next/navigation'
 
-export default async function ManageContentPage() {
-  // Fetch the data needed for the content management page
-  const ageGroups = await getAgeGroups()
-  const categories = await getCategories()
-  const accessTiers = await getAccessTiers()
-
-  return (
-    <ClientManageContentPage 
-      ageGroups={ageGroups} 
-      categories={categories} 
-      accessTiers={accessTiers} 
-    />
-  )
-} 
+export default function ContentRedirect() {
+  // Redirect to content creation page
+  redirect('/manage/content/new')
+}
