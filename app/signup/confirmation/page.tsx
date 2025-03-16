@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Signup Confirmation | Solis',
-  description: 'Verify your email address',
+  title: 'Registracijos patvirtinimas | Solis',
+  description: 'Patvirtinkite savo el. pašto adresą',
 }
 
 export default function SignUpConfirmationPage() {
@@ -14,24 +14,24 @@ export default function SignUpConfirmationPage() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
         <Card className="w-full max-w-md mx-auto">
           <CardHeader>
-            <CardTitle>Check Your Email</CardTitle>
+            <CardTitle>Patikrinkite savo el. paštą</CardTitle>
             <CardDescription>
-              Please verify your email address to complete your registration
+              Patvirtinkite savo el. pašto adresą, kad užbaigtumėte registraciją
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p>
-              We&apos;ve sent a verification link to your email address.
-              Please check your inbox and click the link to complete your registration.
+              Išsiuntėme patvirtinimo nuorodą į jūsų el. pašto adresą.
+              Patikrinkite savo pašto dėžutę ir spustelėkite nuorodą, kad užbaigtumėte registraciją.
             </p>
             <p className="text-sm text-muted-foreground">
-              If you don&apos;t see the email, please check your spam folder.
+              Jei nematote el. laiško, patikrinkite savo šlamšto aplanką.
             </p>
           </CardContent>
           <CardFooter className="flex justify-center">
             <Button asChild>
               <Link href="/login">
-                Go to Login
+                Eiti į prisijungimą
               </Link>
             </Button>
           </CardFooter>

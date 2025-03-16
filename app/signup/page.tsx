@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { SignUpForm } from '@/components/auth/sign-up-form'
 
 export const metadata: Metadata = {
-  title: 'Sign Up | Solis',
-  description: 'Create a new account',
+  title: 'Registracija | Solis',
+  description: 'Sukurkite naują paskyrą',
 }
 
 export default function SignUpPage() {
@@ -12,7 +12,7 @@ export default function SignUpPage() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
         <div className="mx-auto w-full max-w-md">
           <h1 className="text-2xl font-bold text-center mb-6">
-            Create an Account
+            Sukurti paskyrą
           </h1>
           <SignUpForm />
         </div>

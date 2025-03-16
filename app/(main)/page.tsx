@@ -26,11 +26,13 @@ async function HomeContent() {
     
     // Client component that handles filtering state
     return (
-      <HomeClientContent 
-        initialContent={contentItems}
-        ageGroups={ageGroups}
-        categories={categories}
-      />
+      <div className="p-4">
+        <HomeClientContent 
+          initialContent={contentItems}
+          ageGroups={ageGroups}
+          categories={categories}
+        />
+      </div>
     )
   } catch (error: any) {
     return (

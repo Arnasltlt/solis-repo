@@ -36,7 +36,7 @@ export function PremiumBadge({
       className
     )}>
       <SparklesIcon className="w-5 h-5" />
-      {showLabel && <span>Premium turinys</span>}
+      {showLabel && <span>Narystės turinys</span>}
     </div>
   ) : (
     <Badge 
@@ -48,7 +48,7 @@ export function PremiumBadge({
       )}
     >
       <SparklesIcon className="w-4 h-4 mr-1" />
-      {showLabel && "Premium"}
+      {showLabel && "Narystė"}
     </Badge>
   )
 } 

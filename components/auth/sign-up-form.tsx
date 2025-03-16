@@ -23,11 +23,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from 'next/link'
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
+  email: z.string().email({ message: 'Įveskite teisingą el. pašto adresą.' }),
+  password: z.string().min(6, { message: 'Slaptažodis turi būti bent 6 simbolių.' }),
+  confirmPassword: z.string().min(6, { message: 'Patvirtinkite savo slaptažodį.' }),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match.',
+  message: 'Slaptažodžiai nesutampa.',
   path: ['confirmPassword'],
 })
 
@@ -50,7 +50,9 @@ export function SignUpForm() {
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true)
     try {
-      const { error } = await signUp(values.email, values.password)
+      const { data, error } = await signUp(values.email, values.password)
+      
+      console.log('Sign up response:', { data, error })
       
       if (error) {
         toast({
@@ -70,9 +72,10 @@ export function SignUpForm() {
       router.push('/signup/confirmation')
       router.refresh()
     } catch (error: any) {
+      console.error('Signup error:', error)
       toast({
         title: 'Error',
-        description: error.message || 'Something went wrong',
+        description: error.message || 'Something went wrong with registration',
         variant: 'destructive',
       })
     } finally {
@@ -83,9 +86,9 @@ export function SignUpForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Sign Up</CardTitle>
+        <CardTitle>Registracija</CardTitle>
         <CardDescription>
-          Create an account to access our content
+          Sukurkite paskyrą, kad galėtumėte pasiekti mūsų turinį
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -96,7 +99,7 @@ export function SignUpForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>El. paštas</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="email@example.com" 
@@ -114,7 +117,7 @@ export function SignUpForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Slaptažodis</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="••••••••" 
@@ -132,7 +135,7 @@ export function SignUpForm() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel>Pakartokite slaptažodį</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="••••••••" 
@@ -150,16 +153,16 @@ export function SignUpForm() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Creating account...' : 'Sign Up'}
+              {isLoading ? 'Kuriama paskyra...' : 'Registruotis'}
             </Button>
           </form>
         </Form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <div className="text-sm text-center">
-          Already have an account?{' '}
+          Jau turite paskyrą?{' '}
           <Link href="/login" className="text-primary hover:underline">
-            Sign in
+            Prisijungti
           </Link>
         </div>
       </CardFooter>

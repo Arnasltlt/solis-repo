@@ -56,12 +56,12 @@ export function ContentManagementPage({
     <ProtectedRoute requiredRole="administrator">
       <div className="container py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Content Management</h1>
+          <h1 className="text-3xl font-bold">Turinys</h1>
           {canCreate && (
             <Link href="/manage/content?tab=create">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Create New Content
+                Sukurti naują turinį
               </Button>
             </Link>
           )}
@@ -69,9 +69,9 @@ export function ContentManagementPage({
       
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Content List</CardTitle>
+          <CardTitle>Turinio sąrašas</CardTitle>
           <CardDescription>
-            Manage your content items. You can edit, view, or delete content.
+            Valdykite savo turinio elementus. Galite redaguoti, peržiūrėti arba ištrinti turinį.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -79,7 +79,7 @@ export function ContentManagementPage({
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search content..."
+                placeholder="Ieškoti turinio..."
                 className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -92,10 +92,10 @@ export function ContentManagementPage({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>Pavadinimas</TableHead>
+                    <TableHead>Tipas</TableHead>
+                    <TableHead>Būsena</TableHead>
+                    <TableHead className="text-right">Veiksmai</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -104,15 +104,15 @@ export function ContentManagementPage({
                       <TableCell className="font-medium">{item.title}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {item.type === 'video' && 'Video'}
-                          {item.type === 'audio' && 'Audio'}
-                          {item.type === 'lesson_plan' && 'Lesson Plan'}
-                          {item.type === 'game' && 'Game'}
+                          {item.type === 'video' && 'Vaizdo įrašas'}
+                          {item.type === 'audio' && 'Garso įrašas'}
+                          {item.type === 'lesson_plan' && 'Pamokos planas'}
+                          {item.type === 'game' && 'Žaidimas'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={item.published ? "default" : "secondary"}>
-                          {item.published ? 'Published' : 'Draft'}
+                          {item.published ? 'Paskelbta' : 'Juodraštis'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -132,7 +132,7 @@ export function ContentManagementPage({
                               size="sm"
                               onClick={() => handleEditContent(item.id)}
                             >
-                              Edit Content
+                              Redaguoti turinį
                             </Button>
                           )}
                           <Button
@@ -152,13 +152,13 @@ export function ContentManagementPage({
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-muted-foreground mb-4">
-                {searchQuery ? 'No content items match your search.' : 'No content items found.'}
+                {searchQuery ? 'Nėra turinio elementų, atitinkančių jūsų paiešką.' : 'Nerasta turinio elementų.'}
               </p>
               {canCreate && (
                 <Link href="/manage/content?tab=create">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Create Your First Content
+                    Sukurti pirmąjį turinį
                   </Button>
                 </Link>
               )}

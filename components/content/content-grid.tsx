@@ -40,31 +40,22 @@ export function ContentGrid({
   const router = useRouter()
   const { isDeleted } = useContentDelete()
   
-  // Add debug logging
+  // Track content rendering metrics
   useEffect(() => {
-    console.log('DEBUG - ContentGrid rendering with:', {
-      contentCount: content.length,
-      isLoading,
-      showPremiumOnly,
-      contentType
-    })
+    // Log removed in production
   }, [content.length, isLoading, showPremiumOnly, contentType])
 
-  // Filter content by premium status and user access
+  // Filter content by premium status based on filter selection, not user access
   const filteredByPremium = content.filter(item => {
     const isPremium = item.access_tier?.name === 'premium'
     
-    // If not premium content, show to everyone
-    if (!isPremium) return true
-    
-    // If premium content, check if user can access it
-    if (isAuthenticated && canAccessPremiumContent()) {
-      return true
+    // If showing premium only, only show premium content
+    if (showPremiumOnly) {
+      return isPremium
     }
     
-    // If showing premium only, include premium items even if user can't access them
-    // (they'll be shown with a lock icon or upgrade prompt)
-    return showPremiumOnly
+    // If not filtering for premium only, show all content
+    return true
   })
   
   // Filter content by type if specified
@@ -78,21 +69,17 @@ export function ContentGrid({
     filteredContent = filteredContent.filter(item => !isDeleted(item.id))
   }
 
-  // Log filtered results
+  // Track filtering performance
   useEffect(() => {
-    console.log('DEBUG - Content filtered:', {
-      originalCount: content.length,
-      afterPremiumFilter: filteredByPremium.length,
-      finalFilteredCount: filteredContent.length
-    })
+    // Log removed in production
   }, [content.length, filteredByPremium.length, filteredContent.length])
 
   // Handle premium content access
   const handlePremiumUpgrade = () => {
     if (!isAuthenticated) {
-      router.push('/login')
+      router.push('/premium')
     } else {
-      router.push('/profile')
+      router.push('/premium')
     }
   }
 

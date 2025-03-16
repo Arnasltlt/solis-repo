@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { useAuthorization } from '@/hooks/useAuthorization'
 import { DeleteContentDialog } from '@/components/content/DeleteContentDialog'
 import { useRouter } from 'next/navigation'
+import { SparklesIcon } from '@heroicons/react/24/solid'
 
 interface ContentCardProps {
   content: ContentItem
@@ -74,7 +75,7 @@ export function ContentCard({
           {isPremiumLocked && (
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
               <div className="bg-white/90 rounded-full p-3">
-                <LockClosedIcon className="h-6 w-6 text-amber-600" />
+                <SparklesIcon className="h-6 w-6 text-amber-600" />
               </div>
             </div>
           )}
@@ -88,7 +89,7 @@ export function ContentCard({
           )}
           {isPremiumLocked && (
             <p className="text-amber-600 text-sm mt-2 font-medium">
-              Premium turinys
+              Narystės turinys
             </p>
           )}
         </CardContent>

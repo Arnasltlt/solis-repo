@@ -10,6 +10,7 @@ import { useAuthorization } from '@/hooks/useAuthorization'
 import type { ContentItem, AgeGroup, Category } from '@/lib/types/database'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { SparklesIcon } from '@heroicons/react/24/solid'
 
 interface HomeClientContentProps {
   initialContent: ContentItem[]
@@ -93,30 +94,20 @@ export function HomeClientContent({
     })
   }, [])
   
-  // Handle premium toggle
+  // Handle premium toggle - now allows everyone to filter by premium
   const handlePremiumToggle = useCallback(() => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Prisijungimas reikalingas",
-        description: "Norėdami matyti premium turinį, turite prisijungti.",
-        variant: "destructive",
-      })
-      router.push('/login')
-      return
-    }
-    
-    if (!canAccessPremiumContent()) {
-      toast({
-        title: "Premium narystė reikalinga",
-        description: "Norėdami matyti premium turinį, turite turėti premium narystę.",
-        variant: "destructive",
-      })
-      router.push('/profile')
-      return
-    }
-    
+    // Allow everyone to filter by premium content
     setShowPremiumOnly(prev => !prev)
-  }, [isAuthenticated, canAccessPremiumContent, router])
+    
+    // If premium filter is being turned on, show informational toast for non-premium users
+    if (!showPremiumOnly && (!isAuthenticated || !canAccessPremiumContent())) {
+      toast({
+        title: "Narystės turinys",
+        description: "Rodomas narystės turinys, bet prieiga prie išsamaus turinio reikalaus Narystės.",
+        duration: 5000,
+      })
+    }
+  }, [isAuthenticated, canAccessPremiumContent, showPremiumOnly])
   
   // Trigger content refresh when filters change
   useEffect(() => {
@@ -155,6 +146,30 @@ export function HomeClientContent({
           </div>
         </div>
       )}
+      
+      {/* Premium Banner for non-premium users */}
+      {isAuthenticated && !canAccessPremiumContent() && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-lg">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex-1">
+              <h3 className="font-medium text-amber-800 flex items-center">
+                <SparklesIcon className="h-5 w-5 mr-2 text-amber-500" />
+                Gaukite Narystę
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Gaukite neribotą prieigą prie viso narystės turinio.
+              </p>
+            </div>
+            <Button 
+              className="bg-amber-600 hover:bg-amber-700 whitespace-nowrap"
+              onClick={() => router.push('/premium')}
+            >
+              Peržiūrėti Narystės Planus
+            </Button>
+          </div>
+        </div>
+      )}
+      
       <ContentLayout
         content={displayContent}
         ageGroups={ageGroups}

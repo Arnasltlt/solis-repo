@@ -71,7 +71,7 @@ export function ContentFilterSidebar({
           }`}
         >
           <SparklesIcon className="w-4 h-4" />
-          Premium turinys
+          Narystės turinys
         </button>
       </div>
       <Separator />

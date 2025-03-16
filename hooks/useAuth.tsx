@@ -119,7 +119,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Authentication methods
   const signUp = async (email: string, password: string) => {
     if (!supabase) throw new Error('Supabase client not initialized')
-    return await supabase.auth.signUp({ email, password })
+    
+    try {
+      console.log('Attempting signup with email:', email)
+      // Include the redirect URL for email confirmation
+      const response = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        }
+      })
+      
+      console.log('Supabase signUp response:', response)
+      return response
+    } catch (error) {
+      console.error('Error in signUp method:', error)
+      throw error
+    }
   }
   
   const signIn = async (email: string, password: string) => {
