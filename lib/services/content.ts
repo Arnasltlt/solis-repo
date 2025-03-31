@@ -1,12 +1,12 @@
 import type { ContentType } from '@/lib/types/content'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@supabase/supabase-js'
 import type { Database, ContentItem } from '@/lib/types/database'
 import slugify from 'slugify'
 import { v4 as uuidv4 } from 'uuid'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { uploadThumbnail } from '@/lib/utils/storage-utils'
 import { createFileCopy } from '@/lib/utils/debug-utils'
+import { getSupabaseClient } from '@/lib/utils/supabase-client'
 
 interface ContentFormData {
   title: string
@@ -36,95 +36,107 @@ export interface CreateContentRequest {
   thumbnail: File | null
 }
 
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Get the default client from our utility
+const supabase = getSupabaseClient()
 
 // Helper function to get the appropriate client
-function getClient(adminClient?: SupabaseClient) {
-  return adminClient || supabase
-}
+// function getClient(adminClient?: SupabaseClient) {
+//   return adminClient || supabase // supabase uses ANON key
+// }
 
 export async function getAgeGroups(adminClient?: SupabaseClient) {
-  const client = getClient(adminClient)
-  console.log('DEBUG - Fetching age groups')
-  
+  const client = adminClient || getSupabaseClient()
+
+  // Use the provided client or create a default one
   const { data, error } = await client
     .from('age_groups')
     .select('*')
-    .order('range')
-  
+    .order('id', { ascending: true })
+
   if (error) {
-    console.error('DEBUG - Error fetching age groups:', error)
+    console.error('Error fetching age groups:', error)
     throw error
   }
-  
-  console.log('DEBUG - Age groups fetched:', data)
+
+  if (!data) {
+    return []
+  }
+
   return data
 }
 
 export async function getCategories(adminClient?: SupabaseClient) {
-  const client = getClient(adminClient)
-  console.log('DEBUG - Fetching categories')
-  
+  const client = adminClient || getSupabaseClient()
+
+  // Use the provided client or create a default one
   const { data, error } = await client
     .from('categories')
     .select('*')
-    .order('name')
-  
+    .order('id', { ascending: true })
+
   if (error) {
-    console.error('DEBUG - Error fetching categories:', error)
+    console.error('Error fetching categories:', error)
+    throw error
+  }
+
+  if (!data) {
     return []
   }
-  
-  console.log('DEBUG - Categories fetched:', data)
+
   return data
 }
 
 export async function getAccessTiers(adminClient?: SupabaseClient) {
-  const client = getClient(adminClient)
-  const { data, error } = await client
-    .from('access_tiers')
-    .select('*')
-    .order('level')
+  const client = getSupabaseClient()
   
-  if (error) throw error
-  return data
+  try {
+    const { data, error } = await client
+      .from('access_tiers')
+      .select('*')
+      .order('level')
+    
+    if (error) {
+      console.error('Error fetching access tiers:', error)
+      
+      // For permission errors (code 42501), return empty array instead of throwing
+      if (error.code === '42501') {
+        console.warn('Permission denied for access_tiers table. Using empty array as fallback.')
+        return []
+      }
+      
+      throw error
+    }
+    
+    return data || []
+  } catch (error) {
+    console.error('Failed to fetch access tiers:', error)
+    // Return an empty array as a fallback
+    return []
+  }
 }
 
-async function getPremiumTierId(client: SupabaseClient) {
-  const { data, error } = await client
-    .from('access_tiers')
-    .select('id')
-    .eq('name', 'premium')
-    .single()
-  
-  if (error) {
-    console.error('Error fetching premium tier ID:', error)
-    return null
-  }
-  
-  return data?.id
+// Define the parameters type for getContentItems
+interface GetContentItemsParams {
+  ageGroups?: string[];
+  categories?: string[];
+  searchQuery?: string;
+  client: SupabaseClient<Database>; // Make client required
+  showPremiumOnly?: boolean;
 }
 
 export async function getContentItems({
   ageGroups,
   categories,
   searchQuery,
-  adminClient,
+  client, // Add required client parameter
   showPremiumOnly = false
-}: {
-  ageGroups?: string[]
-  categories?: string[]
-  searchQuery?: string
-  adminClient?: SupabaseClient
-  showPremiumOnly?: boolean
-} = {}) {
-  const client = getClient(adminClient)
-  console.log('DEBUG - Fetching content items with filters:', { ageGroups, categories, searchQuery, showPremiumOnly })
-  
-  // Start with a base query
+}: GetContentItemsParams) { // Use the defined interface
+  // Ensure client is provided
+  if (!client) {
+    throw new Error("Supabase client is required for getContentItems");
+  }
+
+  // Start with a base query USING THE PROVIDED CLIENT
   let query = client
     .from('content_items')
     .select(`
@@ -137,82 +149,75 @@ export async function getContentItems({
         category:categories(*)
       )
     `)
-    .eq('published', true)
+    // RLS handles visibility based on authenticated client
 
-  // Apply premium filter if requested
-  if (showPremiumOnly) {
-    const premiumTierId = await getPremiumTierId(client)
-    if (premiumTierId) {
-      query = query.eq('access_tier_id', premiumTierId)
-    }
-  }
-
-  // Apply age groups filter if provided
+  // Apply age groups filter if provided (use the provided client)
   if (ageGroups && ageGroups.length > 0) {
-    console.log('DEBUG - Applying age groups filter:', ageGroups)
-    // First get the content IDs that match any of the age groups
-    const { data: contentIds, error: ageGroupError } = await client
+    const { data: contentIds, error: ageGroupError } = await client // use provided client
       .from('content_age_groups')
       .select('content_id')
-      .in('age_group_id', ageGroups)
-    
+      .in('age_group_id', ageGroups);
+
     if (ageGroupError) {
-      console.error('DEBUG - Error fetching content IDs for age groups:', ageGroupError)
-      throw ageGroupError
+      console.error('Error fetching content IDs for age groups:', ageGroupError)
+      // Decide if we should throw or return empty. Returning empty might be safer UI.
+      return []
     }
-    
+
     // Then filter the main query by these content IDs
     if (contentIds && contentIds.length > 0) {
       const ids = contentIds.map(item => item.content_id)
-      console.log('DEBUG - Filtering by content IDs for age groups:', ids)
       query = query.in('id', ids)
     } else {
       // If no content matches these age groups, return empty result
-      console.log('DEBUG - No content found for age groups:', ageGroups)
       return []
     }
   }
 
-  // Apply categories filter if provided
+  // Apply categories filter if provided (use the provided client)
   if (categories && categories.length > 0) {
-    console.log('DEBUG - Applying categories filter:', categories)
-    // First get the content IDs that match any of the categories
-    const { data: contentIds, error: categoriesError } = await client
+    const { data: contentIds, error: categoriesError } = await client // use provided client
       .from('content_categories')
       .select('content_id')
-      .in('category_id', categories)
-    
+      .in('category_id', categories);
+
     if (categoriesError) {
-      console.error('DEBUG - Error fetching content IDs for categories:', categoriesError)
-      throw categoriesError
+      console.error('Error fetching content IDs for categories:', categoriesError)
+      // Decide if we should throw or return empty.
+      return []
     }
-    
+
     // Then filter the main query by these content IDs
     if (contentIds && contentIds.length > 0) {
       const ids = contentIds.map(item => item.content_id)
-      console.log('DEBUG - Filtering by content IDs for categories:', ids)
       query = query.in('id', ids)
     } else {
       // If no content matches these categories, return empty result
-      console.log('DEBUG - No content found for categories:', categories)
       return []
     }
   }
 
+  // Apply search query if provided
   if (searchQuery) {
-    console.log('DEBUG - Applying search query:', searchQuery)
     query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
   }
 
+  // Fetch the data
   const { data, error } = await query.order('created_at', { ascending: false })
-  
+
   if (error) {
-    console.error('DEBUG - Error fetching content items:', error)
+    // Handle specific error codes if needed, e.g., permission denied
+    console.error('Error fetching filtered content items:', error)
+    // Decide if we should throw or return empty.
+    // Throwing might be better here to signal failure to the hook.
     throw error
   }
-  
-  console.log('DEBUG - Content items fetched:', data.length)
-  
+
+  // Return empty array if data is null/undefined
+  if (!data) {
+      return [];
+  }
+
   // Transform the data to match the expected format
   return data.map(item => ({
     ...item,
@@ -223,13 +228,19 @@ export async function getContentItems({
       name: item.access_tier?.name || 'free',
       level: item.access_tier?.level || 0,
       features: item.access_tier?.features || {}
+    },
+    metadata: {
+      content_images: Array.isArray(item.metadata?.content_images) ? item.metadata.content_images : [],
+      embed_links: Array.isArray(item.metadata?.embed_links) ? item.metadata.embed_links : [],
+      attachments: Array.isArray(item.metadata?.attachments) ? item.metadata.attachments : [],
+      ...item.metadata
     }
   }))
 }
 
 // Insert sample content items for testing
 export async function insertSampleContent(adminClient?: SupabaseClient) {
-  const client = getClient(adminClient)
+  const client = getSupabaseClient()
 
   // First get an age group, category, and access tiers
   const [ageGroups, categories, accessTiers] = await Promise.all([
@@ -516,7 +527,7 @@ export async function getContentById(id: string, adminClient?: SupabaseClient) {
   console.log('Getting content by ID:', id);
   
   try {
-    const client = getClient(adminClient);
+    const client = getSupabaseClient()
     
     // First, check if the content exists
     const { data: contentExists, error: existsError } = await client
@@ -578,6 +589,12 @@ export async function getContentById(id: string, adminClient?: SupabaseClient) {
         name: data.access_tier?.name || 'free',
         level: data.access_tier?.level || 0,
         features: data.access_tier?.features || {}
+      },
+      metadata: {
+        content_images: Array.isArray(data.metadata?.content_images) ? data.metadata.content_images : [],
+        embed_links: Array.isArray(data.metadata?.embed_links) ? data.metadata.embed_links : [],
+        attachments: Array.isArray(data.metadata?.attachments) ? data.metadata.attachments : [],
+        ...data.metadata
       }
     };
   } catch (error) {
@@ -586,8 +603,19 @@ export async function getContentById(id: string, adminClient?: SupabaseClient) {
   }
 }
 
-export async function getContentBySlug(slug: string, adminClient?: SupabaseClient) {
-  const client = getClient(adminClient)
+export async function getContentBySlug(
+  slug: string,
+  // adminClient?: SupabaseClient // Remove optional adminClient
+  client: SupabaseClient<Database> // Expect an authenticated client
+) {
+  // const client = getClient(adminClient) // REMOVE THIS LINE
+
+  // Add check to ensure a client was actually passed
+  if (!client) {
+    throw new Error('Supabase client is required for getContentBySlug');
+  }
+
+  // Proceed with the query using the provided authenticated client
   const { data, error } = await client
     .from('content_items')
     .select(`
@@ -600,12 +628,20 @@ export async function getContentBySlug(slug: string, adminClient?: SupabaseClien
         category:categories(*)
       )
     `)
+    // Let RLS handle published status based on user role (admin vs others)
+    // .eq('published', true)
     .eq('slug', slug)
-    .eq('published', true)
     .single()
 
-  if (error) throw error
-  if (!data) throw new Error('Content not found')
+  if (error) {
+    console.error(`Error fetching content by slug "${slug}":`, error); // Log error
+    throw error; // Re-throw for the page component to catch
+  }
+  if (!data) {
+    // RLS might have filtered it out, or slug doesn't exist
+    console.log(`Content not found or access denied for slug "${slug}"`);
+    throw new Error('Content not found or access denied');
+  }
 
   // Transform the data to match the expected format
   return {
@@ -617,6 +653,12 @@ export async function getContentBySlug(slug: string, adminClient?: SupabaseClien
       name: data.access_tier?.name || 'free',
       level: data.access_tier?.level || 0,
       features: data.access_tier?.features || {}
+    },
+    metadata: {
+      content_images: Array.isArray(data.metadata?.content_images) ? data.metadata.content_images : [],
+      embed_links: Array.isArray(data.metadata?.embed_links) ? data.metadata.embed_links : [],
+      attachments: Array.isArray(data.metadata?.attachments) ? data.metadata.attachments : [],
+      ...data.metadata
     }
   }
 }
@@ -855,7 +897,7 @@ export async function updateContentBody(
   console.log('Updating content body for content ID:', id);
   
   try {
-    const client = getClient(adminClient);
+    const client = getSupabaseClient()
     
     // First, check if the content exists
     const { data: contentExists, error: existsError } = await client
@@ -909,4 +951,22 @@ export async function updateContentBody(
     console.error('Error in updateContentBody:', error);
     throw error;
   }
+}
+
+// Also modify getPremiumTierId to accept the client
+async function getPremiumTierId(client: SupabaseClient) {
+  if (!client) throw new Error("Supabase client required for getPremiumTierId");
+  const { data, error } = await client
+    .from('access_tiers')
+    .select('id')
+    .eq('name', 'premium')
+    .single();
+
+  if (error) {
+    console.error('Error fetching premium tier ID:', error)
+    // Return null or throw depending on how critical this is
+    return null
+  }
+
+  return data?.id
 } 

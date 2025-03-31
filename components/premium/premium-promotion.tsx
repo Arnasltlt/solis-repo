@@ -92,8 +92,8 @@ export function PremiumPromotion() {
       </section>
       
       <PremiumModal 
-        isOpen={showModal} 
-        onClose={() => setShowModal(false)} 
+        open={showModal}
+        onOpenChange={setShowModal}
       />
     </>
   )

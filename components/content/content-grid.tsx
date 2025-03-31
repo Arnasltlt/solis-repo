@@ -35,44 +35,33 @@ export function ContentGrid({
   contentType,
   showEditButtons = false
 }: ContentGridProps) {
-  const { isAuthenticated } = useAuth()
-  const { canAccessPremiumContent } = useAuthorization()
+  const { user } = useAuth()
+  const isAuthenticated = !!user
+  const { isAdmin, canAccessPremiumContent } = useAuthorization()
   const router = useRouter()
   const { isDeleted } = useContentDelete()
   
-  // Track content rendering metrics
-  useEffect(() => {
-    // Log removed in production
-  }, [content.length, isLoading, showPremiumOnly, contentType])
-
-  // Filter content by premium status based on filter selection, not user access
-  const filteredByPremium = content.filter(item => {
-    const isPremium = item.access_tier?.name === 'premium'
-    
-    // If showing premium only, only show premium content
+  // Filter content based on Premium toggle, ContentType, and Deletion status
+  const filteredForDisplay = content.filter(item => {
+    // 1. Apply Premium Filter (if toggle is ON)
+    //    This is now purely a visual filter based on the toggle state.
     if (showPremiumOnly) {
-      return isPremium
+      const isPremium = item.access_tier?.name === 'premium';
+      if (!isPremium) return false; // Only keep premium items if filter is ON
     }
-    
-    // If not filtering for premium only, show all content
-    return true
-  })
-  
-  // Filter content by type if specified
-  let filteredContent = contentType && contentType !== 'all'
-    ? filteredByPremium.filter(item => item.type === contentType)
-    : filteredByPremium
-    
-  // Filter out deleted content
-  // But only on the client-side to avoid hydration mismatches
-  if (typeof window !== 'undefined') {
-    filteredContent = filteredContent.filter(item => !isDeleted(item.id))
-  }
+    // If showPremiumOnly is OFF, all items pass this step.
 
-  // Track filtering performance
-  useEffect(() => {
-    // Log removed in production
-  }, [content.length, filteredByPremium.length, filteredContent.length])
+    // 2. Apply Content Type Filter (if applicable)
+    if (contentType && contentType !== 'all') {
+      if (item.type !== contentType) return false;
+    }
+
+    // 3. Apply Client-Side Deletion Filter
+    if (isDeleted(item.id)) return false;
+
+    // Keep item if it passed all applicable filters
+    return true;
+  });
 
   // Handle premium content access
   const handlePremiumUpgrade = () => {
@@ -88,9 +77,9 @@ export function ContentGrid({
       <div className="p-4">
         {isLoading ? (
           <ContentSkeleton count={6} />
-        ) : filteredContent.length > 0 ? (
+        ) : filteredForDisplay.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredContent.map((item, index) => (
+            {filteredForDisplay.map((item, index) => (
               <ContentCard 
                 key={item.id} 
                 content={item} 

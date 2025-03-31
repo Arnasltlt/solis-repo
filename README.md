@@ -10,6 +10,8 @@ A content management platform for educational materials focused on music and dan
 - Premium content designation with access controls
 - Content filtering by age groups and categories
 - Responsive design for all devices
+- Subscription management with Paysera payment integration
+- Recurring payment support for automatic subscription renewals
 
 ## Technology Stack
 
@@ -72,6 +74,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `hooks/`: Custom React hooks
 - `public/`: Static assets
 - `styles/`: Global styles and theme configuration
+- `scripts/`: Utility scripts including recurring payment processor
+- `docs/`: Documentation files
 
 ## Key Pages
 
@@ -83,6 +87,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `/manage`: Admin dashboard
 - `/manage/content/new`: Content creation page
 - `/manage/content/edit/[id]`: Content editing page
+
+## Payment Integration
+
+The platform integrates with Paysera for payment processing, supporting both one-time and recurring payments for subscriptions. For detailed information about the recurring payment system, see [Recurring Payments Documentation](docs/RECURRING_PAYMENTS.md).
 
 ## License
 

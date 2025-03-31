@@ -1,8 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { RichContentForm } from './rich-content-form'
-import type { ContentItem } from '@/lib/types/database'
 import { cn } from '@/lib/utils/index'
 import { LockClosedIcon } from '@heroicons/react/24/outline'
 
@@ -15,46 +13,27 @@ interface ContentBodyDisplayProps {
  * ContentBodyDisplay - Component for displaying rich text content
  */
 export function ContentBodyDisplay({ contentBody, isPremium = false }: ContentBodyDisplayProps) {
-  const [processedContent, setProcessedContent] = useState<string | null>(contentBody)
   
-  // Process the content to ensure iframes are properly rendered
-  useEffect(() => {
-    if (!contentBody) {
-      setProcessedContent(null)
-      return
-    }
-    
-    // Handle the literal 'contentBody' string case
-    if (contentBody === 'contentBody') {
-      setProcessedContent(null)
-      return
-    }
-    
-    try {
-      // Try to parse the content as JSON
-      const parsedContent = JSON.parse(contentBody)
-      console.log('Content parsed as JSON:', {
-        type: parsedContent.type,
-        hasContent: !!parsedContent.content,
-        contentLength: parsedContent.content?.length || 0
-      })
-      
-      // The content is already in ProseMirror JSON format, so we can use it directly
-      setProcessedContent(contentBody)
-    } catch (error) {
-      console.warn('Failed to parse content as JSON, treating as HTML:', error)
-      // If it's not valid JSON, treat it as HTML
-      setProcessedContent(contentBody)
-    }
-  }, [contentBody])
-  
+  // No need for useEffect or state here, pass contentBody directly
+
   const handleChange = () => {
     // This is a no-op function since we're in read-only mode
-    console.log('ContentBodyDisplay: onChange called (no-op in read-only mode)');
   };
 
-  if (!processedContent) {
-    return null
+  // Handle the literal 'contentBody' string case or null/empty
+  if (!contentBody || contentBody === 'contentBody') {
+    return null // Or render a placeholder if desired
+  }
+
+  // Basic check if content looks like JSON (might need refinement)
+  const seemsLikeJson = contentBody.trim().startsWith('{');
+
+  if (!seemsLikeJson) {
+    // If it doesn't seem like JSON, maybe render it as raw HTML (use cautiously)
+    // Or display an error/placeholder
+    console.warn("ContentBodyDisplay received non-JSON content:", contentBody.substring(0, 100))
+    // For safety, returning null. Adjust if HTML rendering is desired.
+    return null; 
   }
 
   return (
@@ -66,12 +45,14 @@ export function ContentBodyDisplay({ contentBody, isPremium = false }: ContentBo
             <p className="text-center font-medium">This content is available for premium users only.</p>
           </div>
           <div className="blur-sm">
-            <RichContentForm contentBody={processedContent} readOnly onChange={handleChange} />
+            {/* Pass the JSON string directly */}
+            <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
           </div>
         </div>
       ) : (
         <div className="prose max-w-none">
-          <RichContentForm contentBody={processedContent} readOnly onChange={handleChange} />
+          {/* Pass the JSON string directly */}
+          <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
         </div>
       )}
     </div>

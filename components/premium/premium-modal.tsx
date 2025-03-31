@@ -1,133 +1,82 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { SparklesIcon, CheckIcon, CreditCardIcon } from '@heroicons/react/24/solid'
-import { toast } from '@/hooks/use-toast'
-import { useSupabase } from '@/components/supabase-provider'
-import { useAuth } from '@/hooks/useAuth'
+import { SparklesIcon } from '@heroicons/react/24/solid'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-interface PremiumModalProps {
-  isOpen: boolean
-  onClose: () => void
+interface PremiumPlan {
+  id: string
+  tierId: string
+  name: string
+  price: number
+  currency: string
+  features: string[]
+  period: 'monthly' | 'yearly'
 }
 
-export function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
-  const router = useRouter()
-  const { supabase } = useSupabase()
-  const { user } = useAuth()
-  const [isLoading, setIsLoading] = useState(false)
+const PREMIUM_PLANS: PremiumPlan[] = [
+  {
+    id: 'premium_monthly',
+    tierId: '00000000-0000-0000-0000-000000000001',
+    name: 'Premium Monthly',
+    price: 9.99,
+    currency: 'EUR',
+    features: [
+      'Unlimited projects',
+      'Advanced analytics',
+      'Priority support',
+      'Custom exports'
+    ],
+    period: 'monthly'
+  },
+  {
+    id: 'premium_yearly',
+    tierId: '00000000-0000-0000-0000-000000000001',
+    name: 'Premium Yearly',
+    price: 99.99,
+    currency: 'EUR',
+    features: [
+      'Unlimited projects',
+      'Advanced analytics',
+      'Priority support',
+      'Custom exports',
+      '2 months free'
+    ],
+    period: 'yearly'
+  }
+]
 
-  // Mock upgrade function (to be replaced with real payment processing)
-  const handleUpgrade = async () => {
-    setIsLoading(true)
-    try {
-      if (!user || !supabase) {
-        throw new Error('Vartotojas arba duomenų bazės klientas nepasiekiamas')
-      }
+interface PremiumModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
 
-      // In a real application, this would process payment first
-      // For now, update the user's tier directly for demonstration
+export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
+  const [selectedPlan, setSelectedPlan] = useState<PremiumPlan | null>(null)
 
-      // Get the premium tier ID
-      const { data: tierData, error: tierError } = await supabase
-        .from('access_tiers')
-        .select('id')
-        .eq('name', 'premium')
-        .single()
-        
-      if (tierError) {
-        throw new Error('Nepavyko gauti premium plano duomenų')
-      }
-      
-      // Update the user's subscription_tier_id
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ subscription_tier_id: tierData.id })
-        .eq('id', user.id)
-        
-      if (updateError) {
-        throw new Error('Nepavyko atnaujinti prenumeratos')
-      }
-      
-      toast({
-        title: 'Sėkmė!',
-        description: 'Jūsų paskyra buvo atnaujinta į Premium.',
-      })
-      
-      // Close modal and refresh the page to update UI
-      onClose()
-      router.refresh()
-    } catch (error: any) {
-      toast({
-        title: 'Klaida',
-        description: error.message || 'Nepavyko atnaujinti prenumeratos',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsLoading(false)
-    }
+  const handleSelectPlan = (plan: PremiumPlan) => {
+    setSelectedPlan(plan)
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <SparklesIcon className="h-6 w-6 text-amber-500" />
-            <DialogTitle>Atnaujinti į Premium</DialogTitle>
-          </div>
-          <DialogDescription>
-            Gaukite prieigą prie visų premium funkcijų
-          </DialogDescription>
+          <DialogTitle className="text-2xl font-bold text-center">Upgrade to Premium</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-4 pt-4">
-          <div className="bg-amber-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <h3 className="font-bold text-lg">Premium planas</h3>
-                <p className="text-sm text-gray-600">Mėnesinis mokėjimas</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">€9.99</p>
-                <p className="text-sm text-gray-600">per mėnesį</p>
-              </div>
-            </div>
-          </div>
-          
-          <ul className="space-y-2">
-            <li className="flex items-start">
-              <CheckIcon className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>Prieiga prie viso premium turinio</span>
-            </li>
-            <li className="flex items-start">
-              <CheckIcon className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>Nauji premium turinio atnaujinimai</span>
-            </li>
-            <li className="flex items-start">
-              <CheckIcon className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>Galite atšaukti bet kuriuo metu</span>
-            </li>
-          </ul>
-        </div>
         
-        <div className="pt-4">
-          <Button 
-            onClick={handleUpgrade}
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-            disabled={isLoading}
-          >
-            <CreditCardIcon className="h-5 w-5 mr-2" />
-            {isLoading ? 'Apdorojama...' : 'Prenumeruoti už €9.99/mėn.'}
-          </Button>
-          
-          <p className="text-xs text-center mt-4 text-gray-500">
-            Užsiprenumeruodami jūs sutinkate su mūsų paslaugų teikimo sąlygomis.
-            Tai yra demonstracinė versija, realus mokėjimas nebus apdorotas.
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <SparklesIcon className="h-16 w-16 text-amber-500 mb-4" />
+          <h3 className="text-2xl font-bold mb-3">Coming Soon!</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            We're working on implementing our payment system. Premium subscriptions will be available shortly.
           </p>
+          <Button onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

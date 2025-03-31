@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { toast } from '@/hooks/use-toast'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, ArrowLeft, Loader2, Save, Image as ImageIcon } from 'lucide-react'
-import { ContentEditor } from '@/components/content/quill/ContentEditor'
+import LexicalEditor from '@/components/lexical/LexicalEditor'
 import {
   Dialog,
   DialogContent,
@@ -21,8 +21,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 
-// Import Quill styles
-import 'react-quill/dist/quill.snow.css'
+// Editor styles are imported in the LexicalEditor component
 
 interface ContentEditorPageProps {
   contentItem: ContentItem;
@@ -298,8 +297,8 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
       </div>
       
       <div className="border rounded-md min-h-[calc(100vh-250px)]">
-        <ContentEditor 
-          value={contentBody} 
+        <LexicalEditor 
+          initialContent={contentBody}
           onChange={(newContent) => {
             try {
               setContentBody(newContent);
@@ -311,8 +310,6 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
               setError(`Error updating content: ${errorMessage}`);
             }
           }}
-          label="Content Body"
-          contentId={contentItem.id}
         />
       </div>
       

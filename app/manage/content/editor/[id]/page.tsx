@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { serializeForClient } from '@/lib/utils/serialization'
 import { ContentEditor } from './ContentEditor'
 
 export default async function ContentEditorPage({ params }: { params: { id: string } }) {
@@ -30,22 +31,26 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
       return redirect('/manage/content?error=Content+not+found')
     }
     
+    // Serialize content body before passing to client
+    const serializedContent = serializeForClient(content.content_body || '')
+    
     return (
       <div className="container py-8">
-        <PageHeader
-          title="Content Editor"
-          description="Edit your content body"
-          actions={
+        <div className="mb-6">
+          <PageHeader title="Content Editor" backUrl="/" />
+          
+          <div className="mt-4 flex justify-between items-center">
+            <p className="text-gray-600">Edit your content body</p>
             <Button asChild variant="outline">
               <Link href="/">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Homepage
               </Link>
             </Button>
-          }
-        />
+          </div>
+        </div>
         
-        <ContentEditor contentId={params.id} initialContent={content.content_body || ''} />
+        <ContentEditor contentId={params.id} initialContent={serializedContent} />
       </div>
     )
   } catch (error) {

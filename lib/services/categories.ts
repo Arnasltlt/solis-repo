@@ -94,10 +94,10 @@ export async function getCategoryUsage(categoryId: string, adminClient?: Supabas
   try {
     const client = getClient(adminClient)
     
-    // Count content items that use this category
+    // Correctly count content items that use this category using .count()
     const { count, error } = await client
       .from('content_categories')
-      .select('*', { count: 'exact', head: true })
+      .select('', { count: 'exact', head: false }) // Select nothing, just count
       .eq('category_id', categoryId)
     
     if (error) {

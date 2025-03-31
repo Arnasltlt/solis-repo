@@ -1,34 +1,41 @@
 'use client'
 
-import { useAuth } from './useAuth'
+import { useAuth, UserRoles } from './useAuth'
 
 type Role = 'free' | 'premium' | 'administrator'
 
 export const useAuthorization = () => {
-  const { userRole, isAuthenticated, isLoading } = useAuth()
+  const { user, loading } = useAuth()
 
-  // Helper to check if the user has at least a specific role level
+  const currentUserRole = user?.role as Role | undefined | null
+
+
+
   const hasMinimumRole = (requiredRole: Role): boolean => {
-    if (isLoading || !isAuthenticated || !userRole) return false
+    if (loading || !user || !currentUserRole) return false
 
     const roleValues: Record<Role, number> = {
-      free: 0,
-      premium: 1,
-      administrator: 2,
+      [UserRoles.FREE]: 0,
+      [UserRoles.PREMIUM]: 1,
+      [UserRoles.ADMIN]: 2,
     }
 
-    return roleValues[userRole] >= roleValues[requiredRole]
+    if (!(currentUserRole in roleValues)) {
+        return false;
+    }
+
+    const userRoleValue = roleValues[currentUserRole];
+    const requiredRoleValue = roleValues[requiredRole] || 999;
+    return userRoleValue >= requiredRoleValue
   }
 
-  // Specific role checks
-  const isFree = (): boolean => isAuthenticated && userRole === 'free'
-  const isPremium = (): boolean => hasMinimumRole('premium')
-  const isAdmin = (): boolean => userRole === 'administrator'
+  const isFree = (): boolean => !!user && currentUserRole === UserRoles.FREE
+  const isPremium = (): boolean => hasMinimumRole(UserRoles.PREMIUM)
+  const isAdmin = (): boolean => !!user && currentUserRole === UserRoles.ADMIN
 
-  // Features access checks
-  const canAccessPremiumContent = (): boolean => hasMinimumRole('premium')
-  const canManageContent = (): boolean => userRole === 'administrator'
-  const canManageUsers = (): boolean => userRole === 'administrator'
+  const canAccessPremiumContent = (): boolean => hasMinimumRole(UserRoles.PREMIUM)
+  const canManageContent = (): boolean => isAdmin()
+  const canManageUsers = (): boolean => isAdmin()
 
   return {
     hasMinimumRole,

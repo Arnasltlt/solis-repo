@@ -64,29 +64,24 @@ function extractVideoId(url: string): { platform: string; id: string } | null {
       url = 'https://' + url;
     }
     
-    console.log('Processing URL:', url);
-    
     // YouTube - handle multiple URL formats with more comprehensive regex
     let match;
     
     // youtube.com/watch?v=ID format (most common)
     match = url.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:&|\?|#|$)/i);
     if (match && match[1]) {
-      console.log('Extracted YouTube ID (standard format):', match[1]);
       return { platform: 'youtube', id: match[1] };
     }
     
     // youtube.com/embed/ID format (embedded players)
     match = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})(?:\/|\?|#|$)/i);
     if (match && match[1]) {
-      console.log('Extracted YouTube ID (embed format):', match[1]);
       return { platform: 'youtube', id: match[1] };
     }
     
     // youtu.be/ID format (short URLs)
     match = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})(?:\/|\?|#|$)/i);
     if (match && match[1]) {
-      console.log('Extracted YouTube ID (short format):', match[1]);
       return { platform: 'youtube', id: match[1] };
     }
     
@@ -166,7 +161,9 @@ function getVideoEmbedSrc(platform: string, id: string): string {
     switch (platform) {
       case 'youtube':
         // Use regular youtube.com since youtube-nocookie might be blocked
-        return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&origin=${encodeURIComponent(window.location.origin)}`;
+        // Safely handle window.location for SSR
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&origin=${encodeURIComponent(origin)}`;
       case 'vimeo':
         // Add parameters for better embedding
         return `https://player.vimeo.com/video/${id}?dnt=1`;
@@ -194,95 +191,22 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
   const editorInstanceIdRef = useRef(`editor-${Date.now()}`)
   const lastUpdateTimeRef = useRef(Date.now())
   const editorMountedRef = useRef(false)
-
-  // Log component render
-  console.log(`Editor rendering (${editorInstanceIdRef.current})`, {
-    readOnly,
-    hasInitialData: !!initialData,
-    initialDataLength: initialData?.length || 0,
-    editorKey
-  });
+  const [isDraggingFile, setIsDraggingFile] = useState(false) // Add state for drag indication
 
   const safeInitialData = useMemo(() => {
-    console.log(`Processing initial data (${editorInstanceIdRef.current})`, {
-      initialDataType: typeof initialData,
-      initialDataLength: initialData?.length || 0,
-      initialData: initialData?.substring(0, 100) // Log first 100 chars for debugging
-    });
-    
     if (!initialData) return '';
+    if (initialData === 'contentBody') return '';
+    if (initialData === '{}' || initialData === '""') return '';
     
-    // Handle the literal 'contentBody' string case
-    if (initialData === 'contentBody') {
-      console.log('Ignoring literal contentBody string');
-      return '';
-    }
-    
-    // If initialData is empty JSON object or empty string, return empty string
-    if (initialData === '{}' || initialData === '""' || initialData === '') {
-      console.log('Empty JSON object or empty string detected');
-      return '';
-    }
-    
-    const tryParseJSON = (str: string) => {
-      try {
-        return JSON.parse(str);
-      } catch (e) {
-        console.log('JSON parse error:', e);
-        return null;
-      }
-    };
-
-    // Try to parse the content - handles both single and double encoded JSON
-    let parsed = tryParseJSON(initialData);
-    
-    // If first parse succeeded, check if it's still a JSON string (double encoded)
-    if (parsed && typeof parsed === 'string') {
-      // Check for 'contentBody' after first parse
-      if (parsed === 'contentBody') {
-        console.log('Ignoring contentBody string after first parse');
-        return '';
-      }
-      const secondParse = tryParseJSON(parsed);
-      if (secondParse) {
-        parsed = secondParse;
-      }
-    }
-    
-    // If we have valid parsed content in ProseMirror format, use it
-    if (parsed && typeof parsed === 'object' && parsed.type === 'doc' && Array.isArray(parsed.content)) {
-      console.log('Using ProseMirror JSON content');
-      return parsed;
-    }
-    
-    // Otherwise treat as HTML, but do one final check for 'contentBody'
-    if (typeof parsed === 'string' && parsed === 'contentBody') {
-      console.log('Ignoring contentBody string after parsing');
-      return '';
-    }
-    
-    console.log('Using HTML or raw content');
-    return initialData;
-  }, [initialData]);
-
-  // Force editor reinitialization when initialData changes significantly
-  useEffect(() => {
-    if (initialData === '' || initialData === '{}') {
-      console.log('Resetting editor due to empty initialData');
-      setEditorKey(Date.now());
-    }
-  }, [initialData]);
+    // Basic cleanup - might need more sophisticated HTML sanitization if allowing HTML input
+    return initialData.trim(); 
+  }, [initialData])
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-        history: {
-          depth: 100, // Increase undo/redo history
-          newGroupDelay: 500 // Group edits made within 500ms together
-        },
+        // Disable code blocks to avoid conflicts
+        codeBlock: false,
       }),
       Placeholder.configure({
         placeholder: 'Start typing or paste content here...',
@@ -299,22 +223,20 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         types: ['heading', 'paragraph'],
         defaultAlignment: 'left',
       }),
-      // Configure image as a block element (not inline) to prevent mixing errors
       Image.configure({
-        inline: false, // Must be false to avoid "mixing inline and block content" error
+        inline: false,
         allowBase64: true,
-        draggable: true,
+        // Use HTMLAttributes for draggable
         HTMLAttributes: {
           class: 'editor-image',
+          draggable: 'true'
         }
       }),
-      // Add embedded video support
       Iframe.configure({
         HTMLAttributes: {
           class: readOnly ? 'iframe-read-only' : 'iframe-editable',
         },
       }),
-      // YouTube support - both inline and block
       YoutubeBlock.configure({
         addPasteHandler: true,
         HTMLAttributes: {
@@ -326,41 +248,64 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
           class: 'youtube-embed',
         },
       }),
-      // Vimeo support
       VimeoBlock.configure({
         addPasteHandler: true,
         HTMLAttributes: {
           class: 'vimeo-block',
         },
       }),
-      // Keep necessary extensions for HTML rendering
       HTML.configure({
         HTMLAttributes: {
           class: 'html-content',
         },
       }),
     ],
-    content: safeInitialData,
+    content: (() => {
+      const contentString = safeInitialData;
+      if (!contentString) return '';
+      try {
+        const parsedJson = JSON.parse(contentString);
+        // Check if it's a valid ProseMirror object
+        if (parsedJson && typeof parsedJson === 'object' && parsedJson.type === 'doc') {
+          return parsedJson; // <-- Pass the OBJECT
+        }
+        // If parsed but not a doc, return original string (might be HTML?)
+        return contentString; 
+      } catch (e) {
+        // If JSON parsing fails, assume it's HTML or plain text
+        return contentString;
+      }
+    })(),
     editable: !readOnly,
-    autofocus: 'end', // Focus at the end when initialized
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'prose-lg focus:outline-none max-w-full',
         spellcheck: 'true',
       },
-      // Handle paste to filter out unwanted content
-      handlePaste: (view, event, slice) => {
-        // Let the image paste handler in our custom code handle images
+      handlePaste: (view, event: ClipboardEvent, slice) => {
         if (event.clipboardData?.items) {
           for (let i = 0; i < event.clipboardData.items.length; i++) {
-            if (event.clipboardData.items[i].type.indexOf('image') !== -1) {
-              return false; // Let our custom handler deal with it
+            if (event.clipboardData.items[i].type.startsWith('image/')) {
+              const file = event.clipboardData.items[i].getAsFile();
+              if (file) {
+                handleImageUpload(file); // Let our custom handler deal with it
+                return true; // Indicate we handled the paste
+              }
             }
           }
         }
+        return false; // Allow default paste handling otherwise
+      },
+      handleDrop: (view, event: DragEvent, slice, moved) => {
+        if (moved) return false; // Ignore internal editor drag/drop
         
-        // Allow default handling for all other content
-        return false;
+        const files = event.dataTransfer?.files;
+        if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+          handleImageUpload(files[0]);
+          return true; // Indicate we handled the drop
+        }
+        return false; // Allow default drop handling otherwise
       },
     },
     onUpdate: ({ editor }) => {
@@ -369,13 +314,13 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
       
       editorUpdateTimeout = setTimeout(() => {
         // Save as ProseMirror JSON to preserve all features
-        const content = editor.getJSON()
-        const contentStr = JSON.stringify(content)
+        const jsonOutput = editor.getJSON()
+        const stringOutput = JSON.stringify(jsonOutput)
         
         // Log the update
         console.log('Editor onUpdate:', {
-          contentLength: contentStr.length,
-          hasContent: content.content && content.content.length > 0
+          contentLength: stringOutput.length,
+          hasContent: jsonOutput.content && jsonOutput.content.length > 0
         })
         
         // Increment interaction counter to track editor usage
@@ -383,10 +328,10 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         lastUpdateTimeRef.current = Date.now()
         
         // Check if the content is empty
-        const isEmpty = !content.content || content.content.length === 0 || 
-                      (content.content.length === 1 && 
-                        content.content[0].type === 'paragraph' && 
-                        (!content.content[0].content || content.content[0].content.length === 0));
+        const isEmpty = !jsonOutput.content || jsonOutput.content.length === 0 || 
+                      (jsonOutput.content.length === 1 && 
+                        jsonOutput.content[0].type === 'paragraph' && 
+                        (!jsonOutput.content[0].content || jsonOutput.content[0].content.length === 0));
         
         // If content is empty, just pass an empty string to avoid issues
         if (isEmpty) {
@@ -395,15 +340,16 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         }
         
         // Pass the JSON stringified content
-        onChange(contentStr)
+        onChange(stringOutput)
       }, 300); // Debounce for 300ms to avoid excessive updates
     },
+    onCreate: ({ editor }) => {
+      editorMountedRef.current = true;
+    },
     onFocus: ({ event }) => {
-      console.log('Editor focused');
       onFocus?.()
     },
     onBlur: ({ event }) => {
-      console.log('Editor blurred');
       onBlur?.()
     },
   })
@@ -413,22 +359,17 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
 
   // Log when editor is available or not
   useEffect(() => {
-    console.log(`Editor instance status (${editorInstanceIdRef.current})`, {
-      isAvailable: !!editor,
-      isEditable: editor?.isEditable || false,
-      content: editor?.getJSON()
-    });
+    // Remove logging
   }, [editor]);
 
   useEffect(() => {
     if (editor) {
-      console.log(`Editor mounted (${editorInstanceIdRef.current})`)
       editorMountedRef.current = true
     }
     
     return () => {
       if (editor) {
-        console.log(`Editor unmounting (${editorInstanceIdRef.current})`)
+        // No need to log unmount
         editorMountedRef.current = false
       }
     }
@@ -455,11 +396,8 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
     }
 
     try {
-      console.log('Processing video URL:', videoUrl);
-      
       // Extract video ID from URL
       const videoInfo = extractVideoId(videoUrl);
-      console.log('Extracted video info:', videoInfo);
       
       if (!videoInfo) {
         setVideoError('Could not extract video ID from URL. Please use a standard YouTube or Vimeo URL.');
@@ -475,270 +413,169 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
       // Make sure editor is focused at a valid position
       editor.commands.focus();
       
-      // For best positioning of video blocks, we need a paragraph
-      // If the cursor is in the middle of a paragraph, better to create a new one
+      // Determine if we need to insert a new paragraph for block placement
       const { selection } = editor.state;
       const isAtBlockStart = selection.$from.parentOffset === 0;
-      
       if (!isAtBlockStart) {
-        // Insert a paragraph first to ensure proper positioning
         editor.chain().insertContent({ type: 'paragraph' }).run();
       }
       
+      // Prepare the HTML content to insert
+      let videoHtml = '';
       if (videoInfo.platform === 'youtube') {
-        // Use our dedicated YoutubeBlock extension
-        try {
-          console.log('Adding YouTube block with video ID:', videoInfo.id);
-          
-          // Use the standard command from the extension
-          console.log('Attempting to insert YouTube block with:', {
-            src: videoUrl,
-            videoId: videoInfo.id
-          });
-          
-          // Skip the command approach and directly use HTML iframe embedding
-          // This is more reliable than trying to use the extension commands
-          const embedUrl = `https://www.youtube.com/embed/${videoInfo.id}?rel=0&modestbranding=1`;
-          
-          try {
-            // Insert HTML directly - most reliable method
-            editor
-              .chain()
-              .focus()
-              .insertContent(`
-                <div class="video-block youtube-block">
-                  <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin: 1.5em 0;">
-                    <iframe 
-                      src="${embedUrl}" 
-                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                      frameborder="0" 
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                      allowfullscreen>
-                    </iframe>
-                  </div>
-                  <p class="video-caption">YouTube video: <a href="${videoUrl}" target="_blank" rel="noopener noreferrer">${videoInfo.id}</a></p>
-                </div>
-                <p></p>
-              `)
-              .run();
-              
-            console.log('Inserted YouTube video using direct HTML method');
-          } catch (htmlError) {
-            console.error('Error inserting YouTube HTML:', htmlError);
-            
-            // Fallback to even simpler method - just a link
-            try {
-              editor
-                .chain()
-                .focus()
-                .insertContent(`<p><a href="${videoUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube: ${videoInfo.id}</a></p>`)
-                .run();
-                
-              console.log('Inserted YouTube link as fallback');
-            } catch (linkError) {
-              console.error('Error inserting YouTube link:', linkError);
-              throw new Error('Failed to insert YouTube video or link');
-            }
-          }
-          
-          console.log('YouTube block inserted successfully');
-          toast({
-            title: "YouTube video added",
-            description: "Video has been added to your content",
-          });
-          
-          setVideoDialogOpen(false);
-          setVideoUrl('');
-          setVideoError('');
-        } catch (error) {
-          console.error('Error adding YouTube block:', error);
-          
-          // Fallback to a simple link if block insertion fails
-          try {
-            const videoLink = `https://www.youtube.com/watch?v=${videoInfo.id}`;
-            
-            editor.chain()
-              .focus()
-              .setLink({ href: videoLink, target: '_blank' })
-              .insertContent(`Watch on YouTube: ${videoInfo.id}`)
-              .run();
-            
-            console.log('Fallback YouTube link added');
-            toast({
-              title: "YouTube link added",
-              description: "Link to YouTube video added (fallback method)",
-            });
-            
-            setVideoDialogOpen(false);
-            setVideoUrl('');
-            setVideoError('');
-          } catch (linkError) {
-            console.error('Even fallback link insertion failed:', linkError);
-            setVideoError('Could not add YouTube reference. Please try again later.');
-          }
-        }
-      } 
-      else if (videoInfo.platform === 'vimeo') {
-        // Use our dedicated VimeoBlock extension
-        try {
-          console.log('Adding Vimeo block with video ID:', videoInfo.id);
-          
-          // Use the standard command from the extension
-          console.log('Attempting to insert Vimeo block with:', {
-            src: videoUrl,
-            videoId: videoInfo.id
-          });
-          
-          // Skip the command approach and directly use HTML iframe embedding
-          // This is more reliable than trying to use the extension commands
-          const embedUrl = `https://player.vimeo.com/video/${videoInfo.id}?dnt=1`;
-          
-          try {
-            // Insert HTML directly - most reliable method
-            editor
-              .chain()
-              .focus()
-              .insertContent(`
-                <div class="video-block vimeo-block">
-                  <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin: 1.5em 0;">
-                    <iframe 
-                      src="${embedUrl}" 
-                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                      frameborder="0" 
-                      allow="autoplay; fullscreen; picture-in-picture" 
-                      allowfullscreen>
-                    </iframe>
-                  </div>
-                  <p class="video-caption">Vimeo video: <a href="${videoUrl}" target="_blank" rel="noopener noreferrer">${videoInfo.id}</a></p>
-                </div>
-                <p></p>
-              `)
-              .run();
-              
-            console.log('Inserted Vimeo video using direct HTML method');
-          } catch (htmlError) {
-            console.error('Error inserting Vimeo HTML:', htmlError);
-            
-            // Fallback to even simpler method - just a link
-            try {
-              editor
-                .chain()
-                .focus()
-                .insertContent(`<p><a href="${videoUrl}" target="_blank" rel="noopener noreferrer">Watch on Vimeo: ${videoInfo.id}</a></p>`)
-                .run();
-                
-              console.log('Inserted Vimeo link as fallback');
-            } catch (linkError) {
-              console.error('Error inserting Vimeo link:', linkError);
-              throw new Error('Failed to insert Vimeo video or link');
-            }
-          }
-          
-          console.log('Vimeo block inserted successfully');
-          toast({
-            title: "Vimeo video added",
-            description: "Video has been added to your content",
-          });
-          
-          setVideoDialogOpen(false);
-          setVideoUrl('');
-          setVideoError('');
-        } catch (error) {
-          console.error('Error adding Vimeo block:', error);
-          
-          // Fallback to a simple link if block insertion fails
-          try {
-            const videoLink = `https://vimeo.com/${videoInfo.id}`;
-            
-            editor.chain()
-              .focus()
-              .setLink({ href: videoLink, target: '_blank' })
-              .insertContent(`Watch on Vimeo: ${videoInfo.id}`)
-              .run();
-            
-            console.log('Fallback Vimeo link added');
-            toast({
-              title: "Vimeo link added",
-              description: "Link to Vimeo video added (fallback method)",
-            });
-            
-            setVideoDialogOpen(false);
-            setVideoUrl('');
-            setVideoError('');
-          } catch (linkError) {
-            console.error('Even fallback link insertion failed:', linkError);
-            setVideoError('Could not add Vimeo reference. Please try again later.');
-          }
-        }
-      } else {
-        setVideoError('Unsupported video platform. Please use YouTube or Vimeo.');
+        const embedUrl = `https://www.youtube.com/embed/${videoInfo.id}?rel=0&modestbranding=1`;
+        videoHtml = `
+          <div class="video-block youtube-block">
+            <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin: 1.5em 0;">
+              <iframe 
+                src="${embedUrl}" 
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+              </iframe>
+            </div>
+            <p class="video-caption">YouTube video: <a href="${videoUrl}" target="_blank" rel="noopener noreferrer">${videoInfo.id}</a></p>
+          </div>
+          <p></p> // Add paragraph after for spacing
+        `;
+      } else if (videoInfo.platform === 'vimeo') {
+        const embedUrl = `https://player.vimeo.com/video/${videoInfo.id}?dnt=1`;
+        videoHtml = `
+          <div class="video-block vimeo-block">
+            <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin: 1.5em 0;">
+              <iframe 
+                src="${embedUrl}" 
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                frameborder="0" 
+                allow="autoplay; fullscreen; picture-in-picture" 
+                allowfullscreen>
+              </iframe>
+            </div>
+            <p class="video-caption">Vimeo video: <a href="${videoUrl}" target="_blank" rel="noopener noreferrer">${videoInfo.id}</a></p>
+          </div>
+          <p></p> // Add paragraph after for spacing
+        `;
       }
+
+      // Insert the HTML content
+      if (videoHtml) {
+        try {
+          editor.chain().focus().insertContent(videoHtml).run();
+        } catch (insertError) {
+          console.error(`Error inserting ${videoInfo.platform} HTML:`, insertError);
+          // Fallback to inserting a simple link if HTML insertion fails
+          try {
+            editor
+              .chain()
+              .focus()
+              .insertContent(`<p><a href="${videoUrl}" target="_blank" rel="noopener noreferrer">Watch on ${videoInfo.platform === 'youtube' ? 'YouTube' : 'Vimeo'}: ${videoInfo.id}</a></p>`)
+              .run();
+          } catch (linkError) {
+            console.error(`Error inserting ${videoInfo.platform} link fallback:`, linkError);
+          }
+        }
+      }
+
+      setVideoDialogOpen(false)
+      setVideoUrl('')
+      setVideoError('')
+      
+      // Show success toast
+      toast({
+        title: "Video added",
+        description: "Video has been embedded in your content",
+      });
+
     } catch (error) {
-      console.error('Error processing video URL:', error);
-      setVideoError('An error occurred while processing the video URL. Please try a different format.');
+      console.error('Error processing video submit:', error);
+      setVideoError('An error occurred while adding the video.');
     }
   }
 
-  // Enhance image dialog handling with drag & drop and paste functionality
-  const [isDraggingFile, setIsDraggingFile] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  
-  // Setup paste event listener for the editor
+  // Memoize handleImageUpload to ensure stability for useEffect dependency
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!editor) {
+      toast({ title: "Error", description: "Editor not initialized", variant: "destructive" });
+      return;
+    }
+    if (!validateAndSetImageFile(file)) { // Assuming validateAndSetImageFile is defined above
+      return;
+    }
+    try {
+      setIsUploadingImage(true);
+      // ... (rest of upload logic)
+      const uploadResult = await uploadEditorImage(file);
+      if (uploadResult.error) throw uploadResult.error;
+      if (!uploadResult.url) throw new Error('Upload succeeded but no URL was returned');
+      editor.chain().focus().setImage({ src: uploadResult.url, alt: file.name.split('.')[0] }).run();
+      toast({ title: "Image uploaded", description: "Image has been added to your content" });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({ title: "Upload failed", description: error instanceof Error ? error.message : "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }, [editor]); // Dependency on editor
+
+  // Effect to manage editor drag/drop and paste for images
   useEffect(() => {
-    if (!editor) return
-    
-    const handlePaste = (event: ClipboardEvent) => {
-      const items = event.clipboardData?.items
-      if (!items) return
-      
+    if (!editor) return;
+
+    const editorElement = editor.view.dom as HTMLElement;
+    if (!editorElement) return;
+
+    // Define correctly typed handlers
+    const pasteHandler = (event: Event) => {
+      const clipboardEvent = event as ClipboardEvent;
+      const items = clipboardEvent.clipboardData?.items;
+      if (!items) return;
       for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
-          const file = items[i].getAsFile()
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile();
           if (file) {
-            event.preventDefault()
-            handleImageUpload(file)
-            return
+            event.preventDefault();
+            handleImageUpload(file);
+            return;
           }
         }
       }
-    }
-    
-    // Add the paste event listener to the editor element
-    const editorElement = document.querySelector('.ProseMirror')
-    if (editorElement) {
-      editorElement.addEventListener('paste', handlePaste)
-      
-      // Add drag and drop events to the editor element
-      editorElement.addEventListener('dragover', (e) => {
-        e.preventDefault()
-        setIsDraggingFile(true)
-      })
-      
-      editorElement.addEventListener('dragleave', () => {
-        setIsDraggingFile(false)
-      })
-      
-      editorElement.addEventListener('drop', (e) => {
-        e.preventDefault()
-        setIsDraggingFile(false)
-        
-        const files = e.dataTransfer?.files
-        if (files && files.length > 0 && files[0].type.startsWith('image/')) {
-          handleImageUpload(files[0])
-        }
-      })
-    }
-    
-    return () => {
-      if (editorElement) {
-        editorElement.removeEventListener('paste', handlePaste)
-        editorElement.removeEventListener('dragover', () => {})
-        editorElement.removeEventListener('dragleave', () => {})
-        editorElement.removeEventListener('drop', () => {})
+    };
+
+    const dragOverHandler = (event: Event) => {
+      event.preventDefault();
+      setIsDraggingFile(true);
+    };
+
+    const dragLeaveHandler = () => {
+      setIsDraggingFile(false);
+    };
+
+    const dropHandler = (event: Event) => {
+      const dragEvent = event as DragEvent;
+      event.preventDefault();
+      setIsDraggingFile(false);
+      const files = dragEvent.dataTransfer?.files;
+      if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+        handleImageUpload(files[0]);
       }
-    }
-  }, [editor])
-  
+    };
+
+    // Add event listeners
+    editorElement.addEventListener('paste', pasteHandler);
+    editorElement.addEventListener('dragover', dragOverHandler);
+    editorElement.addEventListener('dragleave', dragLeaveHandler);
+    editorElement.addEventListener('drop', dropHandler);
+
+    // Cleanup function
+    return () => {
+      editorElement.removeEventListener('paste', pasteHandler);
+      editorElement.removeEventListener('dragover', dragOverHandler);
+      editorElement.removeEventListener('dragleave', dragLeaveHandler);
+      editorElement.removeEventListener('drop', dropHandler);
+    };
+  }, [editor, handleImageUpload]); // Dependencies: editor and the stable handleImageUpload
+
   // Add image dialog handling
   const addImage = () => {
     setImageUrl('');
@@ -774,84 +611,6 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
     return true;
   }
   
-  // Centralized image upload handler for all upload sources
-  const handleImageUpload = async (file: File) => {
-    if (!editor) {
-      toast({
-        title: "Error",
-        description: "Editor not initialized",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!validateAndSetImageFile(file)) {
-      return;
-    }
-    
-    try {
-      setIsUploadingImage(true);
-      
-      // Show a temporary loading placeholder
-      const loadingPlaceholderId = `loading-${Date.now()}`
-      editor
-        .chain()
-        .focus()
-        .insertContent(`<div id="${loadingPlaceholderId}" class="image-upload-placeholder">Uploading image...</div>`)
-        .run();
-      
-      // Upload the file to Supabase storage
-      const uploadResult = await uploadEditorImage(file);
-      
-      if (uploadResult.error) {
-        throw uploadResult.error;
-      }
-      
-      if (!uploadResult.url) {
-        throw new Error('Upload succeeded but no URL was returned');
-      }
-      
-      // Find and replace the placeholder with the actual image
-      const dom = editor.view.dom
-      const placeholder = dom.querySelector(`#${loadingPlaceholderId}`)
-      if (placeholder) {
-        // Remove the placeholder
-        const tr = editor.state.tr.deleteSelection()
-        editor.view.dispatch(tr)
-      }
-      
-      // Insert the actual image
-      editor
-        .chain()
-        .focus()
-        .setImage({ src: uploadResult.url, alt: file.name.split('.')[0] })
-        .run();
-      
-      toast({
-        title: "Image uploaded",
-        description: "Image has been added to your content",
-      });
-      
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to upload image",
-        variant: "destructive"
-      });
-      
-      // Clean up any placeholder
-      const dom = editor.view.dom
-      const placeholder = dom.querySelector('.image-upload-placeholder')
-      if (placeholder) {
-        const tr = editor.state.tr.deleteSelection()
-        editor.view.dispatch(tr)
-      }
-    } finally {
-      setIsUploadingImage(false);
-    }
-  }
-
   const handleImageSubmit = async () => {
     if (!editor) {
       setImageError('Editor not initialized');
@@ -877,7 +636,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         
         // Check if image loads correctly
         const imgPromise = new Promise((resolve, reject) => {
-          const img = new Image();
+          const img = new window.Image(); // Explicitly use window.Image
           img.onload = () => resolve(true);
           img.onerror = () => reject(new Error('Failed to load image from URL'));
           img.src = imageUrl;

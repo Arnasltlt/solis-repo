@@ -1,6 +1,8 @@
 import { cache } from 'react'
 import { getContentItems, getContentBySlug, getAgeGroups, getCategories, getAccessTiers } from '@/lib/services/content'
-import type { ContentItem, AgeGroup, Category, AccessTier } from '@/lib/types/database'
+import type { ContentItem, AgeGroup, Category, AccessTier, Database } from '@/lib/types/database'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 /**
  * Cached data fetching utilities
@@ -10,74 +12,100 @@ import type { ContentItem, AgeGroup, Category, AccessTier } from '@/lib/types/da
  */
 
 /**
- * Get all content items with optional filtering
+ * Get all content items with optional filtering (Server-Side Version)
+ * Creates an authenticated client using cookies.
  */
 export const getCachedContentItems = cache(async ({
-  ageGroup,
+  ageGroups,
   categories,
   searchQuery,
+  showPremiumOnly = false
 }: {
-  ageGroup?: string
+  ageGroups?: string[]
   categories?: string[]
   searchQuery?: string
+  showPremiumOnly?: boolean
 } = {}) => {
   try {
-    return await getContentItems({ ageGroup, categories, searchQuery })
+    // Create authenticated client for server-side fetching
+    const cookieStore = cookies()
+    const supabaseServerClient = createServerComponentClient<Database>({ cookies: () => cookieStore })
+
+    // Call the service function, passing the authenticated client and other params
+    const items = await getContentItems({
+      ageGroups,
+      categories,
+      searchQuery,
+      client: supabaseServerClient,
+      showPremiumOnly
+    })
+
+    return items
   } catch (error) {
     console.error('Failed to fetch content items:', error)
-    throw new Error('Failed to load content. Please try again later.')
+    // Return empty array instead of throwing to avoid breaking the UI
+    return []
   }
 })
 
 /**
- * Get a single content item by slug
+ * Get a single content item by slug (Server-Side Version)
  */
 export const getCachedContentBySlug = cache(async (slug: string) => {
   try {
-    const content = await getContentBySlug(slug)
+    // Create authenticated client for server-side fetching
+    const cookieStore = cookies()
+    const supabaseServerClient = createServerComponentClient<Database>({ cookies: () => cookieStore })
+    
+    const content = await getContentBySlug(slug, supabaseServerClient)
     if (!content) {
-      throw new Error('Content not found')
+      throw new Error('Content not found or access denied')
     }
     return content
   } catch (error) {
     console.error(`Failed to fetch content with slug ${slug}:`, error)
-    throw new Error('Failed to load content. Please try again later.')
+    // Re-throw the specific error to allow the page to handle it (e.g., notFound())
+    throw error
   }
 })
 
 /**
- * Get all age groups
+ * Get all age groups (Uses default anon client - generally OK for public ref data)
  */
 export const getCachedAgeGroups = cache(async (): Promise<AgeGroup[]> => {
   try {
+    // Assuming getAgeGroups uses the default anon client is acceptable here
     return await getAgeGroups()
   } catch (error) {
     console.error('Failed to fetch age groups:', error)
-    throw new Error('Failed to load age groups. Please try again later.')
+    // Consider returning [] instead of throwing if these aren't critical
+    return []
   }
 })
 
 /**
- * Get all categories
+ * Get all categories (Uses default anon client - generally OK for public ref data)
  */
 export const getCachedCategories = cache(async (): Promise<Category[]> => {
   try {
+    // Assuming getCategories uses the default anon client is acceptable here
     return await getCategories()
   } catch (error) {
     console.error('Failed to fetch categories:', error)
-    throw new Error('Failed to load categories. Please try again later.')
+    return []
   }
 })
 
 /**
- * Get all access tiers
+ * Get all access tiers (Uses default anon client - generally OK for public ref data)
  */
 export const getCachedAccessTiers = cache(async (): Promise<AccessTier[]> => {
   try {
+    // Assuming getAccessTiers uses the default anon client is acceptable here
     return await getAccessTiers()
   } catch (error) {
     console.error('Failed to fetch access tiers:', error)
-    throw new Error('Failed to load access tiers. Please try again later.')
+    return []
   }
 })
 
@@ -86,19 +114,31 @@ export const getCachedAccessTiers = cache(async (): Promise<AccessTier[]> => {
  */
 export const getCachedReferenceData = cache(async () => {
   try {
+    // Handle each promise individually to prevent a single failure from breaking everything
+    const ageGroupsPromise = getCachedAgeGroups()
+    const categoriesPromise = getCachedCategories()
+    const accessTiersPromise = getCachedAccessTiers()
+
+    // Wait for all promises to resolve
     const [ageGroups, categories, accessTiers] = await Promise.all([
-      getCachedAgeGroups(),
-      getCachedCategories(),
-      getCachedAccessTiers(),
+      ageGroupsPromise,
+      categoriesPromise,
+      accessTiersPromise,
     ])
-    
+
     return {
       ageGroups,
       categories,
       accessTiers,
     }
   } catch (error) {
-    console.error('Failed to fetch reference data:', error)
-    throw new Error('Failed to load reference data. Please try again later.')
+    // This catch might be redundant now if sub-fetches return [] on error
+    console.error('Failed to fetch reference data wrapper:', error)
+    // Return empty objects instead of throwing
+    return {
+      ageGroups: [],
+      categories: [],
+      accessTiers: [],
+    }
   }
 }) 

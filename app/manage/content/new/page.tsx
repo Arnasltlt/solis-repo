@@ -3,6 +3,7 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { Database } from '@/lib/types/database'
+import { serializeForClient } from '@/lib/utils/serialization'
 import { NewContentEditor } from './NewContentEditor'
 
 export default async function NewContentPage() {
@@ -54,11 +55,16 @@ export default async function NewContentPage() {
     getAccessTiers(supabase)
   ])
   
+  // Serialize data before passing to client component
+  const serializedAgeGroups = serializeForClient(ageGroups)
+  const serializedCategories = serializeForClient(categories)
+  const serializedAccessTiers = serializeForClient(accessTiers)
+  
   return (
     <NewContentEditor
-      ageGroups={ageGroups}
-      categories={categories}
-      accessTiers={accessTiers}
+      ageGroups={serializedAgeGroups}
+      categories={serializedCategories}
+      accessTiers={serializedAccessTiers}
     />
   )
 }

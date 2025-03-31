@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getContentItems } from '@/lib/services/content'
-import type { ContentItem } from '@/lib/types/database'
+import type { ContentItem, Database } from '@/lib/types/database'
 import { handleError } from '@/lib/utils/error-handling'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface UseContentOptions {
   ageGroups?: string[]
@@ -22,53 +23,43 @@ export function useContent({
   const [isLoading, setIsLoading] = useState(initialLoad)
   const [error, setError] = useState<Error | null>(null)
 
+  // Create Supabase client instance - useMemo ensures it's stable
+  const supabase = useMemo(() => createClientComponentClient<Database>(), [])
+
   // Fetch content with the current filters
   const fetchContent = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     
-    console.log('DEBUG - useContent.fetchContent called with filters:', { 
-      ageGroups: ageGroups?.length ? ageGroups : 'none',
-      categories: categories?.length ? categories : 'none',
-      searchQuery: searchQuery || 'none',
-      showPremiumOnly
-    })
-    
     try {
+      // Pass the authenticated client to the service function
       const data = await getContentItems({ 
         ageGroups, 
         categories, 
         searchQuery,
-        showPremiumOnly
+        showPremiumOnly,
+        client: supabase
       })
-      console.log(`DEBUG - useContent.fetchContent received ${data.length} items`)
       setContent(data)
     } catch (err) {
       const errorDetails = handleError(err, 'useContent')
-      console.error('DEBUG - useContent.fetchContent error:', errorDetails)
+      console.error('Error fetching content:', errorDetails)
       setError(new Error(errorDetails.message))
       setContent([])
     } finally {
       setIsLoading(false)
     }
-  }, [ageGroups, categories, searchQuery, showPremiumOnly])
+  }, [ageGroups, categories, searchQuery, showPremiumOnly, supabase])
 
   // Initial fetch and when filters change
   useEffect(() => {
     if (initialLoad) {
-      console.log('DEBUG - useContent initializing with filters:', { 
-        ageGroups: ageGroups?.length ? ageGroups : 'none',
-        categories: categories?.length ? categories : 'none',
-        searchQuery: searchQuery || 'none',
-        showPremiumOnly
-      })
       fetchContent()
     }
   }, [ageGroups, categories, searchQuery, showPremiumOnly, initialLoad, fetchContent])
 
   // Refresh function that can be called manually
   const refresh = useCallback(async () => {
-    console.log('DEBUG - useContent.refresh called')
     await fetchContent()
   }, [fetchContent])
 

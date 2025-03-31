@@ -2,6 +2,9 @@ import { Metadata } from 'next'
 import { getContentBySlug } from '@/lib/services/content'
 import { ContentDetail } from '@/components/content/content-detail'
 import { notFound } from 'next/navigation'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import type { Database } from '@/lib/types/database'
 
 type Props = {
   params: { slug: string }
@@ -11,25 +14,32 @@ export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
   try {
-    const content = await getContentBySlug(params.slug)
+    const cookieStore = cookies();
+    const supabaseServerClient = createServerComponentClient<Database>({ cookies: () => cookieStore });
+    const content = await getContentBySlug(params.slug, supabaseServerClient);
+
+    const description = content?.description || 'Default description if none provided.';
+    const title = content?.title || 'Default Title';
+    const imageUrl = content?.thumbnail_url || undefined;
 
     return {
-      title: `${content.title} | Solis`,
-      description: content.description,
+      title: `${title} | Solis`,
+      description: description,
       openGraph: {
-        title: content.title,
-        description: content.description,
-        images: content.thumbnail_url ? [content.thumbnail_url] : [],
+        title: title,
+        description: description,
+        images: imageUrl ? [imageUrl] : [],
         type: 'article',
       },
       twitter: {
         card: 'summary_large_image',
-        title: content.title,
-        description: content.description,
-        images: content.thumbnail_url ? [content.thumbnail_url] : [],
+        title: title,
+        description: description,
+        images: imageUrl ? [imageUrl] : [],
       },
     }
   } catch (error) {
+    console.error('Error generating metadata for slug:', params.slug, error);
     return {
       title: 'Content Not Found | Solis',
       description: 'The requested content could not be found.',
@@ -37,15 +47,39 @@ export async function generateMetadata(
   }
 }
 
+// Define Premium Tier ID constant
+const PREMIUM_TIER_ID = '211e060c-37c0-44fa-8344-8e5e5f24d5db';
+
 export default async function ContentPage({ params }: Props) {
+  const cookieStore = cookies();
+  const supabase = createServerComponentClient<Database>({ cookies: () => cookieStore });
+  const slug = params.slug;
+
+  console.log(`[Page Load Start] Attempting to load slug: ${slug}`);
+
   try {
-    const content = await getContentBySlug(params.slug)
+    // Step 1: Fetch content (RLS check happens here via authenticated client)
+    // RLS SELECT policies are now permissive for published content for non-admins
+    const content = await getContentBySlug(slug, supabase);
+
+    // If RLS blocked (e.g., unpublished and not admin) or slug invalid, getContentBySlug throws
+    // The catch block below will handle this and call notFound()
+
+    // If content was fetched successfully:
+    console.log(`[Page Load] Content fetched for slug: ${slug}, Title: ${content.title}. Rendering detail component.`);
+
+    // Step 2: Render the detail component, passing the fetched content.
+    // Access control (showing full content vs. upsell) will happen CLIENT-SIDE within ContentDetail.
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <ContentDetail content={content} />
       </div>
-    )
+    );
+
   } catch (error) {
-    notFound()
+    // Catch errors from getContentBySlug (e.g., RLS denied unpublished, actual fetch error, or slug not found)
+    console.error(`[Page Load Error] Error processing page for slug ${slug}:`, error);
+    // Trigger 404 for any error during fetch
+    notFound();
   }
 } 

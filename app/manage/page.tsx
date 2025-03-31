@@ -13,7 +13,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-6">Administravimo skydelis</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Categories Management Card */}
         <Card>
           <CardHeader>
@@ -73,31 +73,6 @@ export default async function AdminDashboardPage() {
             </Link>
           </CardContent>
         </Card>
-      </div>
-      
-      {/* Content Management Info */}
-      <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
-        <h2 className="text-xl font-semibold mb-2 flex items-center text-blue-800">
-          <Edit className="h-5 w-5 mr-2" />
-          Turinio redagavimas
-        </h2>
-        <p className="text-blue-700 mb-4">
-          Norėdami redaguoti turinį, eikite į pagrindinį puslapį. Ten galėsite matyti visus turinio elementus su redagavimo mygtukais.
-        </p>
-        <div className="flex space-x-4">
-          <Link href="/">
-            <Button variant="outline" className="bg-white">
-              <List className="w-4 h-4 mr-2" />
-              Peržiūrėti turinį
-            </Button>
-          </Link>
-          <Link href="/manage/content/new">
-            <Button>
-              <Edit className="w-4 h-4 mr-2" />
-              Kurti naują turinį
-            </Button>
-          </Link>
-        </div>
       </div>
     </div>
   )

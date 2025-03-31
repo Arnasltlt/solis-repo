@@ -1,0 +1,174 @@
+﻿"schema_name","function_name","arguments","security_type","owner","language","definition"
+"public","generate_slug","title text","SECURITY INVOKER","postgres","plpgsql","CREATE OR REPLACE FUNCTION public.generate_slug(title text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    base_slug text;
+    final_slug text;
+    counter integer := 1;
+BEGIN
+    -- Convert to lowercase and replace spaces and special chars with hyphens
+    base_slug := lower(regexp_replace(title, '[^a-zA-Z0-9\s]', '', 'g'));
+    base_slug := regexp_replace(base_slug, '\s+', '-', 'g');
+    
+    -- Initial attempt with just the base slug
+    final_slug := base_slug;
+    
+    -- Keep trying with incremented counter until we find a unique slug
+    WHILE EXISTS (SELECT 1 FROM content_items WHERE slug = final_slug) LOOP
+        final_slug := base_slug || '-' || counter;
+        counter := counter + 1;
+    END LOOP;
+    
+    RETURN final_slug;
+END;
+$function$
+"
+"public","get_content_feedback_count","content_id uuid","SECURITY INVOKER","postgres","sql","CREATE OR REPLACE FUNCTION public.get_content_feedback_count(content_id uuid)
+ RETURNS bigint
+ LANGUAGE sql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+    SELECT COUNT(*) FROM content_feedback WHERE content_feedback.content_id = $1;
+$function$
+"
+"public","get_content_feedback_count","content_id uuid, rating integer","SECURITY INVOKER","postgres","plpgsql","CREATE OR REPLACE FUNCTION public.get_content_feedback_count(content_id uuid, rating integer)
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RETURN (
+        SELECT COUNT(*)
+        FROM content_feedback
+        WHERE content_feedback.content_id = $1
+        AND content_feedback.rating = $2
+    );
+END;
+$function$
+"
+"public","get_default_access_tier","","SECURITY INVOKER","postgres","sql","CREATE OR REPLACE FUNCTION public.get_default_access_tier()
+ RETURNS uuid
+ LANGUAGE sql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+    -- Get the free tier as the default tier
+    SELECT id FROM access_tiers 
+    WHERE name = 'free' 
+    LIMIT 1;
+$function$
+"
+"public","get_my_role","","SECURITY DEFINER","postgres","sql","CREATE OR REPLACE FUNCTION public.get_my_role()
+ RETURNS text
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT role FROM auth.users
+  WHERE auth.users.id = auth.uid();
+$function$
+"
+"public","get_visible_users","user_id uuid","SECURITY DEFINER","postgres","sql","CREATE OR REPLACE FUNCTION public.get_visible_users(user_id uuid)
+ RETURNS TABLE(id uuid, email text, subscription_tier_id uuid, created_at timestamp with time zone, updated_at timestamp with time zone)
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT 
+    u.id,
+    u.email,
+    u.subscription_tier_id,
+    u.created_at,
+    u.updated_at
+  FROM auth.users u
+  WHERE 
+    -- User can see their own data
+    u.id = user_id
+    -- Admins can see all data
+    OR (SELECT public.is_admin());
+$function$
+"
+"public","is_admin","","SECURITY DEFINER","postgres","sql","CREATE OR REPLACE FUNCTION public.is_admin()
+ RETURNS boolean
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE auth.users.id = auth.uid()
+    AND auth.users.role = 'administrator'
+  );
+$function$
+"
+"public","recommended_auth_settings","","SECURITY INVOKER","postgres","sql","CREATE OR REPLACE FUNCTION public.recommended_auth_settings()
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT 
+    'Recommended Auth Settings:
+     - Enable leaked password protection
+     - Enable MFA with TOTP and SMS
+     - Set minimum password length to 12
+     - Enable strong password complexity
+     - Set rate limiting for auth endpoints
+     - Configure session timeouts
+     - Require email verification';
+$function$
+"
+"public","set_content_slug","","SECURITY DEFINER","postgres","plpgsql","CREATE OR REPLACE FUNCTION public.set_content_slug()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+    IF NEW.slug IS NULL OR NEW.slug = '' THEN
+        NEW.slug := public.generate_slug(NEW.title);
+    END IF;
+    RETURN NEW;
+END;
+$function$
+"
+"public","user_matches_tier","tier_id uuid","SECURITY DEFINER","postgres","sql","CREATE OR REPLACE FUNCTION public.user_matches_tier(tier_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 FROM auth.users u
+    WHERE u.id = auth.uid() AND u.subscription_tier_id = tier_id
+  );
+$function$
+"
+"public","validate_content_metadata","","SECURITY DEFINER","postgres","plpgsql","CREATE OR REPLACE FUNCTION public.validate_content_metadata()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+    -- Ensure content has at least one age group
+    IF NOT EXISTS (
+        SELECT 1 FROM content_age_groups
+        WHERE content_id = NEW.id
+    ) THEN
+        RAISE EXCEPTION 'Content must have at least one age group';
+    END IF;
+
+    -- Ensure content has at least one category
+    IF NOT EXISTS (
+        SELECT 1 FROM content_categories
+        WHERE content_id = NEW.id
+    ) THEN
+        RAISE EXCEPTION 'Content must have at least one category';
+    END IF;
+
+    RETURN NEW;
+END;
+$function$
+"

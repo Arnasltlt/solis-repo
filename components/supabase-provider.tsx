@@ -7,18 +7,18 @@ import type { Database } from '@/lib/types/database'
 
 type SupabaseContext = {
   supabase: SupabaseClient<Database> | null
-  session: Session | null
+  session: any | null
+}
+
+interface SupabaseProviderProps {
+  children: React.ReactNode
+  session: any // Accept any serialized session data
 }
 
 const Context = createContext<SupabaseContext>({
   supabase: null,
-  session: null
+  session: null,
 })
-
-export interface SupabaseProviderProps {
-  children: React.ReactNode
-  session: Session | null
-}
 
 export function SupabaseProvider({ 
   children,
@@ -30,9 +30,11 @@ export function SupabaseProvider({
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
   )
-  const [session, setSession] = useState<Session | null>(initialSession)
+  const [session, setSession] = useState<any>(initialSession)
 
   useEffect(() => {
+    if (!supabase) return
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session)
@@ -54,7 +56,7 @@ export function SupabaseProvider({
 export const useSupabase = () => {
   const context = useContext(Context)
   if (context === undefined) {
-    throw new Error('useSupabase must be used inside SupabaseProvider')
+    throw new Error('useSupabase must be used within a SupabaseProvider')
   }
   return context
 } 

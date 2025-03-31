@@ -34,8 +34,6 @@ export function RichContentForm({
 
   // Process content to ensure iframes are properly handled
   useEffect(() => {
-    console.log('[RichContentForm] contentBody changed:', contentBody)
-    
     // Process the contentBody to ensure proper handling of iframes
     if (!contentBody || contentBody === 'contentBody') {
       setProcessedContent('')
@@ -43,30 +41,22 @@ export function RichContentForm({
     }
     
     // Check if we're in a new content form (no initialData) and clear any existing content
-    if (window.location.href.includes('/manage/content?tab=create') && !window.location.href.includes('edit=')) {
-      console.log('[RichContentForm] New content form detected, clearing content')
+    if (typeof window !== 'undefined' && window.location.href.includes('/manage/content?tab=create') && !window.location.href.includes('edit=')) {
       setProcessedContent('')
       return
     }
     
     try {
       // Try to parse as JSON to validate
-      const parsed = JSON.parse(contentBody)
-      console.log('[RichContentForm] Content is valid JSON:', parsed)
-      
-      // Check if there are iframe nodes in the content
-      const hasIframes = JSON.stringify(parsed).includes('"type":"iframe"')
-      console.log('[RichContentForm] Content has iframes:', hasIframes)
-      
+      JSON.parse(contentBody)
+      // If it parses, assume it's valid ProseMirror JSON
       setProcessedContent(contentBody)
     } catch (e) {
-      // If not valid JSON, check if it contains HTML
+      // If not valid JSON, check if it contains HTML (basic check)
       if (typeof contentBody === 'string' && (contentBody.includes('<iframe') || contentBody.includes('<p>'))) {
-        console.log('[RichContentForm] Content appears to be HTML:', contentBody)
         setProcessedContent(contentBody)
       } else {
-        // Otherwise, treat as plain text
-        console.log('[RichContentForm] Content treated as plain text:', contentBody)
+        // Otherwise, treat as plain text (or handle as error)
         setProcessedContent(contentBody)
       }
     }
@@ -82,14 +72,6 @@ export function RichContentForm({
   }, [])
 
   const adaptedOnChange = useCallback((data: string) => {
-    // Debug editor change with more details
-    console.log('Editor onChange called:', {
-      dataLength: data?.length || 0,
-      dataType: typeof data,
-      dataSample: data?.substring(0, 50) || '',
-      isJSON: data?.startsWith('{') || false
-    });
-    
     // Make sure data is not null or undefined
     if (data) {
       // Always save as ProseMirror JSON

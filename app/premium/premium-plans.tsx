@@ -130,8 +130,8 @@ export function PremiumPlans() {
       </section>
       
       <PremiumModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        open={showModal}
+        onOpenChange={setShowModal}
       />
     </>
   )

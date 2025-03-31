@@ -6,12 +6,13 @@ import { useSupabase } from '@/components/supabase-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { toast } from '@/hooks/use-toast'
+import { toast } from '@/components/ui/use-toast'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
+import { isBrowser } from '@/lib/utils/index'
 
 // Dynamically import the editor to avoid SSR issues
 const Editor = dynamic(() => import('@/components/editor/editor-wrapper').then(mod => mod.Editor), {
@@ -32,44 +33,21 @@ interface ContentEditorProps {
 export function ContentEditor({ contentId, initialContent }: ContentEditorProps) {
   const { supabase } = useSupabase()
   const router = useRouter()
-  const { isAuthenticated, isLoading, user } = useAuth()
-  const { isAdmin } = useAuthorization()
+  const { userRole, loading: authLoading } = useAuth()
+  const { isAdmin, canManageContent } = useAuthorization()
   const [editorContent, setEditorContent] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   
-  // Check authentication directly
+  // Log auth status on load
   useEffect(() => {
-    if (isLoading) return
-    
-    // If not authenticated, redirect to login
-    if (!isAuthenticated) {
-      toast({
-        title: 'Authentication required',
-        description: 'Please sign in to access content editor',
-        variant: 'destructive'
-      })
-      router.push(`/login?callbackUrl=/manage/content/editor/${contentId}`)
-      return
-    }
-    
-    // If authenticated but not admin, redirect home
-    if (isAuthenticated && !isAdmin()) {
-      toast({
-        title: 'Access denied',
-        description: 'You need administrator access to edit content',
-        variant: 'destructive'
-      })
-      router.push('/')
-      return
-    }
-    
-    console.log('Editor auth verified:', { 
-      email: user?.email,
-      isAuthenticated,
-      isAdmin: isAdmin()
+    console.log('ContentEditor auth status:', {
+      userRole,
+      authLoading,
+      isAdmin: isAdmin(),
+      canManageContent: canManageContent()
     })
-  }, [isAuthenticated, isLoading, user, isAdmin, router, contentId])
+  }, [userRole, authLoading, isAdmin, canManageContent])
   
   // Set initial content
   useEffect(() => {
@@ -103,40 +81,44 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     setEditorContent(content)
     
     // Save content to localStorage as a backup
-    try {
-      localStorage.setItem(`editor-backup-${contentId}`, content)
-      localStorage.setItem(`editor-backup-${contentId}-timestamp`, Date.now().toString())
-    } catch (e) {
-      console.warn('Failed to save editor content to localStorage:', e)
+    if (isBrowser()) {
+      try {
+        localStorage.setItem(`editor-backup-${contentId}`, content)
+        localStorage.setItem(`editor-backup-${contentId}-timestamp`, Date.now().toString())
+      } catch (e) {
+        console.warn('Failed to save editor content to localStorage:', e)
+      }
     }
   }, [contentId])
   
   // Check for localStorage backups on editor initialization
   useEffect(() => {
-    if (contentId && (!initialContent || initialContent.length < 20)) {
-      try {
-        const backup = localStorage.getItem(`editor-backup-${contentId}`)
-        const backupTimestamp = localStorage.getItem(`editor-backup-${contentId}-timestamp`)
+    if (!isBrowser() || !contentId || (!initialContent || initialContent.length < 20)) {
+      return;
+    }
+    
+    try {
+      const backup = localStorage.getItem(`editor-backup-${contentId}`)
+      const backupTimestamp = localStorage.getItem(`editor-backup-${contentId}-timestamp`)
+      
+      if (backup && backupTimestamp && backup.length > 50) {
+        const backupTime = new Date(parseInt(backupTimestamp))
+        const now = new Date()
+        const hoursSinceBackup = (now.getTime() - backupTime.getTime()) / (1000 * 60 * 60)
         
-        if (backup && backupTimestamp && backup.length > 50) {
-          const backupTime = new Date(parseInt(backupTimestamp))
-          const now = new Date()
-          const hoursSinceBackup = (now.getTime() - backupTime.getTime()) / (1000 * 60 * 60)
+        // Only offer to restore backups less than 24 hours old
+        if (hoursSinceBackup < 24) {
+          const shouldRestore = window.confirm(
+            `Found an unsaved draft from ${backupTime.toLocaleString()}. Would you like to restore it?`
+          )
           
-          // Only offer to restore backups less than 24 hours old
-          if (hoursSinceBackup < 24) {
-            const shouldRestore = window.confirm(
-              `Found an unsaved draft from ${backupTime.toLocaleString()}. Would you like to restore it?`
-            )
-            
-            if (shouldRestore) {
-              setEditorContent(backup)
-            }
+          if (shouldRestore) {
+            setEditorContent(backup)
           }
         }
-      } catch (e) {
-        console.warn('Failed to restore editor backup:', e)
       }
+    } catch (e) {
+      console.warn('Failed to restore editor backup:', e)
     }
   }, [contentId, initialContent])
   
@@ -231,8 +213,10 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
             setLastSavedContent(editorContent)
             
             // Clear the backup since we've saved successfully
-            localStorage.removeItem(`editor-backup-${contentId}`)
-            localStorage.removeItem(`editor-backup-${contentId}-timestamp`)
+            if (isBrowser()) {
+              localStorage.removeItem(`editor-backup-${contentId}`)
+              localStorage.removeItem(`editor-backup-${contentId}-timestamp`)
+            }
           }
         } catch (innerError) {
           console.error(`Inner error on save attempt ${retries + 1}:`, innerError)
@@ -281,6 +265,8 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   
   // Add keyboard shortcut for saving
   useEffect(() => {
+    if (!isBrowser()) return;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+S or Cmd+S for save
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -293,7 +279,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isSaving])
+  }, [isSaving, saveContent])
   
   return (
     <ProtectedRoute requiredRole="administrator">

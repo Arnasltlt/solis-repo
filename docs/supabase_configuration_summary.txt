@@ -1,0 +1,56 @@
+# Supabase Configuration Summary (as of 2024-03-30)
+
+This document summarizes the key configuration aspects of the Supabase project based on schema diagrams, CSV exports, and policy lists.
+
+## 1. Database Schema Highlights
+
+*   **Content Core:**
+    *   `public.content_items`: Central table for content. Key fields: `id`, `title`, `description`, `type`, `published`, `content_body`, `slug`, `access_tier_id` (FK to `access_tiers.id`).
+    *   `public.access_tiers`: Defines access levels. Key fields: `id`, `name` (e.g., 'free', 'premium', 'administrator'), `level`.
+    *   `public.age_groups`: Reference table for age ranges.
+    *   `public.categories`: Reference table for content categories.
+    *   `public.content_age_groups`: Junction table (content_items <-> age_groups).
+    *   `public.content_categories`: Junction table (content_items <-> categories).
+*   **Authentication & Users:**
+    *   `auth.users`: Standard Supabase auth table. Key fields used by RLS/App: `id`, `email`, `role` (varchar), `subscription_tier_id` (FK to `access_tiers.id`).
+    *   `public.users`: A view presumably based on `auth.users` (exact definition needs verification, but grants seem overly permissive).
+*   **Other:** Tables for `content_feedback`, `payment_orders`, `payment_tokens`, `user_payment_profiles` exist.
+
+## 2. Key Helper Functions (`public` schema)
+
+*   **`is_admin()`**: `SECURITY DEFINER`. Returns `boolean`. Checks if `auth.users.role = 'administrator'` for the current user (`auth.uid()`).
+*   **`user_matches_tier(tier_id uuid)`**: `SECURITY DEFINER`. Returns `boolean`. Checks if `auth.users.subscription_tier_id` matches the provided `tier_id` for the current user (`auth.uid()`).
+*   `(Other functions)`: `generate_slug`, `get_default_access_tier`, etc. exist, mostly `SECURITY INVOKER` or `DEFINER` as appropriate.
+
+## 3. Relevant Table Privileges (`GRANT`s)
+
+*   **Reference Tables (`access_tiers`, `age_groups`, `categories`):**
+    *   `anon`: `SELECT` granted.
+    *   `authenticated`: `SELECT` granted.
+*   **Content Tables (`content_items`, `content_age_groups`, `content_categories`):**
+    *   `anon`: `SELECT` granted.
+    *   `authenticated`: `SELECT`, `INSERT`, `UPDATE`, `DELETE` granted.
+*   **`public.users` View:** `anon` and `authenticated` have *all* privileges granted (SELECT, INSERT, UPDATE, DELETE, etc.) - **This is likely too permissive and should be reviewed/restricted to SELECT.**
+
+## 4. Function Execute Permissions (`GRANT EXECUTE`)
+
+*   `is_admin()`: Granted to `authenticated` (and `anon`).
+*   `user_matches_tier(uuid)`: Granted to `authenticated` (and `anon`).
+*   **Conclusion:** The `authenticated` role can execute the necessary helper functions used in RLS policies.
+
+## 5. Row Level Security (RLS) Policies (Post-Cleanup)
+
+*   **Admin Access:** Separate `FOR ALL` policies exist on `content_items`, `content_age_groups`, `content_categories` for the `authenticated` role `USING (public.is_admin())` and `WITH CHECK (public.is_admin())`. This grants admins full access, bypassing other rules.
+*   **Non-Admin Access (`SELECT`):** Policies exist on `content_items`, `content_age_groups`, `content_categories` for `anon, authenticated` roles:
+    *   Applies only if `NOT public.is_admin()`.
+    *   Requires the target `content_items.published = true`.
+    *   Allows access if:
+        *   The content item's `access_tier_id` matches the specific 'free' tier UUID (`'de4f073e-7f48-43b3-bded-0b39fd14a0cf'::uuid`).
+        *   OR the user is authenticated (`auth.role() = 'authenticated'`) AND `public.user_matches_tier(content_item.access_tier_id)` returns true (user's tier matches the content's required tier).
+*   **Reference Tables (`access_tiers`, `age_groups`, `categories`):** Simple `SELECT` policies `USING (true)` allow `anon, authenticated` to read.
+*   **Other Tables:** Policies exist for `content_feedback`, payments, etc., generally restricting actions to the owner (`auth.uid() = user_id`) or `service_role`.
+
+## 6. Identified Issues / Areas for Review
+
+*   **`public.users` View Permissions:** The permissions granted on this view appear overly broad (`INSERT`, `UPDATE`, `DELETE`, etc. for `anon` and `authenticated`). This should be reviewed and likely restricted to only `SELECT` for the appropriate roles.
+*   **Admin Role Assignment:** The administrator user initially had `role = NULL` in `auth.users`, which was manually updated to `'administrator'`. Ensure any user creation/update process correctly sets this role. 

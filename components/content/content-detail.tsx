@@ -53,12 +53,16 @@ interface FeedbackItem {
  * - Feedback (likes/dislikes, premium CTA)
  */
 export function ContentDetail({ content }: ContentDetailProps) {
-  const { isAuthenticated } = useAuth()
-  const { canAccessPremiumContent, isAdmin } = useAuthorization()
-  const router = useRouter()
-  const isPremium = content?.access_tier?.name === 'premium'
-  const isPremiumLocked = isPremium && (!isAuthenticated || !canAccessPremiumContent())
-  const canEdit = isAdmin()
+  const { user, session } = useAuth();
+  const isAuthenticated = !!user && !!session;
+  const { canAccessPremiumContent, isAdmin } = useAuthorization();
+  const router = useRouter();
+
+  const isPremium = content?.access_tier?.name === 'premium';
+
+  const isPremiumLocked = isPremium && (!isAuthenticated || !canAccessPremiumContent());
+
+  const canEdit = isAdmin();
 
   if (!content) {
     return (

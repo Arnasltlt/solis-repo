@@ -19,17 +19,39 @@ interface HomeClientContentProps {
 }
 
 export function HomeClientContent({ 
-  initialContent, 
-  ageGroups, 
-  categories 
-}: HomeClientContentProps) {
+  initialContent = [], 
+  ageGroups = [], 
+  categories = [] 
+}: { 
+  initialContent?: any[], 
+  ageGroups?: any[],
+  categories?: any[]
+}) {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const { user } = useAuth()
+  const isAuthenticated = !!user
   const { canAccessPremiumContent, isAdmin } = useAuthorization()
   const showEditButtons = isAdmin()
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showPremiumOnly, setShowPremiumOnly] = useState(false)
+  
+  // Add safety checks
+  const hasContent = Array.isArray(initialContent) && initialContent.length > 0
+  const hasFilters = (Array.isArray(ageGroups) && ageGroups.length > 0) || 
+                    (Array.isArray(categories) && categories.length > 0)
+
+  // If we have no content, show a message
+  if (!hasContent) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">No content available</h2>
+        <p className="text-gray-600">
+          There is currently no content available to display. Please check back later.
+        </p>
+      </div>
+    )
+  }
   
   // Use the useContent hook to fetch filtered content
   const { 
@@ -50,46 +72,31 @@ export function HomeClientContent({
   // Update displayContent when content from hook changes
   useEffect(() => {
     if (content && content.length > 0) {
-      console.log('DEBUG - Updating display content with new content:', content.length)
       setDisplayContent(content)
     } else if (content && content.length === 0 && (selectedAgeGroups.length > 0 || selectedCategories.length > 0)) {
       // If we have filters applied and no content was found, show empty array
-      console.log('DEBUG - No content found for filters, showing empty content')
       setDisplayContent([])
     }
   }, [content, selectedAgeGroups.length, selectedCategories.length])
   
-  // Log for debugging
-  useEffect(() => {
-    console.log('DEBUG - Initial render:', { 
-      ageGroups, 
-      categories,
-      initialContentLength: initialContent.length 
-    })
-  }, [ageGroups, categories, initialContent.length])
-  
   // Handle age group selection
   const handleAgeGroupSelect = useCallback((id: string) => {
-    console.log('DEBUG - Age group selected:', id)
     setSelectedAgeGroups(prev => {
       const newAgeGroups = prev.includes(id)
         ? prev.filter(groupId => groupId !== id)
         : [...prev, id]
       
-      console.log('DEBUG - New age groups:', newAgeGroups)
       return newAgeGroups
     })
   }, [])
   
   // Handle category selection
   const handleCategorySelect = useCallback((id: string) => {
-    console.log('DEBUG - Category selected:', id)
     setSelectedCategories(prev => {
       const newCategories = prev.includes(id)
         ? prev.filter(catId => catId !== id)
         : [...prev, id]
       
-      console.log('DEBUG - New categories:', newCategories)
       return newCategories
     })
   }, [])
@@ -111,11 +118,6 @@ export function HomeClientContent({
   
   // Trigger content refresh when filters change
   useEffect(() => {
-    console.log('DEBUG - Filters changed, refreshing content:', { 
-      selectedAgeGroups, 
-      selectedCategories, 
-      showPremiumOnly 
-    })
     refresh()
   }, [selectedAgeGroups, selectedCategories, refresh])
   

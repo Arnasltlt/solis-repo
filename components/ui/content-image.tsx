@@ -37,30 +37,15 @@ export function ContentImage({
   const [imageError, setImageError] = useState(false)
   const [validatedSrc, setValidatedSrc] = useState<string | null>(null)
   
-  // Log initial props for debugging
-  useEffect(() => {
-    console.log('ContentImage: Initial props', { 
-      src, 
-      alt, 
-      aspectRatio,
-      fill,
-      width,
-      height
-    });
-  }, [src, alt, aspectRatio, fill, width, height]);
-  
   // Validate the image URL
   useEffect(() => {
-    console.log('ContentImage: Validating src:', src);
     const validUrl = validateStorageUrl(src)
-    console.log('ContentImage: Validation result:', validUrl);
     setValidatedSrc(validUrl)
     setImageError(!validUrl)
   }, [src])
   
   // Handle image loading error
   const handleError = () => {
-    console.error(`ContentImage: Failed to load image: ${src}`)
     setImageError(true)
   }
   
@@ -73,9 +58,6 @@ export function ContentImage({
   
   // If image is invalid or has error, show placeholder
   if (!validatedSrc || imageError) {
-    console.log('ContentImage: Showing placeholder due to', 
-      !validatedSrc ? 'invalid URL' : 'loading error');
-    
     return (
       <div className={`bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${aspectRatioClass} ${className}`}>
         <span className="text-gray-400 text-sm">
@@ -84,9 +66,6 @@ export function ContentImage({
       </div>
     )
   }
-  
-  // Render the image
-  console.log('ContentImage: Rendering image with src:', validatedSrc);
   
   return fill ? (
     <div className={`relative overflow-hidden ${aspectRatioClass} ${className}`}>

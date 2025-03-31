@@ -10,7 +10,7 @@ import { useAuthorization } from '@/hooks/useAuthorization'
 import { SparklesIcon } from '@heroicons/react/24/solid'
 
 export function Navigation() {
-  const { user, isAuthenticated, isLoading, signOut } = useAuth()
+  const { user, loading, signOut } = useAuth()
   const { isPremium, isAdmin } = useAuthorization()
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -20,15 +20,33 @@ export function Navigation() {
     setIsMenuOpen(false)
   }
 
+  // Show a loading state while auth is being checked
+  if (loading) {
+    return (
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="h-8 w-32 bg-gray-200 animate-pulse rounded"></div>
+            </div>
+            <div className="h-9 w-20 bg-gray-200 animate-pulse rounded"></div>
+          </div>
+        </div>
+      </header>
+    )
+  }
+
+  const isAuthenticated = !!user
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and main navigation */}
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0">
+            <div className="flex-shrink-0">
               <Logo size="medium" />
-            </Link>
+            </div>
             <nav className="hidden md:ml-6 md:flex md:space-x-4">
               <Link 
                 href="/" 
@@ -80,9 +98,7 @@ export function Navigation() {
 
           {/* Authentication buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {isLoading ? (
-              <div className="h-9 w-20 bg-gray-200 animate-pulse rounded-md"></div>
-            ) : isAuthenticated ? (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 {isPremium() && (
                   <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">

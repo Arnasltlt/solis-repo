@@ -1,14 +1,17 @@
+'use client'
+
 import { Node, mergeAttributes } from '@tiptap/core'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     youtube: {
-      setYoutubeVideo: (options: { src: string, videoId: string }) => ReturnType,
+      setYoutubeVideo: (options: { videoId: string, width?: number, height?: number }) => ReturnType,
     }
   }
 }
 
 export interface YoutubeOptions {
+  inline: boolean
   HTMLAttributes: Record<string, any>,
   width: number,
   height: number,
@@ -61,7 +64,9 @@ export const Youtube = Node.create<YoutubeOptions>({
     
     // Build the embed URL with proper parameters and without using youtube-nocookie
     // Some environments may block youtube-nocookie.com
-    const embedUrl = `https://www.youtube.com/embed/${videoId}?showinfo=0&controls=1&modestbranding=1&origin=${encodeURIComponent(window.location.origin)}`
+    // Safe for SSR
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?showinfo=0&controls=1&modestbranding=1&origin=${encodeURIComponent(origin)}`
     
     return [
       'div', 

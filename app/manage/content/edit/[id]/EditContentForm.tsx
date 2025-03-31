@@ -109,7 +109,7 @@ export function EditContentForm({
       description: content.description || "",
       ageGroups: content.age_groups.map(ag => ag.id),
       categories: content.categories.map(cat => cat.id),
-      accessTierId: content.access_tier.id,
+      accessTierId: content.access_tier?.id || "",
       published: content.published,
     },
   })

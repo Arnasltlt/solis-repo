@@ -4,7 +4,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { SparklesIcon } from "@heroicons/react/24/solid"
 import type { AgeGroup, Category } from "@/lib/types/database"
-import { useEffect } from "react"
 
 interface ContentFilterSidebarProps {
   ageGroups: AgeGroup[]
@@ -40,27 +39,12 @@ export function ContentFilterSidebar({
   className = ""
 }: ContentFilterSidebarProps) {
   
-  useEffect(() => {
-    console.log('DEBUG - ContentFilterSidebar rendered with:', { 
-      ageGroupsCount: ageGroups.length,
-      categoriesCount: categories.length,
-      selectedAgeGroups,
-      selectedAgeGroupsCount: selectedAgeGroups.length,
-      selectedCategoriesCount: selectedCategories.length,
-      showPremiumOnly
-    })
-    
-    console.log('DEBUG - Age groups data:', ageGroups)
-    console.log('DEBUG - Categories data:', categories)
-  }, [ageGroups, categories, selectedAgeGroups, selectedCategories, showPremiumOnly])
-  
   return (
     <div className={`space-y-4 ${className}`}>
       <div>
         <h3 className="mb-2 text-lg font-semibold">Filtrai</h3>
         <button
           onClick={() => {
-            console.log('DEBUG - Premium toggle button clicked')
             onPremiumToggle()
             onClose?.()
           }}
@@ -82,7 +66,6 @@ export function ContentFilterSidebar({
             <button
               key={group.id}
               onClick={() => {
-                console.log('DEBUG - Age group button clicked:', group)
                 onAgeGroupSelect(group.id)
                 onClose?.()
               }}
@@ -105,7 +88,6 @@ export function ContentFilterSidebar({
             <button
               key={category.id}
               onClick={() => {
-                console.log('DEBUG - Category button clicked:', category)
                 onCategorySelect(category.id)
                 onClose?.()
               }}

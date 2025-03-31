@@ -48,7 +48,6 @@ export function SignInForm() {
   // If user is already authenticated, redirect to callback URL
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('User is already authenticated, redirecting to:', callbackUrl)
       router.push(callbackUrl)
     }
   }, [isAuthenticated, callbackUrl, router])
@@ -64,17 +63,10 @@ export function SignInForm() {
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true)
     try {
-      const { error } = await signIn(values.email, values.password)
+      // Call signIn - error handling (toast) is done inside the signIn function
+      await signIn(values.email, values.password)
       
-      if (error) {
-        toast({
-          title: 'Error signing in',
-          description: error.message,
-          variant: 'destructive',
-        })
-        return
-      }
-      
+      // If signIn didn't throw an error, show success toast and redirect
       toast({
         title: 'Success',
         description: 'You have been signed in',
@@ -84,9 +76,12 @@ export function SignInForm() {
       router.push(callbackUrl)
       router.refresh()
     } catch (error: any) {
+      // This catch block will handle errors thrown *by* signIn if it didn't catch them,
+      // or other unexpected errors during the process.
+      // However, the current signIn implementation catches its own Supabase errors.
       toast({
         title: 'Error',
-        description: error.message || 'Something went wrong',
+        description: error.message || 'An unexpected error occurred',
         variant: 'destructive',
       })
     } finally {
