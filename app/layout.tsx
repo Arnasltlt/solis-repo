@@ -11,6 +11,7 @@ import { serializeSession } from '@/lib/utils/serialization'
 
 import { Footer } from '@/components/ui/footer'
 import { Navigation } from '@/components/ui/navigation'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -64,7 +65,11 @@ export default async function RootLayout({
       <body className={cn(inter.className, "flex flex-col h-full")}>
         <Providers session={serializedSession}>
           <Navigation />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </main>
           <Footer />
           <Toaster />
         </Providers>

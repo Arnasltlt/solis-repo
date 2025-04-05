@@ -8,6 +8,11 @@ import slugify from 'slugify'
 import { getCachedReferenceData, getCachedContentItems } from '@/lib/utils/data-fetching'
 import { serializeForClient } from '@/lib/utils/serialization'
 
+// Simple server-side rate limiting for API routes
+const RATE_LIMITS = new Map<string, { count: number; timestamp: number }>()
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
+const RATE_LIMIT_MAX = 60 // 60 requests per minute
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.json()
@@ -149,8 +154,46 @@ export async function POST(request: NextRequest) {
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+// Helper function to check and update rate limits
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const rateData = RATE_LIMITS.get(ip)
+  
+  if (!rateData) {
+    // First request from this IP
+    RATE_LIMITS.set(ip, { count: 1, timestamp: now })
+    return true
+  }
+  
+  if (now - rateData.timestamp > RATE_LIMIT_WINDOW) {
+    // Rate limit window has passed, reset counter
+    RATE_LIMITS.set(ip, { count: 1, timestamp: now })
+    return true
+  }
+  
+  if (rateData.count >= RATE_LIMIT_MAX) {
+    // Rate limit exceeded
+    return false
+  }
+  
+  // Increment counter and allow the request
+  RATE_LIMITS.set(ip, { count: rateData.count + 1, timestamp: rateData.timestamp })
+  return true
+}
+
+export async function GET(request: NextRequest) {
   try {
+    // Get IP for rate limiting
+    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
+    
+    // Check rate limit
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      )
+    }
+    
     // Fetch all necessary data in parallel
     // Add timeout handling to prevent hanging requests
     const timeout = new Promise((_, reject) => 
