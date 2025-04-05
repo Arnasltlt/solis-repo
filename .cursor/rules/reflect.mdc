@@ -1,0 +1,7 @@
+---
+description: when you tried few different solutions and its still not working.
+globs: 
+alwaysApply: false
+---
+
+Reflect on 5-7 different possible source of the problem, distill those down to 1-2 most likely sources , and then add. logs to validate your assumptions before we move onto the  implemnting the actual code fix.

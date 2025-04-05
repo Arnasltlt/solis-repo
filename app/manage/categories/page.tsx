@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { getCategories } from '@/lib/services/categories'
 import CategoryManager from './category-manager'
+import type { Category } from '@/lib/types/database'
 
 export const metadata: Metadata = {
   title: 'Kategorijų valdymas | Solis',
@@ -9,7 +10,14 @@ export const metadata: Metadata = {
 
 export default async function CategoriesPage() {
   // Fetch all categories
-  const categories = await getCategories()
+  const categoriesFromService = await getCategories()
+  
+  // Convert to the required type with parent_id
+  const categories: Category[] = categoriesFromService.map(cat => ({
+    ...cat,
+    parent_id: null, // Add the required parent_id field
+    description: cat.description || null // Ensure description is string | null, not undefined
+  }))
 
   return (
     <div className="container py-8">

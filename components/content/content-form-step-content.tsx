@@ -52,7 +52,10 @@ export function ContentFormStepContent({
   }, [form, onUpdate, onComplete])
 
   const handleRichContentChange = (field: string, value: any) => {
-    form.setValue(field, value, { shouldValidate: true })
+    // Only accept contentBody as the field name
+    if (field === 'contentBody') {
+      form.setValue('contentBody', value, { shouldValidate: true })
+    }
   }
 
   return (

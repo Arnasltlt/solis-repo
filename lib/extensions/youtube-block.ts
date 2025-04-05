@@ -4,6 +4,8 @@ import { Node, mergeAttributes } from '@tiptap/core'
 export interface YoutubeBlockOptions {
   addPasteHandler: boolean,
   HTMLAttributes: Record<string, any>,
+  defaultHeight?: number,
+  defaultWidth?: number,
 }
 
 declare module '@tiptap/core' {
@@ -25,6 +27,8 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
     return {
       addPasteHandler: true,
       HTMLAttributes: {},
+      defaultHeight: 400,
+      defaultWidth: 640,
     }
   },
   
@@ -120,30 +124,19 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
 
     return [
       {
-        // Match common YouTube URL formats
-        find: /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)/g,
-        handler: ({ match, chain, editor }) => {
-          const videoId = match[1]
-          const src = match[0]
-          
+        find: /(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([a-zA-Z0-9_-]{11})(?:\S*)?/g,
+        handler: ({ match, chain, editor }: any) => {
+          const videoId = match[1] // Extract the ID from the URL
           if (videoId) {
-            // Insert at current position
-            chain()
-              .insertContent({
-                type: this.name,
-                attrs: {
-                  videoId,
-                  src,
-                },
-              })
-              // Add a paragraph after the video for better editing
-              .insertContent({ type: 'paragraph' })
-              .run()
-              
-            return true
+            chain().insertContent({
+              type: this.name,
+              attrs: {
+                videoId,
+                src: match[0],
+              },
+            }).run()
           }
-          
-          return false
+          // Return void instead of boolean
         },
       },
     ]

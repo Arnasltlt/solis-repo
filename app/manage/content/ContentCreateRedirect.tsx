@@ -9,11 +9,11 @@ import { Loader2 } from 'lucide-react'
 
 export default function ContentCreateRedirect() {
   const router = useRouter()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
   const { isAdmin } = useAuthorization()
   
   useEffect(() => {
-    if (isLoading) return
+    if (loading) return
     
     // Verify authentication
     if (!isAuthenticated) {
@@ -39,7 +39,7 @@ export default function ContentCreateRedirect() {
     
     // Redirect to content creation page if authentication passes
     router.push('/manage/content/new')
-  }, [isAuthenticated, isLoading, isAdmin, router])
+  }, [isAuthenticated, loading, isAdmin, router])
   
   return (
     <div className="flex flex-col items-center justify-center py-12">

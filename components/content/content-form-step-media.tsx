@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -14,11 +14,55 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { PhotoIcon, VideoCameraIcon, XMarkIcon } from "@heroicons/react/24/solid"
 import type { ContentFormData } from "@/lib/types/content"
 import { cn } from "@/lib/utils"
+import Image from 'next/image'
+import { FileUploader } from './file-uploader'
+import { ContentType } from '@/lib/types/content'
+import { uploadThumbnailAdmin } from '@/lib/services/admin-storage'
+
+// Simple navigation component for form steps
+interface ContentFormNavigationProps {
+  onBack?: () => void;
+  onNext?: () => void;
+  canGoNext?: boolean;
+  canGoBack?: boolean;
+}
+
+export const ContentFormNavigation: React.FC<ContentFormNavigationProps> = ({
+  onBack,
+  onNext,
+  canGoNext = true,
+  canGoBack = true
+}) => {
+  return (
+    <div className="flex justify-between mt-8">
+      <Button
+        variant="outline"
+        onClick={onBack}
+        disabled={!canGoBack}
+      >
+        Atgal
+      </Button>
+      <Button
+        onClick={onNext}
+        disabled={!canGoNext}
+      >
+        Toliau
+      </Button>
+    </div>
+  );
+};
 
 const formSchema = z.object({
   thumbnail: z.instanceof(File).optional(),

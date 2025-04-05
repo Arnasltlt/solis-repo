@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { UseFormReturn } from "react-hook-form"
 import { AlertCircle, Info } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from "@/lib/types/database"
 
 interface ContentFormMediaProps {
@@ -26,7 +26,10 @@ export function ContentFormMedia({ form }: ContentFormMediaProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const supabase = createClientComponentClient<Database>()
+  const supabase = createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   useEffect(() => {
     // Check authentication status

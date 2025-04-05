@@ -29,7 +29,7 @@ import { CheckboxCardGroup } from '@/components/ui/checkbox-card-group'
 import { toast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
 import { ContentItem } from '@/lib/types/database'
 import { updateContent } from '@/lib/services/content'
@@ -45,6 +45,7 @@ const formSchema = z.object({
   categories: z.array(z.string()).min(1, { message: "Please select at least one category" }),
   accessTierId: z.string().min(1, { message: "Please select an access tier" }),
   published: z.boolean().default(false),
+  thumbnail: z.any().optional(),
 })
 
 interface EditContentFormProps {
@@ -62,14 +63,16 @@ export function EditContentForm({
 }: EditContentFormProps) {
   const { supabase } = useSupabase()
   const router = useRouter()
-  const { isAuthenticated, isLoading, user } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   const { isAdmin } = useAuthorization()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(content.thumbnail_url || null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   
   // Check authentication directly
   useEffect(() => {
-    if (isLoading) return
+    if (loading) return
     
     // If not authenticated, redirect to login
     if (!isAuthenticated) {
@@ -98,7 +101,7 @@ export function EditContentForm({
       isAuthenticated,
       isAdmin: isAdmin()
     })
-  }, [isAuthenticated, isLoading, user, isAdmin, router, content.id])
+  }, [isAuthenticated, loading, user, isAdmin, router, content.id])
   
   // Define form with content values
   const form = useForm<z.infer<typeof formSchema>>({
@@ -113,6 +116,55 @@ export function EditContentForm({
       published: content.published,
     },
   })
+  
+  // Add handleThumbnailChange function
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      form.setError('thumbnail', { 
+        message: "File size must be less than 5MB" 
+      })
+      return
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      form.setError('thumbnail', { 
+        message: "Only image files are allowed" 
+      })
+      return
+    }
+    
+    // Set the file in the form and state
+    form.setValue('thumbnail', file)
+    setSelectedFile(file)
+    form.clearErrors('thumbnail')
+    
+    // If there was a previous preview from local file (not URL), revoke it
+    if (previewUrl && !previewUrl.startsWith('http')) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    
+    // Create a preview URL
+    setPreviewUrl(URL.createObjectURL(file))
+  }
+  
+  // Add clearThumbnail function
+  const clearThumbnail = () => {
+    form.setValue('thumbnail', null)
+    setSelectedFile(null)
+    
+    // If there was a preview from local file (not URL), revoke it
+    if (previewUrl && !previewUrl.startsWith('http')) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    
+    // Reset to original thumbnail URL or null
+    setPreviewUrl(content.thumbnail_url || null)
+  }
   
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -134,20 +186,103 @@ export function EditContentForm({
         throw new Error("No authenticated user found. Please log in again.")
       }
       
-      // Update the content
-      await updateContent(
-        content.id,
-        {
-          title: values.title,
-          description: values.description,
-          type: values.type,
-          ageGroups: values.ageGroups,
-          categories: values.categories,
-          accessTierId: values.accessTierId,
-          published: values.published,
+      // Get auth token
+      const token = localStorage.getItem('supabase_access_token');
+      
+      // First check if there's a new thumbnail to upload
+      let thumbnailUrl = content.thumbnail_url;
+      
+      if (values.thumbnail instanceof File) {
+        try {
+          // Upload thumbnail using our API endpoint
+          const formData = new FormData();
+          formData.append('file', values.thumbnail);
+          formData.append('type', 'thumbnail');
+          
+          console.log('Uploading thumbnail via API endpoint');
+          const uploadResponse = await fetch('/api/manage/upload-image', {
+            method: 'POST',
+            headers: {
+              'Authorization': token ? `Bearer ${token}` : ''
+            },
+            body: formData
+          });
+          
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            console.error('Error uploading thumbnail:', errorData);
+            throw new Error(errorData.error || 'Failed to upload thumbnail');
+          } else {
+            const uploadResult = await uploadResponse.json();
+            
+            if (uploadResult.url) {
+              console.log('Thumbnail uploaded successfully:', uploadResult.url);
+              thumbnailUrl = uploadResult.url;
+              
+              // Use the dedicated thumbnail update endpoint instead of updateContent
+              console.log('Updating thumbnail URL via dedicated API endpoint');
+              const thumbnailUpdateResponse = await fetch(`/api/manage/content/${content.id}/thumbnail`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': token ? `Bearer ${token}` : ''
+                },
+                body: JSON.stringify({
+                  thumbnail_url: uploadResult.url
+                })
+              });
+              
+              if (!thumbnailUpdateResponse.ok) {
+                const thumbnailError = await thumbnailUpdateResponse.json();
+                console.error('Error updating thumbnail URL via API:', thumbnailError);
+                throw new Error(thumbnailError.error || 'Failed to update thumbnail URL');
+              }
+              
+              console.log('Thumbnail URL updated successfully via API');
+            }
+          }
+        } catch (uploadError) {
+          console.error('Thumbnail upload or update failed:', uploadError);
+          // Continue with update, but show warning
+          toast({
+            title: "Warning",
+            description: "Content details updated but thumbnail upload failed. Please try again later.",
+            variant: "destructive"
+          });
+        }
+      }
+      
+      // Update the content metadata using the API endpoint instead of updateContent function
+      console.log('Updating content metadata via API endpoint');
+      
+      // Prepare the update payload
+      const updatePayload = {
+        title: values.title,
+        description: values.description,
+        type: values.type,
+        age_groups: values.ageGroups,
+        categories: values.categories,
+        access_tier_id: values.accessTierId,
+        published: values.published
+      };
+      
+      // Use the content update API endpoint
+      const contentUpdateResponse = await fetch(`/api/manage/content/${content.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
         },
-        supabase
-      )
+        body: JSON.stringify(updatePayload)
+      });
+      
+      if (!contentUpdateResponse.ok) {
+        const contentUpdateError = await contentUpdateResponse.json();
+        console.error('Error updating content via API:', contentUpdateError);
+        throw new Error(contentUpdateError.error || 'Failed to update content details');
+      }
+      
+      console.log('Content metadata updated successfully via API');
       
       // Show success message
       toast({
@@ -176,28 +311,29 @@ export function EditContentForm({
   }
   
   return (
-    <ProtectedRoute requiredRole="administrator">
+    <ProtectedRoute requiredRole={UserRoles.ADMIN}>
       <div className="container py-8">
         <PageHeader
           title="Edit Content"
-          description="Update content details"
-          actions={
-            <div className="flex space-x-2">
-              <Button asChild variant="outline">
-                <Link href="/manage">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Dashboard
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href={`/manage/content/editor/${content.id}`}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Content Body
-                </Link>
-              </Button>
-            </div>
-          }
+          backUrl="/manage"
         />
+        
+        <div className="flex justify-end mb-6">
+          <div className="flex space-x-2">
+            <Button asChild variant="outline">
+              <Link href="/manage">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href={`/manage/content/editor/${content.id}`}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Content Body
+              </Link>
+            </Button>
+          </div>
+        </div>
         
         {error && (
           <Alert variant="destructive" className="mb-6">
@@ -292,6 +428,53 @@ export function EditContentForm({
                 )}
               />
             </div>
+            
+            {/* Add Thumbnail field */}
+            <FormField
+              control={form.control}
+              name="thumbnail"
+              render={({ field: { value, onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Thumbnail</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleThumbnailChange}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-foreground hover:file:bg-primary/20"
+                        {...field}
+                      />
+                      
+                      {previewUrl && (
+                        <div className="relative h-40 w-full rounded-lg overflow-hidden border border-gray-200">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          {selectedFile && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-2 right-2"
+                              onClick={clearThumbnail}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Visual representation of your content. Recommended size: 1280×720px.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             {/* Age Groups */}
             <div className="space-y-4">

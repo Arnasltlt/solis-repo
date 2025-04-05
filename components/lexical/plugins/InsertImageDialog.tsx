@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { LexicalEditor } from 'lexical';
 import { INSERT_IMAGE_COMMAND } from './ToolbarPlugin';
-import { uploadEditorImage } from '@/lib/services/storage';
 
 export function InsertImageDialog({
   onClose,
@@ -60,14 +59,31 @@ export function InsertImageDialog({
       setIsUploading(true);
       setError(null);
       
-      const result = await uploadEditorImage(file);
+      // Use our API endpoint
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'editor');
       
-      if (result.error) {
-        throw result.error;
+      // Get auth token
+      const token = localStorage.getItem('supabase_access_token');
+      
+      const response = await fetch('/api/manage/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload image');
       }
       
+      const result = await response.json();
+      
       if (!result.url) {
-        throw new Error('Failed to get upload URL');
+        throw new Error('Upload succeeded but no URL was returned');
       }
       
       // Insert the image into the editor

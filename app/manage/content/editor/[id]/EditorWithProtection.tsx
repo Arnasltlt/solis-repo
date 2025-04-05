@@ -113,33 +113,48 @@ export function EditorWithProtection({
       
       // Handle thumbnail if it's a file
       if (data.thumbnail instanceof File) {
-        const filename = `${contentId}/thumbnail.${data.thumbnail.name.split('.').pop()}`;
-        
-        // Upload the file
-        const { error: uploadError } = await supabase.storage
-          .from('content')
-          .upload(filename, data.thumbnail, {
-            upsert: true,
-            contentType: data.thumbnail.type
+        try {
+          // Upload thumbnail using our API endpoint
+          const formData = new FormData();
+          formData.append('file', data.thumbnail);
+          formData.append('type', 'thumbnail');
+          
+          // Get auth token
+          const token = localStorage.getItem('supabase_access_token');
+          
+          // Use our API endpoint to upload the thumbnail
+          const uploadResponse = await fetch('/api/manage/upload-image', {
+              method: 'POST',
+              headers: {
+                  'Authorization': token ? `Bearer ${token}` : ''
+              },
+              body: formData
           });
-        
-        if (uploadError) {
-          console.error('Error uploading thumbnail:', uploadError);
-        } else {
-          // Get the public URL
-          const { data: urlData } = supabase.storage
-            .from('content')
-            .getPublicUrl(filename);
           
-          // Update the thumbnail URL in the content record
-          const { error: thumbUpdateError } = await supabase
-            .from('content_items')
-            .update({ thumbnail_url: urlData.publicUrl })
-            .eq('id', contentId);
-          
-          if (thumbUpdateError) {
-            console.error('Error updating thumbnail URL:', thumbUpdateError);
+          if (!uploadResponse.ok) {
+              const errorData = await uploadResponse.json();
+              console.error('Error uploading thumbnail:', errorData);
+              // Continue without throwing - we'll just use without updating the thumbnail
+          } else {
+              const uploadResult = await uploadResponse.json();
+              
+              if (uploadResult.url) {
+                  console.log('Thumbnail uploaded successfully:', uploadResult.url);
+                  
+                  // Update the content record with the thumbnail URL
+                  const { error: thumbUpdateError } = await supabase
+                    .from('content_items')
+                    .update({ thumbnail_url: uploadResult.url })
+                    .eq('id', contentId);
+                  
+                  if (thumbUpdateError) {
+                    console.error('Error updating thumbnail URL:', thumbUpdateError);
+                  }
+              }
           }
+        } catch (uploadError) {
+          console.error('Thumbnail upload failed:', uploadError);
+          // Continue without thumbnail if upload fails
         }
       }
       

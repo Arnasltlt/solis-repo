@@ -24,6 +24,7 @@ export const Youtube = Node.create<YoutubeOptions>({
   
   addOptions() {
     return {
+      inline: false,
       HTMLAttributes: {},
       width: 640,
       height: 360,

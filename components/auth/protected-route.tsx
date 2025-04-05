@@ -63,7 +63,7 @@ export function ProtectedRoute({
           description: 'Please sign in to access this page',
           variant: 'destructive',
         });
-        router.push(`/auth/sign-in?returnUrl=${encodedReturnUrl}`);
+        router.push(`/login?returnUrl=${encodedReturnUrl}`);
       }
     }
   }, [user, session, loading, router, pathname, hasMinimumRole, requiredRole, forcedReturnUrl, isClient, authCheckComplete, redirecting]);

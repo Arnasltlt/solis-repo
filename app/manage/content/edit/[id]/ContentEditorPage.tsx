@@ -189,7 +189,7 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
   
   // Handle image upload
   const handleImageUpload = async () => {
-    if (!selectedImage || !supabase) {
+    if (!selectedImage) {
       return
     }
     
@@ -197,11 +197,35 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
       setUploadingImage(true)
       setError(null)
       
-      // Upload image to storage
-      const { path, url } = await uploadImage(selectedImage, supabase, `content/${contentItem.id}/images`)
+      // Upload image using our API endpoint
+      const formData = new FormData()
+      formData.append('file', selectedImage)
+      formData.append('type', 'editor')
+      
+      // Get auth token
+      const token = localStorage.getItem('supabase_access_token')
+      
+      const response = await fetch('/api/manage/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: formData
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to upload image')
+      }
+      
+      const result = await response.json()
+      
+      if (!result.url) {
+        throw new Error('Upload succeeded but no URL was returned')
+      }
       
       // Insert image into editor with proper HTML
-      const imageHtml = `<img src="${url}" alt="Content image" />`
+      const imageHtml = `<img src="${result.url}" alt="Content image" />`
       setContentBody(prev => prev + imageHtml)
       
       // Close dialog and reset state

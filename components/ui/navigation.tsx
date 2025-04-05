@@ -131,6 +131,24 @@ export function Navigation() {
                           Gauti Narystę
                         </Link>
                       )}
+                      {isAdmin() && (
+                        <>
+                          <Link 
+                            href="/manage" 
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsMenuOpen(false)}
+                          >
+                            Valdymas
+                          </Link>
+                          <Link 
+                            href="/debug/storage-test" 
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsMenuOpen(false)}
+                          >
+                            Debug Storage
+                          </Link>
+                        </>
+                      )}
                       <button
                         onClick={handleSignOut}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -215,17 +233,30 @@ export function Navigation() {
               </Link>
             )}
             {isAdmin() && (
-              <Link 
-                href="/manage" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  pathname.startsWith('/manage') 
-                    ? 'text-secondary-navy font-semibold' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Valdymas
-              </Link>
+              <>
+                <Link 
+                  href="/manage" 
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${
+                    pathname.startsWith('/manage') 
+                      ? 'text-secondary-navy font-semibold' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Valdymas
+                </Link>
+                <Link 
+                  href="/debug/storage-test" 
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${
+                    pathname.startsWith('/debug/storage') 
+                      ? 'text-secondary-navy font-semibold' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Debug Storage
+                </Link>
+              </>
             )}
           </div>
           {!isAuthenticated && (
@@ -273,6 +304,24 @@ export function Navigation() {
                     <SparklesIcon className="h-4 w-4 mr-2" />
                     Gauti Narystę
                   </Link>
+                )}
+                {isAdmin() && (
+                  <>
+                    <Link 
+                      href="/manage" 
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Valdymas
+                    </Link>
+                    <Link 
+                      href="/debug/storage-test" 
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Debug Storage
+                    </Link>
+                  </>
                 )}
                 <button
                   onClick={handleSignOut}

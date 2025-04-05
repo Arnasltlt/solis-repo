@@ -192,6 +192,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
   const lastUpdateTimeRef = useRef(Date.now())
   const editorMountedRef = useRef(false)
   const [isDraggingFile, setIsDraggingFile] = useState(false) // Add state for drag indication
+  const [altText, setAltText] = useState('');
 
   const safeInitialData = useMemo(() => {
     if (!initialData) return '';
@@ -504,19 +505,57 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
     }
     try {
       setIsUploadingImage(true);
-      // ... (rest of upload logic)
-      const uploadResult = await uploadEditorImage(file);
-      if (uploadResult.error) throw uploadResult.error;
-      if (!uploadResult.url) throw new Error('Upload succeeded but no URL was returned');
-      editor.chain().focus().setImage({ src: uploadResult.url, alt: file.name.split('.')[0] }).run();
-      toast({ title: "Image uploaded", description: "Image has been added to your content" });
+      
+      // Use our API endpoint instead of direct admin client
+      console.log('Uploading image via API endpoint');
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'editor');
+      
+      // Get auth token
+      const token = localStorage.getItem('supabase_access_token');
+      
+      const response = await fetch('/api/manage/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload image');
+      }
+      
+      const result = await response.json();
+      
+      if (!result.url) {
+        throw new Error('Upload succeeded but no URL was returned');
+      }
+      
+      // Insert the image
+      editor.chain().focus().setImage({ 
+        src: result.url, 
+        alt: file.name.split('.')[0] 
+      }).run();
+      
+      toast({ 
+        title: "Image uploaded", 
+        description: "Image has been added to your content" 
+      });
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast({ title: "Upload failed", description: error instanceof Error ? error.message : "Failed to upload image", variant: "destructive" });
+      toast({ 
+        title: "Upload failed", 
+        description: error instanceof Error ? error.message : "Failed to upload image", 
+        variant: "destructive" 
+      });
     } finally {
       setIsUploadingImage(false);
     }
-  }, [editor]); // Dependency on editor
+  }, [editor]);
 
   // Effect to manage editor drag/drop and paste for images
   useEffect(() => {
@@ -611,61 +650,39 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
     return true;
   }
   
-  const handleImageSubmit = async () => {
-    if (!editor) {
-      setImageError('Editor not initialized');
-      return;
+  const isValidUrl = (string: string) => {
+    try {
+      const url = new URL(string);
+      return url.protocol.startsWith('http');
+    } catch (err) {
+      return false;
     }
+  };
 
+  const handleImageSubmit = async () => {
     // Handle URL input
     if (imageUrl) {
-      try {
-        console.log('Adding image with URL:', imageUrl);
-        
-        // Validate URL
-        const url = new URL(imageUrl);
-        if (!url.protocol.startsWith('http')) {
-          throw new Error('Invalid URL. Must start with http:// or https://');
-        }
-        
-        // Add loading state
-        toast({
-          title: "Adding image...",
-          description: "Please wait while we add the image",
-        });
-        
-        // Check if image loads correctly
-        const imgPromise = new Promise((resolve, reject) => {
-          const img = new window.Image(); // Explicitly use window.Image
-          img.onload = () => resolve(true);
-          img.onerror = () => reject(new Error('Failed to load image from URL'));
-          img.src = imageUrl;
-        });
-        
-        await imgPromise;
-        
-        // Insert the image
-        editor
-          .chain()
-          .focus()
-          .setImage({ src: imageUrl })
-          .run();
-        
-        toast({
-          title: "Image inserted",
-          description: "Image added to your content",
-        });
-        
-        setImageDialogOpen(false);
-        setImageUrl('');
-        setSelectedImageFile(null);
-        setImageError('');
-        return;
-      } catch (error) {
-        console.error('Error inserting image from URL:', error);
-        setImageError(error instanceof Error ? error.message : 'An error occurred while adding the image from URL');
+      // Validate URL
+      if (!isValidUrl(imageUrl)) {
+        setImageError('Please enter a valid URL');
         return;
       }
+      
+      // Insert the image from URL
+      editor
+        ?.chain()
+        .focus()
+        .setImage({ 
+          src: imageUrl,
+          alt: altText 
+        })
+        .run();
+      
+      // Close dialog and reset state
+      setImageDialogOpen(false);
+      setImageUrl('');
+      setSelectedImageFile(null);
+      return;
     }
     
     // Handle file upload
@@ -674,24 +691,42 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         setIsUploadingImage(true);
         setImageError('');
         
-        // Upload the file to Supabase storage
-        const uploadResult = await uploadEditorImage(selectedImageFile);
+        // Use our API endpoint instead of direct upload
+        console.log('Uploading image via API endpoint');
         
-        if (uploadResult.error) {
-          throw uploadResult.error;
+        const formData = new FormData();
+        formData.append('file', selectedImageFile);
+        formData.append('type', 'editor');
+        
+        // Get auth token
+        const token = localStorage.getItem('supabase_access_token');
+        
+        const response = await fetch('/api/manage/upload-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to upload image');
         }
         
-        if (!uploadResult.url) {
+        const result = await response.json();
+        
+        if (!result.url) {
           throw new Error('Upload succeeded but no URL was returned');
         }
         
         // Insert the image
         editor
-          .chain()
+          ?.chain()
           .focus()
           .setImage({ 
-            src: uploadResult.url,
-            alt: selectedImageFile.name.split('.')[0] // Use filename as alt text
+            src: result.url,
+            alt: altText || selectedImageFile.name.split('.')[0] // Use filename as alt text
           })
           .run();
         

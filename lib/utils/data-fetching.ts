@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { getContentItems, getContentBySlug, getAgeGroups, getCategories, getAccessTiers } from '@/lib/services/content'
 import type { ContentItem, AgeGroup, Category, AccessTier, Database } from '@/lib/types/database'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 /**
@@ -27,9 +27,19 @@ export const getCachedContentItems = cache(async ({
   showPremiumOnly?: boolean
 } = {}) => {
   try {
-    // Create authenticated client for server-side fetching
+    // Create client using the SSR helper
     const cookieStore = cookies()
-    const supabaseServerClient = createServerComponentClient<Database>({ cookies: () => cookieStore })
+    const supabaseServerClient = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
 
     // Call the service function, passing the authenticated client and other params
     const items = await getContentItems({
@@ -53,9 +63,19 @@ export const getCachedContentItems = cache(async ({
  */
 export const getCachedContentBySlug = cache(async (slug: string) => {
   try {
-    // Create authenticated client for server-side fetching
+    // Create client using the SSR helper
     const cookieStore = cookies()
-    const supabaseServerClient = createServerComponentClient<Database>({ cookies: () => cookieStore })
+    const supabaseServerClient = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
     
     const content = await getContentBySlug(slug, supabaseServerClient)
     if (!content) {

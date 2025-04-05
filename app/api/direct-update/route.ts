@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
     // First verify the user is authenticated and is an administrator
     const cookieStore = cookies()
-    const authClient = createRouteHandlerClient({ cookies: () => cookieStore })
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
     
     // Check if the current user is authenticated
     const { data: { session }, error: sessionError } = await authClient.auth.getSession()

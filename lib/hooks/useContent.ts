@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getContentItems } from '@/lib/services/content'
 import type { ContentItem, Database } from '@/lib/types/database'
 import { handleError } from '@/lib/utils/error-handling'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 
 interface UseContentOptions {
   ageGroups?: string[]
@@ -24,7 +24,10 @@ export function useContent({
   const [error, setError] = useState<Error | null>(null)
 
   // Create Supabase client instance - useMemo ensures it's stable
-  const supabase = useMemo(() => createClientComponentClient<Database>(), [])
+  const supabase = useMemo(() => createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  ), [])
 
   // Fetch content with the current filters
   const fetchContent = useCallback(async () => {

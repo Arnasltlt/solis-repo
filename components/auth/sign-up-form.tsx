@@ -37,6 +37,7 @@ export function SignUpForm() {
   const { signUp } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -47,37 +48,20 @@ export function SignUpForm() {
     },
   })
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (values.password !== values.confirmPassword) {
+      return
+    }
+    
     setIsLoading(true)
     try {
-      const { data, error } = await signUp(values.email, values.password)
+      await signUp(values.email, values.password)
       
-      console.log('Sign up response:', { data, error })
-      
-      if (error) {
-        toast({
-          title: 'Error signing up',
-          description: error.message,
-          variant: 'destructive',
-        })
-        return
-      }
-      
-      toast({
-        title: 'Success',
-        description: 'Please check your email to confirm your account.',
-      })
-      
-      // Redirect to a confirmation page
-      router.push('/signup/confirmation')
-      router.refresh()
-    } catch (error: any) {
-      console.error('Signup error:', error)
-      toast({
-        title: 'Error',
-        description: error.message || 'Something went wrong with registration',
-        variant: 'destructive',
-      })
+      // Sign up was successful
+      setIsSubmitted(true)
+    } catch (error) {
+      // Error is handled by the useAuth hook, which shows a toast
+      console.error('Error during sign up:', error)
     } finally {
       setIsLoading(false)
     }

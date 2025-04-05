@@ -28,7 +28,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export function PasswordResetForm() {
-  const { passwordReset } = useAuth()
+  const { resetPassword } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
@@ -42,17 +42,7 @@ export function PasswordResetForm() {
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true)
     try {
-      const { error } = await passwordReset(values.email)
-      
-      if (error) {
-        toast({
-          title: 'Error resetting password',
-          description: error.message,
-          variant: 'destructive',
-        })
-        return
-      }
-      
+      await resetPassword(values.email)
       setIsSubmitted(true)
       toast({
         title: 'Password reset email sent',
@@ -61,7 +51,7 @@ export function PasswordResetForm() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Something went wrong',
+        description: error.message || 'Failed to send reset password email. Please try again.',
         variant: 'destructive',
       })
     } finally {

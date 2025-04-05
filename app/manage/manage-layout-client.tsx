@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { UserRoles } from '@/hooks/useAuth'
 
 interface ManageLayoutClientProps {
   children: React.ReactNode
@@ -31,7 +32,7 @@ export function ManageLayoutClient({ children }: ManageLayoutClientProps) {
   }
 
   return (
-    <ProtectedRoute requiredRole="administrator">
+    <ProtectedRoute requiredRole={UserRoles.ADMIN}>
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white shadow">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">

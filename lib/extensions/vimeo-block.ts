@@ -4,6 +4,8 @@ import { Node, mergeAttributes } from '@tiptap/core'
 export interface VimeoBlockOptions {
   addPasteHandler: boolean,
   HTMLAttributes: Record<string, any>,
+  defaultHeight?: number,
+  defaultWidth?: number,
 }
 
 declare module '@tiptap/core' {
@@ -25,6 +27,8 @@ export const VimeoBlock = Node.create<VimeoBlockOptions>({
     return {
       addPasteHandler: true,
       HTMLAttributes: {},
+      defaultHeight: 400,
+      defaultWidth: 640,
     }
   },
   
@@ -120,30 +124,19 @@ export const VimeoBlock = Node.create<VimeoBlockOptions>({
 
     return [
       {
-        // Match common Vimeo URL formats
-        find: /(?:https?:\/\/)?(?:www\.)?(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)(?:\S*)/g,
-        handler: ({ match, chain, editor }) => {
-          const videoId = match[1]
-          const src = match[0]
-          
+        find: /https?:\/\/(www\.)?vimeo\.com\/(\d+)(?:\?.*)?/g,
+        handler: ({ match, chain, editor }: any) => {
+          const videoId = match[2] // Extract the ID from the URL
           if (videoId) {
-            // Insert at current position
-            chain()
-              .insertContent({
-                type: this.name,
-                attrs: {
-                  videoId,
-                  src,
-                },
-              })
-              // Add a paragraph after the video for better editing
-              .insertContent({ type: 'paragraph' })
-              .run()
-              
-            return true
+            chain().insertContent({
+              type: this.name,
+              attrs: {
+                videoId,
+                src: match[0],
+              },
+            }).run()
           }
-          
-          return false
+          // Return void instead of boolean
         },
       },
     ]

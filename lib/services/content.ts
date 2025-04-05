@@ -3,10 +3,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, ContentItem } from '@/lib/types/database'
 import slugify from 'slugify'
 import { v4 as uuidv4 } from 'uuid'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import { uploadThumbnail } from '@/lib/utils/storage-utils'
 import { createFileCopy } from '@/lib/utils/debug-utils'
 import { getSupabaseClient } from '@/lib/utils/supabase-client'
+import { uploadThumbnailAdmin } from '@/lib/services/admin-storage'
+import { createClient as createAdminClient } from '@/lib/supabase/admin'
 
 interface ContentFormData {
   title: string
@@ -402,7 +404,7 @@ export async function createContent(
     // Handle thumbnail upload if provided
     if (data.thumbnail instanceof File) {
       try {
-        console.log('Uploading thumbnail file:', {
+        console.log('CONTENT-SERVICE: Uploading thumbnail file:', {
           name: data.thumbnail.name,
           size: data.thumbnail.size,
           type: data.thumbnail.type,
@@ -418,56 +420,33 @@ export async function createContent(
           throw new Error('Thumbnail must be an image file');
         }
         
-        // Create a unique filename
-        const fileExt = data.thumbnail.name.split('.').pop() || 'jpg';
-        const uniqueFileName = `content-${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+        // Method 1: Use our admin-based upload function (preferred)
+        console.log('CONTENT-SERVICE: Using admin-based upload function');
+        const uploadResult = await uploadThumbnailAdmin(data.thumbnail);
         
-        // Use our utility to create a proper file copy
-        console.log('Creating file copy...');
-        const copyResult = await createFileCopy(data.thumbnail, uniqueFileName);
-        
-        if (!copyResult.success || !copyResult.file) {
-          console.error('Failed to create file copy:', copyResult.error);
-          throw new Error(`Failed to create file copy: ${copyResult.error}`);
+        if (uploadResult.error) {
+          console.error('CONTENT-SERVICE: Admin upload failed:', uploadResult.error);
+          throw uploadResult.error;
         }
         
-        console.log('File copy created successfully using method:', copyResult.method);
-        console.log('File copy details:', copyResult.details);
-        
-        // Upload the file copy
-        console.log('Uploading file copy...');
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('thumbnails')
-          .upload(copyResult.file.name, copyResult.file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-        
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw uploadError;
+        if (!uploadResult.url) {
+          console.error('CONTENT-SERVICE: Admin upload returned no URL');
+          throw new Error('Failed to get upload URL');
         }
         
-        console.log('Upload successful:', uploadData);
-        
-        // Get the public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('thumbnails')
-          .getPublicUrl(uploadData.path);
-        
-        console.log('Public URL obtained:', publicUrl);
-        payload.thumbnail_url = publicUrl;
+        console.log('CONTENT-SERVICE: Admin upload successful:', uploadResult.url);
+        payload.thumbnail_url = uploadResult.url;
       } catch (error) {
-        console.error('Error uploading thumbnail:', error);
+        console.error('CONTENT-SERVICE: Error uploading thumbnail:', error);
         // Continue without thumbnail if upload fails
         payload.thumbnail_url = 'https://placehold.co/600x400/png?text=No+Thumbnail';
       }
     } else if (typeof data.thumbnail === 'string' && data.thumbnail.trim() !== '') {
       // If thumbnail is already a URL string, use it directly
-      console.log('Using provided thumbnail URL:', data.thumbnail);
+      console.log('CONTENT-SERVICE: Using provided thumbnail URL:', data.thumbnail);
       payload.thumbnail_url = data.thumbnail;
     } else {
-      console.log('No thumbnail file provided, using default');
+      console.log('CONTENT-SERVICE: No thumbnail file provided, using default');
       // Use default thumbnail if none provided
       payload.thumbnail_url = 'https://placehold.co/600x400/png?text=No+Thumbnail';
     }
@@ -727,45 +706,68 @@ export async function updateContent(
   }
 
   try {
-    // Get the current user's ID and subscription tier
+    // Get the current user's ID
     const { data: session } = await supabase.auth.getSession()
     if (!session?.session?.user?.id) {
       throw new Error('User must be authenticated to update content')
     }
 
     // Get the user's subscription tier
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('subscription_tier_id')
-      .eq('id', session.session.user.id)
-      .single()
+    let isAdmin = false;
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('subscription_tier_id')
+        .eq('id', session.session.user.id)
+        .single()
+      
+      if (userError) {
+        console.error('Error checking user tier:', userError);
+        // Continue anyway - we'll try the admin check and fallback
+      } else if (userData) {
+        // Get the administrator tier ID
+        const { data: adminTier, error: adminTierError } = await supabase
+          .from('access_tiers')
+          .select('id')
+          .eq('name', 'administrator')
+          .single()
 
-    if (userError) throw userError
+        if (!adminTierError && adminTier) {
+          isAdmin = userData?.subscription_tier_id === adminTier.id;
+        }
+      }
+    } catch (tierCheckError) {
+      console.error('Error during admin status check:', tierCheckError);
+      // Continue anyway - we'll assume not admin and check ownership
+    }
 
-    // Get the administrator tier ID
-    const { data: adminTier, error: adminTierError } = await supabase
-      .from('access_tiers')
-      .select('id')
-      .eq('name', 'administrator')
-      .single()
-
-    if (adminTierError) throw adminTierError
-
-    // Check if user is an administrator
-    const isAdmin = userData?.subscription_tier_id === adminTier.id
-
+    // If isAdmin flag wasn't set successfully, verify the user owns this content
     if (!isAdmin) {
       // If not admin, verify the user owns this content
-      const { data: existingContent, error: fetchError } = await supabase
-        .from('content_items')
-        .select('author_id')
-        .eq('id', id)
-        .single()
-
-      if (fetchError) throw fetchError
-      if (!existingContent) throw new Error('Content not found')
-      if (existingContent.author_id !== session.session.user.id) {
-        throw new Error('You do not have permission to update this content')
+      try {
+        const { data: existingContent, error: fetchError } = await supabase
+          .from('content_items')
+          .select('author_id')
+          .eq('id', id)
+          .single()
+        
+        if (fetchError) {
+          console.error('Error checking content ownership:', fetchError);
+          throw new Error('Failed to verify content ownership. Please try again later.');
+        }
+        
+        if (!existingContent) {
+          throw new Error('Content not found');
+        }
+        
+        if (existingContent.author_id !== session.session.user.id) {
+          throw new Error('You do not have permission to update this content');
+        }
+      } catch (ownershipError) {
+        if (ownershipError instanceof Error) {
+          throw ownershipError;
+        }
+        throw new Error('Failed to verify content ownership');
       }
     }
 

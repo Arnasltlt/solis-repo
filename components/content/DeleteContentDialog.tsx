@@ -36,21 +36,21 @@ export function DeleteContentDialog({ contentId, contentTitle }: DeleteContentDi
     try {
       setIsDeleting(true)
 
-      // Delete references in related tables first
-      await Promise.all([
-        supabase.from('content_age_groups').delete().eq('content_id', contentId),
-        supabase.from('content_categories').delete().eq('content_id', contentId),
-        supabase.from('content_feedback').delete().eq('content_id', contentId)
-      ])
-
-      // Finally delete the content item
-      const { error } = await supabase
-        .from('content_items')
-        .delete()
-        .eq('id', contentId)
-
-      if (error) {
-        throw error
+      // Get auth token
+      const token = localStorage.getItem('supabase_access_token');
+      
+      // Use our API endpoint to delete the content
+      console.log('Deleting content via API endpoint');
+      const response = await fetch(`/api/manage/content/${contentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete content');
       }
 
       // Close the dialog

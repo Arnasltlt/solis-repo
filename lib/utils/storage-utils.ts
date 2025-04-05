@@ -526,4 +526,54 @@ export async function uploadImage(
     console.error('Error uploading image:', error)
     throw error
   }
+}
+
+/**
+ * Utility function to check if a Supabase storage URL is publicly accessible
+ * @param url The Supabase storage URL to check
+ * @returns An object with the check result
+ */
+export async function verifyStorageAccess(url: string): Promise<{
+  accessible: boolean;
+  status?: number;
+  error?: string;
+  bucket?: string;
+  path?: string;
+}> {
+  try {
+    // Basic URL validation
+    if (!url || !url.startsWith('http')) {
+      return { accessible: false, error: 'Invalid URL format' };
+    }
+    
+    // Parse bucket and path from URL
+    // Format: https://{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{PATH}
+    const publicPrefix = '/storage/v1/object/public/';
+    const publicPathStart = url.indexOf(publicPrefix);
+    
+    let bucket = '';
+    let path = '';
+    
+    if (publicPathStart !== -1) {
+      const publicPath = url.substring(publicPathStart + publicPrefix.length);
+      const pathParts = publicPath.split('/');
+      bucket = pathParts[0];
+      path = pathParts.slice(1).join('/');
+    }
+    
+    // Attempt to make a HEAD request to check if the resource is accessible
+    const response = await fetch(url, { method: 'HEAD' });
+    
+    return {
+      accessible: response.ok,
+      status: response.status,
+      bucket,
+      path
+    };
+  } catch (error) {
+    return {
+      accessible: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
 } 

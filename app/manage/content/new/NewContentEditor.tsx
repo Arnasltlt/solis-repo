@@ -30,7 +30,7 @@ import { toast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { createFileCopy } from '@/lib/utils/debug-utils'
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
 
 // Create a schema for content
@@ -60,7 +60,7 @@ export function NewContentEditor({
 }: NewContentEditorProps) {
   const { supabase } = useSupabase()
   const router = useRouter()
-  const { isAuthenticated, isLoading, user } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   const { isAdmin } = useAuthorization()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +68,7 @@ export function NewContentEditor({
   
   // Check authentication directly
   useEffect(() => {
-    if (isLoading) return
+    if (loading) return
     
     // If not authenticated, redirect to login
     if (!isAuthenticated) {
@@ -97,7 +97,7 @@ export function NewContentEditor({
       isAuthenticated,
       isAdmin: isAdmin()
     })
-  }, [isAuthenticated, isLoading, user, isAdmin, router])
+  }, [isAuthenticated, loading, user, isAdmin, router])
   
   // Define form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -115,127 +115,115 @@ export function NewContentEditor({
   
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!supabase) {
-      setError("Database connection not available")
-      return
-    }
+    // --- ADDED DEBUG LOG --- 
+    console.log('%%% ENTERING NewContentEditor onSubmit - API Route Version %%%');
     
     try {
       setIsSubmitting(true)
       setError(null)
       
-      console.log("Creating content with values:", values)
+      console.log("Submitting content form with values:", values)
       
-      // Verify that we have a valid user session before proceeding
-      const { data: sessionData } = await supabase.auth.getSession()
-      
-      if (!sessionData.session?.user?.id) {
-        throw new Error("No authenticated user found. Please log in again.")
-      }
-      
-      // Step 1: Create a unique slug based on title
-      const timestamp = new Date().getTime()
-      const slug = `${values.title.toLowerCase().replace(/[^\w-]+/g, '-')}-${timestamp.toString().slice(-6)}`
-      
-      // Step 2: Create the content record
-      const contentData = {
+      // Prepare the data payload for the API route
+      // Exclude the thumbnail File object, it needs separate handling
+      const payload: Omit<z.infer<typeof formSchema>, 'thumbnail'> & { author_id?: string } = {
         title: values.title,
         description: values.description,
         type: values.type,
-        slug: slug,
-        content_body: '',
         published: values.published,
-        access_tier_id: values.accessTierId,
-        author_id: sessionData.session.user.id,
-        thumbnail_url: '',
+        accessTierId: values.accessTierId,
+        ageGroups: values.ageGroups,
+        categories: values.categories,
+      };
+      
+      console.log("Sending payload to API:", payload);
+      
+      // Get auth token for the API request header
+      const token = localStorage.getItem('supabase_access_token');
+
+      // --- ADDED DEBUG LOG --- 
+      console.log('%%% PREPARING TO FETCH /api/manage/content %%%');
+      
+      // Call the API route
+      const response = await fetch('/api/manage/content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '' // Include token
+        },
+        body: JSON.stringify(payload),
+      });
+
+      // --- ADDED DEBUG LOG --- 
+      console.log(`%%% FETCH Response Status: ${response.status} %%%`);
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("API error creating content:", result);
+        throw new Error(result.error || `API request failed with status ${response.status}`);
+      }
+
+      if (!result.contentId) {
+         throw new Error("API succeeded but did not return a content ID.");
       }
       
-      // Log the data we're going to insert
-      console.log("Inserting content data:", contentData)
-      
-      // Step 3: Insert into database
-      const { data: contentItem, error: contentError } = await supabase
-        .from('content_items')
-        .insert(contentData)
-        .select('id')
-        .single()
-      
-      if (contentError) {
-        console.error("Database error creating content:", contentError)
-        throw contentError
-      }
-      
-      if (!contentItem) {
-        throw new Error("Content created but no ID returned")
-      }
-      
-      const contentId = contentItem.id
-      
-      // Step 4: Upload thumbnail if provided
+      const contentId = result.contentId;
+      console.log("Content created via API, ID:", contentId);
+
+      // Step 4: Upload thumbnail if provided (using a separate API route or direct client upload)
       if (values.thumbnail instanceof File) {
-        try {
-          const filename = `${contentId}/thumbnail.${values.thumbnail.name.split('.').pop()}`
+          console.log('Thumbnail provided, needs to be uploaded separately for content ID:', contentId);
           
-          // Create a file copy to ensure it's a valid File object
-          const copyResult = await createFileCopy(values.thumbnail)
-          
-          if (!copyResult.success || !copyResult.file) {
-            console.error("Failed to create file copy:", copyResult.error)
-            throw new Error("Failed to prepare thumbnail for upload")
+          try {
+              // Upload thumbnail using our API endpoint
+              const formData = new FormData();
+              formData.append('file', values.thumbnail);
+              formData.append('type', 'thumbnail');
+              
+              // Get auth token
+              const token = localStorage.getItem('supabase_access_token');
+              
+              // Use our API endpoint to upload the thumbnail
+              const uploadResponse = await fetch('/api/manage/upload-image', {
+                  method: 'POST',
+                  headers: {
+                      'Authorization': token ? `Bearer ${token}` : ''
+                  },
+                  body: formData
+              });
+              
+              if (!uploadResponse.ok) {
+                  const errorData = await uploadResponse.json();
+                  console.error('Error uploading thumbnail:', errorData);
+                  // Continue without throwing - we'll just use the editor without a thumbnail
+              } else {
+                  const uploadResult = await uploadResponse.json();
+                  
+                  if (uploadResult.url) {
+                      console.log('Thumbnail uploaded successfully:', uploadResult.url);
+                      
+                      // Update the content record with the thumbnail URL
+                      const updateResponse = await fetch(`/api/manage/content/${contentId}`, {
+                          method: 'PATCH',
+                          headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': token ? `Bearer ${token}` : ''
+                          },
+                          body: JSON.stringify({
+                              thumbnail_url: uploadResult.url
+                          })
+                      });
+                      
+                      if (!updateResponse.ok) {
+                          console.error('Error updating content with thumbnail URL:', await updateResponse.json());
+                      }
+                  }
+              }
+          } catch (uploadError) {
+              console.error('Thumbnail upload failed:', uploadError);
+              // Continue without thumbnail if upload fails
           }
-          
-          // Try uploading to 'thumbnails' bucket instead of 'content'
-          const { error: uploadError } = await supabase.storage
-            .from('thumbnails')
-            .upload(filename, copyResult.file, {
-              upsert: true,
-              contentType: copyResult.file.type
-            })
-          
-          if (uploadError) {
-            console.error("Error uploading thumbnail:", uploadError)
-            // Continue without thumbnail rather than failing completely
-            console.log("Continuing without thumbnail...")
-          } else {
-            // Get the public URL
-            const { data: urlData } = supabase.storage
-              .from('thumbnails')
-              .getPublicUrl(filename)
-            
-            // Update the thumbnail URL in the content record
-            await supabase
-              .from('content_items')
-              .update({ thumbnail_url: urlData.publicUrl })
-              .eq('id', contentId)
-          }
-        } catch (thumbError) {
-          // Log but don't throw error - continue without thumbnail
-          console.error("Thumbnail upload process failed:", thumbError)
-          console.log("Continuing without thumbnail...")
-        }
-      }
-      
-      // Step 5: Add age groups and categories
-      if (values.ageGroups.length > 0) {
-        const ageGroupInserts = values.ageGroups.map(agId => ({
-          content_id: contentId,
-          age_group_id: agId
-        }))
-        
-        await supabase
-          .from('content_age_groups')
-          .insert(ageGroupInserts)
-      }
-      
-      if (values.categories.length > 0) {
-        const categoryInserts = values.categories.map(catId => ({
-          content_id: contentId,
-          category_id: catId
-        }))
-        
-        await supabase
-          .from('content_categories')
-          .insert(categoryInserts)
       }
       
       // Show success message
@@ -248,47 +236,20 @@ export function NewContentEditor({
       router.push(`/manage/content/editor/${contentId}`)
       
     } catch (err) {
+      // --- ADDED DEBUG LOG --- 
+      console.log('%%% ERROR caught in onSubmit %%%', err);
       console.error("Error creating content:", err)
-      
-      // Check if this is a storage bucket error
       const errorMessage = err instanceof Error ? err.message : "Failed to create content";
-      const isBucketError = errorMessage.includes("Bucket not found");
+      setError(errorMessage)
       
-      if (isBucketError) {
-        setError("The storage bucket for thumbnails doesn't exist. Content created without thumbnail.")
-        
-        toast({
-          title: "Warning",
-          description: "Content created but couldn't upload thumbnail. Storage bucket doesn't exist.",
-          variant: "default"
-        })
-        
-        // Try to redirect to editor anyway
-        try {
-          const { data } = await supabase
-            .from('content_items')
-            .select('id')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-            
-          if (data?.id) {
-            router.push(`/manage/content/editor/${data.id}`)
-            return;
-          }
-        } catch (redirectErr) {
-          console.error("Failed to find newly created content:", redirectErr)
-        }
-      } else {
-        setError(errorMessage)
-        
-        toast({
-          title: "Error",
-          description: "Failed to create content. Please try again.",
-          variant: "destructive"
-        })
-      }
+      toast({
+        title: "Error",
+        description: "Failed to create content. Please try again.",
+        variant: "destructive"
+      })
     } finally {
+      // --- ADDED DEBUG LOG --- 
+      console.log('%%% FINALLY block in onSubmit %%%');
       setIsSubmitting(false)
     }
   }
@@ -335,20 +296,21 @@ export function NewContentEditor({
   }
   
   return (
-    <ProtectedRoute requiredRole="administrator">
+    <ProtectedRoute requiredRole={UserRoles.ADMIN}>
       <div className="container py-8">
         <PageHeader
           title="Create New Content"
-          description="Add a new content item to your library"
-          actions={
-            <Button asChild variant="outline">
-              <Link href="/">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Homepage
-              </Link>
-            </Button>
-          }
+          backUrl="/manage"
         />
+        
+        <div className="flex justify-end mb-6">
+          <Button asChild variant="outline">
+            <Link href="/manage">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Link>
+          </Button>
+        </div>
         
         {error && (
           <Alert variant="destructive" className="mb-6">
@@ -510,6 +472,7 @@ export function NewContentEditor({
                         description: group.description || '',
                       }))}
                     />
+                    <FormMessage />
                   </FormItem>
                 )}
               />

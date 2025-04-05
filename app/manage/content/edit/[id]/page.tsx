@@ -1,22 +1,34 @@
 import { getContentById, getAgeGroups, getCategories, getAccessTiers } from '@/lib/services/content'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { Database } from '@/lib/types/database'
-import { ContentEditor } from '../../../editor/[id]/ContentEditor'
 import { EditContentForm } from './EditContentForm'
 
 export default async function EditContentPage({ params }: { params: { id: string } }) {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const cookieStore = cookies()
+
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options })
+        }
+      }
+    }
+  )
   
-  // Check authentication at the server side
-  const { data: { session } } = await supabase.auth.getSession()
-  
-  // We still need content ID for the editor, even if we may end up redirecting
-  // on the client side if the user isn't authenticated or not an admin
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
   
   try {
-    // Fetch the content and supporting data
     const [content, ageGroups, categories, accessTiers] = await Promise.all([
       getContentById(params.id, supabase),
       getAgeGroups(supabase),

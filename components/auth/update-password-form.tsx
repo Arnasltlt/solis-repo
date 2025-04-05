@@ -37,6 +37,7 @@ export function UpdatePasswordForm() {
   const { updatePassword } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -46,33 +47,20 @@ export function UpdatePasswordForm() {
     },
   })
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (values.password !== values.confirmPassword) {
+      return
+    }
+    
     setIsLoading(true)
     try {
-      const { error } = await updatePassword(values.password)
+      await updatePassword(values.password)
       
-      if (error) {
-        toast({
-          title: 'Error updating password',
-          description: error.message,
-          variant: 'destructive',
-        })
-        return
-      }
-      
-      toast({
-        title: 'Password updated',
-        description: 'Your password has been updated successfully.',
-      })
-      
-      router.push('/')
-      router.refresh()
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Something went wrong',
-        variant: 'destructive',
-      })
+      // Password update was successful, handled by the useAuth hook
+      setIsSubmitted(true)
+    } catch (error) {
+      // Error is handled by the useAuth hook, which shows a toast
+      console.error('Error during password update:', error)
     } finally {
       setIsLoading(false)
     }

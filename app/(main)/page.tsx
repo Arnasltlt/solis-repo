@@ -1,89 +1,99 @@
-import { Suspense } from 'react'
+'use client';
+
+import { Suspense, useState, useEffect } from 'react'
 import { ContentSkeleton } from '@/components/ui/loading-state'
-import { getCachedReferenceData, getCachedContentItems } from '@/lib/utils/data-fetching'
-import { serializeForClient } from '@/lib/utils/serialization'
 import { HomeClientContent } from './home-client-content'
 import { ErrorWrapper } from './error-wrapper'
 
-export default async function HomePage() {
-  return (
-    <div className="min-h-screen bg-background">
-      <Suspense fallback={<div className="p-8"><ContentSkeleton count={6} /></div>}>
-        <HomeContent />
-      </Suspense>
-    </div>
-  )
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+// Define the error type
+type ErrorType = {
+  message: string;
+  name: string;
+} | null;
+
+// Define the state type
+interface HomePageState {
+  content: any[];
+  ageGroups: any[];
+  categories: any[];
+  loading: boolean;
+  error: ErrorType;
 }
 
-async function HomeContent() {
-  try {
-    // Fetch all necessary data in parallel
-    // Add timeout handling to prevent hanging requests
-    const timeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Data fetching timeout')), 10000)
-    );
-    
-    // We'll handle each promise individually to improve error resilience
-    const referenceDataPromise = getCachedReferenceData().catch(error => {
-      console.error('Error fetching reference data:', error);
-      // Return default empty values on error
-      return { 
-        ageGroups: [], 
-        categories: [],
-        accessTiers: []
-      };
-    });
-    
-    const contentItemsPromise = getCachedContentItems().catch(error => {
-      console.error('Error fetching content items:', error);
-      // Return empty array on error
-      return [];
-    });
-    
-    // Wait for both promises with timeout
-    const [referenceData, contentItems] = await Promise.race([
-      Promise.all([referenceDataPromise, contentItemsPromise]),
-      timeout
-    ]) as [any, any];
-    
-    // If we get here, dataPromise resolved before timeout
-    const { ageGroups, categories } = referenceData;
-    
-    // Default to empty arrays if data is missing
-    const safeAgeGroups = Array.isArray(ageGroups) ? ageGroups : [];
-    const safeCategories = Array.isArray(categories) ? categories : [];
-    const safeContentItems = Array.isArray(contentItems) ? contentItems : [];
-    
-    // Serialize data before passing to client component
-    const serializedContent = serializeForClient(safeContentItems)
-    const serializedAgeGroups = serializeForClient(safeAgeGroups)
-    const serializedCategories = serializeForClient(safeCategories)
-    
-    // Client component that handles filtering state
+export default function HomePage() {
+  const [data, setData] = useState<HomePageState>({
+    content: [],
+    ageGroups: [],
+    categories: [],
+    loading: true,
+    error: null
+  });
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/content');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch content data');
+        }
+        
+        const data = await response.json();
+        setData({
+          content: data.content || [],
+          ageGroups: data.ageGroups || [],
+          categories: data.categories || [],
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setData(prev => ({
+          ...prev,
+          loading: false,
+          error: {
+            message: error instanceof Error ? error.message : 'Unknown error occurred',
+            name: error instanceof Error ? error.name : 'Error'
+          }
+        }));
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  if (data.loading) {
     return (
+      <div className="min-h-screen bg-background">
+        <div className="p-8">
+          <ContentSkeleton count={6} />
+        </div>
+      </div>
+    );
+  }
+
+  if (data.error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="p-8">
+          <ErrorWrapper error={data.error} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
       <div className="p-4">
         <HomeClientContent 
-          initialContent={serializedContent}
-          ageGroups={serializedAgeGroups}
-          categories={serializedCategories}
+          initialContent={data.content}
+          ageGroups={data.ageGroups}
+          categories={data.categories}
         />
       </div>
-    )
-  } catch (error: any) {
-    // Log detailed error information
-    console.error('Error in HomeContent data fetching:', error);
-    
-    // Convert error to a plain object that can be serialized
-    const serializedError = {
-      message: error.message || 'Unknown error',
-      name: error.name || 'Error'
-    }
-    
-    // Return error state
-    return (
-      <div className="p-8">
-        <ErrorWrapper error={serializedError} />
-      </div>
-    )
-  }
+    </div>
+  );
 } 

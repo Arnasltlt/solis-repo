@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import { getContentBySlug } from '@/lib/services/content'
 import { ContentDetail } from '@/components/content/content-detail'
 import { notFound } from 'next/navigation'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/lib/types/database'
 
@@ -10,12 +10,34 @@ type Props = {
   params: { slug: string }
 }
 
+// Helper to create Supabase client instance
+const createClient = () => {
+  const cookieStore = cookies()
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        // Add set/remove if needed, although likely not required for metadata/page load
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options })
+        }
+      }
+    }
+  )
+}
+
 export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
   try {
-    const cookieStore = cookies();
-    const supabaseServerClient = createServerComponentClient<Database>({ cookies: () => cookieStore });
+    const supabaseServerClient = createClient()
     const content = await getContentBySlug(params.slug, supabaseServerClient);
 
     const description = content?.description || 'Default description if none provided.';
@@ -51,8 +73,7 @@ export async function generateMetadata(
 const PREMIUM_TIER_ID = '211e060c-37c0-44fa-8344-8e5e5f24d5db';
 
 export default async function ContentPage({ params }: Props) {
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient<Database>({ cookies: () => cookieStore });
+  const supabase = createClient()
   const slug = params.slug;
 
   console.log(`[Page Load Start] Attempting to load slug: ${slug}`);

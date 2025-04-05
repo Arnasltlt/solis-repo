@@ -22,7 +22,13 @@ const nextConfig = {
         ]
       }
     ]
-  }
+  },
+  // Add experimental configuration for server components
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/auth-helpers-nextjs', '@supabase/ssr'],
+  },
+  // Output standalone build for easier deployment
+  output: 'standalone'
 }
 
 module.exports = nextConfig 

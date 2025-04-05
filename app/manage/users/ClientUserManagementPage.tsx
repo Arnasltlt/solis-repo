@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { User, AccessTier } from '@/lib/services/users'
 import { toast } from '@/hooks/use-toast'
 import {
@@ -28,6 +28,8 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card'
+import { ProtectedRoute } from '@/components/auth/protected-route'
+import { UserRoles } from '@/hooks/useAuth'
 
 interface ClientUserManagementPageProps {
   initialUsers: User[]
@@ -47,74 +49,96 @@ export function ClientUserManagementPage({
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // Function to load users from our new API endpoint
+  const loadUsers = async () => {
+    try {
+      // Get auth token
+      const token = localStorage.getItem('supabase_access_token');
+      
+      console.log('Loading users via API endpoint');
+      const response = await fetch('/api/manage/users', {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error loading users:', errorData);
+        throw new Error(errorData.error || 'Failed to load users');
+      }
+      
+      const data = await response.json();
+      if (data.users) {
+        setUsers(data.users);
+        console.log(`Loaded ${data.users.length} users from API`);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Load users when component mounts
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
   const updateUserTier = async (userId: string, tierId: string) => {
     setIsUpdating(userId)
     
     try {
-      // First try the standard API endpoint
-      const response = await fetch(`/api/users/${userId}`, {
+      // Get auth token
+      const token = localStorage.getItem('supabase_access_token');
+      
+      console.log(`Updating user ${userId} to tier ${tierId} via API endpoint`);
+      const response = await fetch(`/api/manage/users/${userId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify({ tierId }),
-      })
+      });
       
-      let success = false
-      let errorMessage = null
-      
-      if (response.ok) {
-        success = true
-      } else {
-        const data = await response.json()
-        errorMessage = data.error || 'Failed to update user tier through standard API'
-        
-        // If standard API fails, try the direct update API
-        // This is a fallback approach that uses service role keys to bypass RLS
-        const tierName = accessTiers.find(t => t.id === tierId)?.name
-        
-        if (tierName) {
-          const directResponse = await fetch(`/api/direct-update?userId=${userId}&tierName=${tierName}`)
-          const directData = await directResponse.json()
-          
-          if (directResponse.ok && directData.success) {
-            success = true
-          }
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error updating user:', errorData);
+        throw new Error(errorData.error || 'Failed to update user');
       }
       
-      if (success) {
+      const result = await response.json();
+      
+      if (result.success) {
         // Update the local state
-        const updatedUsers = users.map(user => {
+        setUsers(users.map(user => {
           if (user.id === userId) {
-            const tier = accessTiers.find(t => t.id === tierId)
-            return {
-              ...user,
-              subscription_tier_id: tierId,
-              tierName: tier?.name
-            }
+            const tierName = accessTiers.find(t => t.id === tierId)?.name || '';
+            return { ...user, subscription_tier_id: tierId, tierName };
           }
-          return user
-        })
-        
-        setUsers(updatedUsers)
+          return user;
+        }));
         
         toast({
-          title: 'Success',
-          description: 'User subscription tier updated successfully',
-        })
+          title: "Success",
+          description: `User's access tier has been updated`,
+        });
       } else {
-        throw new Error(errorMessage || 'Failed to update user tier')
+        throw new Error('Failed to update user tier');
       }
     } catch (error) {
-      console.error('Error updating user tier:', error)
+      console.error('Error updating user tier:', error);
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update user tier',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: "Failed to update user tier. Please try again.",
+        variant: "destructive"
+      });
     } finally {
-      setIsUpdating(null)
+      setIsUpdating(null);
     }
   }
 

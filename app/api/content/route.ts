@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+// Use the correct SSR helper for Route Handlers: createServerClient
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/lib/types/database'
 import { v4 as uuidv4 } from 'uuid'
 import slugify from 'slugify'
+import { getCachedReferenceData, getCachedContentItems } from '@/lib/utils/data-fetching'
+import { serializeForClient } from '@/lib/utils/serialization'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,8 +20,33 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Create a Supabase client with server-side auth
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    // Create a Supabase client using createServerClient with cookie methods
+    const cookieStore = cookies()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            try {
+              cookieStore.set({ name, value, ...options })
+            } catch (error) { 
+              // Handle error
+            }
+          },
+          remove(name: string, options: CookieOptions) {
+            try {
+              cookieStore.set({ name, value: '', ...options })
+            } catch (error) { 
+              // Handle error
+            }
+          }
+        },
+      }
+    )
     
     // Get the user session
     const { data: { session } } = await supabase.auth.getSession()
@@ -113,6 +141,74 @@ export async function POST(request: NextRequest) {
     console.error('Content creation failed:', error)
     return NextResponse.json(
       { error: 'An unknown error occurred while creating content' },
+      { status: 500 }
+    )
+  }
+}
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+export async function GET() {
+  try {
+    // Fetch all necessary data in parallel
+    // Add timeout handling to prevent hanging requests
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Data fetching timeout')), 10000)
+    );
+    
+    // We'll handle each promise individually to improve error resilience
+    const referenceDataPromise = getCachedReferenceData().catch(error => {
+      console.error('Error fetching reference data:', error);
+      // Return default empty values on error
+      return { 
+        ageGroups: [], 
+        categories: [],
+        accessTiers: []
+      };
+    });
+    
+    const contentItemsPromise = getCachedContentItems().catch(error => {
+      console.error('Error fetching content items:', error);
+      // Return empty array on error
+      return [];
+    });
+    
+    // Wait for both promises with timeout
+    const [referenceData, contentItems] = await Promise.race([
+      Promise.all([referenceDataPromise, contentItemsPromise]),
+      timeout
+    ]) as [any, any];
+    
+    // If we get here, dataPromise resolved before timeout
+    const { ageGroups, categories } = referenceData;
+    
+    // Default to empty arrays if data is missing
+    const safeAgeGroups = Array.isArray(ageGroups) ? ageGroups : [];
+    const safeCategories = Array.isArray(categories) ? categories : [];
+    const safeContentItems = Array.isArray(contentItems) ? contentItems : [];
+    
+    // Serialize data before returning as JSON
+    const serializedContent = serializeForClient(safeContentItems)
+    const serializedAgeGroups = serializeForClient(safeAgeGroups)
+    const serializedCategories = serializeForClient(safeCategories)
+    
+    // Return the data
+    return NextResponse.json({
+      content: serializedContent,
+      ageGroups: serializedAgeGroups,
+      categories: serializedCategories
+    })
+  } catch (error: any) {
+    // Log detailed error information
+    console.error('Error in content API route:', error);
+    
+    // Return error response
+    return NextResponse.json(
+      { 
+        error: error.message || 'Unknown error',
+        status: 'error'
+      }, 
       { status: 500 }
     )
   }

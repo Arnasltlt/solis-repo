@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useSupabase } from '@/components/supabase-provider'
 import { redirect, useRouter } from 'next/navigation'
-import { User } from '@supabase/supabase-js'
+import { User, Session } from '@supabase/supabase-js'
 import { toast } from '@/components/ui/use-toast'
 
 export interface AuthUser {
@@ -14,7 +14,7 @@ export interface AuthUser {
 
 export interface AuthContext {
   user: AuthUser | null
-  session: any | null
+  session: Session | null
   loading: boolean
   signUp: (email: string, password: string, metadata?: object) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
@@ -57,26 +57,63 @@ export function AuthProvider({
   initialSession,
 }: {
   children: React.ReactNode
-  initialSession: any | null
+  initialSession: Session | null
 }) {
   const { supabase } = useSupabase()
   const router = useRouter()
-  const [session, setSession] = useState(initialSession)
-  const [user, setUser] = useState<AuthUser | null>(initialSession?.user || null)
+  const [session, setSession] = useState<Session | null>(initialSession)
+  const [user, setUser] = useState<AuthUser | null>(initialSession?.user ?? null)
   const [userRole, setUserRole] = useState<UserRoles | null>(getUserRole(initialSession?.user?.role))
-  const [loading, setLoading] = useState<boolean>(false)
+  const [loading, setLoading] = useState<boolean>(!initialSession)
+
+  // Function to set token in localStorage
+  const setAuthToken = (currentSession: Session | null) => {
+    if (currentSession?.access_token) {
+      console.log('AuthProvider: Setting auth token in localStorage.');
+      localStorage.setItem('supabase_access_token', currentSession.access_token);
+    } else {
+      console.log('AuthProvider: Removing auth token from localStorage.');
+      localStorage.removeItem('supabase_access_token');
+    }
+  }
+
+  // Set token initially if initialSession exists
+  useEffect(() => {
+    setAuthToken(initialSession);
+    setLoading(false); // Initial check complete
+  }, [initialSession]);
 
   // Listen for changes to auth state
   useEffect(() => {
     if (!supabase) return
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setUserRole(getUserRole(session?.user?.role))
+      (_event, currentSession) => {
+        console.log('AuthProvider: Auth state changed, event:', _event);
+        setSession(currentSession)
+        setUser(currentSession?.user ?? null)
+        setUserRole(getUserRole(currentSession?.user?.role))
+        setAuthToken(currentSession); // Update token on state change
+        setLoading(false) // Ensure loading is false after state change
       }
     )
+
+    // Also get the initial session in case the listener misses the first state
+    // Although initialSession prop should handle this, this is a fallback
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+       // Check if the session state *truly* needs updating compared to the current state
+       // This prevents unnecessary updates if the fallback provides the same session
+       if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
+          console.log('AuthProvider: Setting session from getSession fallback.');
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          setUserRole(getUserRole(currentSession?.user?.role));
+          setAuthToken(currentSession);
+       }
+       // Ensure loading is set to false even if session hasn't changed
+       setLoading(false);
+    });
+
 
     return () => {
       subscription.unsubscribe()
@@ -148,7 +185,9 @@ export function AuthProvider({
       if (error) {
         throw error
       }
-
+      
+      // The onAuthStateChange listener will handle setting user/session/token
+      
       // Redirect the user to the home page
       router.push('/')
     } catch (error: any) {
@@ -185,6 +224,8 @@ export function AuthProvider({
       // Reset the user state
       setUser(null)
       setUserRole(null)
+      setSession(null) // Explicitly set session to null
+      setAuthToken(null) // Remove token
 
       // Redirect the user to the home page
       router.push('/')

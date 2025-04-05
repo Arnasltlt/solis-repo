@@ -10,7 +10,7 @@ import { toast } from '@/components/ui/use-toast'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
 import { isBrowser } from '@/lib/utils/index'
 
@@ -124,7 +124,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   
   // Auto-save functionality
   useEffect(() => {
-    if (!autoSaveEnabled || !editorContent || editorContent === lastSavedContent || !supabase) {
+    if (!autoSaveEnabled || !editorContent || editorContent === lastSavedContent) {
       return
     }
     
@@ -136,21 +136,31 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     // Use a debounced auto-save
     const autoSaveTimer = setTimeout(async () => {
       try {
-        // Skip auto-save if user is actively saving
         if (isSaving) return
-        
         console.log('Auto-saving content...')
         
-        const { error } = await supabase
-          .from('content_items')
-          .update({
+        // Get auth token for the API request header
+        let token = ''
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession()
+          token = session?.access_token || ''
+        }
+        
+        const response = await fetch(`/api/manage/content/${contentId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
             content_body: editorContent
           })
-          .eq('id', contentId)
+        });
         
-        if (error) {
-          console.error('Error auto-saving content:', error)
-          return
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error auto-saving content:', errorData);
+          return;
         }
         
         setLastSavedContent(editorContent)
@@ -159,54 +169,53 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
       } catch (error) {
         console.error('Error during auto-save:', error)
       }
-    }, 10000) // Auto-save after 10 seconds of inactivity
+    }, 10000)
     
     return () => clearTimeout(autoSaveTimer)
-  }, [editorContent, lastSavedContent, contentId, supabase, autoSaveEnabled, isSaving])
+  }, [editorContent, lastSavedContent, contentId, autoSaveEnabled, isSaving, supabase])
   
   // Save content with retry logic
   const saveContent = async () => {
-    if (!supabase) {
-      toast({
-        title: "Error",
-        description: "Database connection not available",
-        variant: "destructive"
-      })
-      return
-    }
-    
     try {
       setIsSaving(true)
-      
-      // Log what we're going to save
       console.log(`Saving content for ID: ${contentId}, content length: ${editorContent.length}`)
       
-      // Auto-retry mechanism
+      // Get auth token for the API request header
+      let token = ''
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession()
+        token = session?.access_token || ''
+      }
+      
       let retries = 0
       const maxRetries = 3
       let savedSuccessfully = false
       
       while (retries < maxRetries && !savedSuccessfully) {
         try {
-          // Update the content body in the database
-          const { error } = await supabase
-            .from('content_items')
-            .update({
+          const response = await fetch(`/api/manage/content/${contentId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
               content_body: editorContent
             })
-            .eq('id', contentId)
+          });
           
-          if (error) {
-            console.error(`Save attempt ${retries + 1} failed:`, error)
-            retries++
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`Save attempt ${retries + 1} failed:`, errorData);
+            retries++;
             
             // Wait before retrying (exponential backoff)
             if (retries < maxRetries) {
-              const delayMs = 1000 * Math.pow(2, retries)
-              console.log(`Retrying in ${delayMs}ms...`)
-              await new Promise(resolve => setTimeout(resolve, delayMs))
+              const delayMs = 1000 * Math.pow(2, retries);
+              console.log(`Retrying in ${delayMs}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
             } else {
-              throw error
+              throw new Error(errorData.error || 'Failed to save content');
             }
           } else {
             savedSuccessfully = true
@@ -282,7 +291,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   }, [isSaving, saveContent])
   
   return (
-    <ProtectedRoute requiredRole="administrator">
+    <ProtectedRoute requiredRole={UserRoles.ADMIN}>
       <Card className="p-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">

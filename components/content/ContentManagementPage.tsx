@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, Search, Edit, Eye, Trash } from 'lucide-react'
 import { ProtectedRoute } from '@/components/auth/protected-route'
+import { UserRoles } from '@/hooks/useAuth'
 
 interface ContentManagementPageProps {
   contentItems: ContentItem[]
@@ -53,7 +54,7 @@ export function ContentManagementPage({
   }
   
   return (
-    <ProtectedRoute requiredRole="administrator">
+    <ProtectedRoute requiredRole={UserRoles.ADMIN}>
       <div className="container py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Turinys</h1>

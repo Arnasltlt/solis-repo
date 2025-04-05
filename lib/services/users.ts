@@ -1,4 +1,4 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/lib/types/database'
 
@@ -17,9 +17,32 @@ export type AccessTier = {
   features: any
 }
 
+// Helper to create Supabase server client instance
+const createClient = () => {
+  const cookieStore = cookies()
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        // Add set/remove if these functions modify cookies
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options })
+        }
+      }
+    }
+  )
+}
+
 // Get all users with their subscription tier
 export async function getUsers(): Promise<User[]> {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const supabase = createClient()
   
   // Get all users with their subscription tier
   const { data: users, error } = await supabase
@@ -55,7 +78,7 @@ export async function getUsers(): Promise<User[]> {
 
 // Get all access tiers
 export async function getAccessTiers(): Promise<AccessTier[]> {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const supabase = createClient()
   
   const { data, error } = await supabase
     .from('access_tiers')
@@ -73,7 +96,7 @@ export async function getAccessTiers(): Promise<AccessTier[]> {
 // Update user's subscription tier
 export async function updateUserTier(userId: string, tierId: string): Promise<boolean> {
   try {
-    const supabase = createServerComponentClient<Database>({ cookies })
+    const supabase = createClient()
     
     // Update the user's subscription tier in the users table
     const { error } = await supabase
