@@ -14,12 +14,5 @@
         { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
       ]
     }
-  ],
-  "env": {
-    "NEXT_PUBLIC_SITE_URL": {
-      "development": "http://localhost:3000",
-      "preview": "https://v0-solis-ftyn8irzweg.vercel.app",
-      "production": "https://biblioteka.soliopamoka.lt"
-    }
-  }
+  ]
 }
