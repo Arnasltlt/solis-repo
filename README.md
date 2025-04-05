@@ -12,6 +12,8 @@ A content management platform for educational materials focused on music and dan
 - Responsive design for all devices
 - Subscription management with Paysera payment integration
 - Recurring payment support for automatic subscription renewals
+- Error tracking with Sentry
+- Security enhancements with secure headers
 
 ## Technology Stack
 
@@ -54,6 +56,11 @@ Create a `.env.local` file in the root directory with the following variables (s
 ```
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Optional but recommended for production
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SENTRY_DSN=your_sentry_dsn
 ```
 
 4. Run the development server
@@ -65,6 +72,19 @@ yarn dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
+
+## Deployment
+
+The application is deployed on Vercel with the following URLs:
+- Production: https://biblioteka.soliopamoka.lt
+- Preview: https://v0-solis-ftyn8irzweg.vercel.app/
+
+### Build for Production
+
+```bash
+npm run build
+npm start
+```
 
 ## Project Structure
 
