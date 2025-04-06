@@ -86,6 +86,15 @@ npm run build
 npm start
 ```
 
+### Security Notes
+
+There are some known security vulnerabilities in dependencies that may need attention:
+
+1. Some Next.js vulnerabilities that will be addressed in future updates
+2. Quill editor has moderate security issues
+
+For more details on Vercel deployment, see [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)
+
 ## Project Structure
 
 - `app/`: Next.js 14 App Router pages and layouts
