@@ -1,236 +1,301 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/context/auth'
-import { Logo } from '@/components/ui/logo'
+import { getFeedback, addFeedback } from '@/lib/services/content'
+import type { ContentItem } from '@/lib/types/database'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/hooks/use-toast'
+import { Logo } from '@/components/ui/logo'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/react/24/solid'
 import { HandThumbUpIcon } from '@heroicons/react/24/solid'
 import { HandThumbUpIcon as HandThumbUpOutlineIcon } from '@heroicons/react/24/outline'
-import type { ContentItem } from '@/lib/types/database'
+import { PencilIcon } from '@heroicons/react/24/outline'
+import Link from 'next/link'
+import { DeleteContentDialog } from './DeleteContentDialog'
 import { RichContentForm } from './rich-content-form'
-import { getContentFeedbackStatus, toggleContentFeedback } from '@/lib/services/content'
-import { useState, useEffect } from 'react'
-import { cn } from '@/lib/utils'
+import { ContentBodyDisplay } from './content-body-display'
+import { cn } from '@/lib/utils/index'
+import { validateStorageUrl } from '@/lib/utils/index'
+import { useAuth } from '@/hooks/useAuth'
+import { useAuthorization } from '@/hooks/useAuthorization'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ContentDetailHeader } from './content-detail-header'
+import { ContentDetailMetadata } from './content-detail-metadata'
+import { ContentDetailMedia } from './content-detail-media'
+import { ContentDetailBody } from './content-detail-body'
+import { ContentDetailFeedback } from './content-detail-feedback'
+import Image from 'next/image'
 
 interface ContentDetailProps {
   content: ContentItem
 }
 
+interface FeedbackItem {
+  id: string
+  rating: number
+  comment?: string
+}
+
+/**
+ * ContentDetail - Main component for displaying content details
+ * 
+ * This component orchestrates all the sub-components for the content detail page:
+ * - Header (title, thumbnail, date)
+ * - Media (video, audio, document, game)
+ * - Metadata (age groups, categories, type)
+ * - Body (rich text content)
+ * - Feedback (likes/dislikes, premium CTA)
+ */
 export function ContentDetail({ content }: ContentDetailProps) {
-  const router = useRouter()
-  const { user } = useAuth()
-  const [isLoading, setIsLoading] = useState(false)
-  const [feedbackStatus, setFeedbackStatus] = useState({ hasGivenFeedback: false, feedbackCount: 0 })
+  const { user, session } = useAuth();
+  const isAuthenticated = !!user && !!session;
+  const { canAccessPremiumContent, isAdmin } = useAuthorization();
+  const router = useRouter();
 
-  const isPremium = content.access_tier?.name === 'premium'
-  const isUserPremium = user?.subscription_tier?.name === 'premium'
-  const isLocked = isPremium && !isUserPremium
+  const isPremium = content?.access_tier?.name === 'premium';
 
-  useEffect(() => {
-    if (user) {
-      getContentFeedbackStatus(content.id).then(setFeedbackStatus)
-    }
-  }, [content.id, user])
+  const isPremiumLocked = isPremium && (!isAuthenticated || !canAccessPremiumContent());
 
-  const handleFeedback = async () => {
-    if (!user) {
-      router.push('/login')
-      return
-    }
-    setIsLoading(true)
-    try {
-      const hasGivenFeedback = await toggleContentFeedback(content.id)
-      setFeedbackStatus(prev => ({
-        hasGivenFeedback,
-        feedbackCount: prev.feedbackCount + (hasGivenFeedback ? 1 : -1)
-      }))
-    } catch (error) {
-      console.error('Error toggling feedback:', error)
-    } finally {
-      setIsLoading(false)
+  const canEdit = isAdmin();
+
+  if (!content) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-gray-500">Turinys nepasiekiamas</p>
+      </div>
+    )
+  }
+
+  const handlePremiumUpgrade = () => {
+    if (!isAuthenticated) {
+      router.push('/login?returnUrl=/premium')
+    } else {
+      router.push('/premium')
     }
   }
 
-  // Parse content body if it exists
-  const contentData = content.content_body ? (() => {
-    try {
-      return JSON.parse(content.content_body)
-    } catch {
-      console.error('Failed to parse content body')
-      return null
-    }
-  })() : null
+  if (isPremiumLocked) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Content with clear header and blurred content */}
+          <div className="lg:col-span-9 space-y-6">
+            {/* Title and Date - Visible */}
+            <div className="border-b pb-4">
+              <div className="flex items-center">
+                <h1 className="text-2xl font-semibold mb-2 mr-2">{content.title}</h1>
+                <span className="bg-amber-100 text-amber-600 px-2 py-1 rounded-full text-xs font-semibold flex items-center">
+                  <SparklesIcon className="h-3 w-3 mr-1" />
+                  Narystė
+                </span>
+              </div>
+              <div className="text-sm text-gray-500">
+                <time dateTime={content.created_at}>
+                  {new Date(content.created_at).toLocaleDateString('lt-LT')}
+                </time>
+              </div>
+            </div>
+
+            {/* Blurred Content Area with Overlay */}
+            <div className="relative">
+              <div className="blur-[8px] opacity-40 pointer-events-none select-none">
+                {/* Video Content - Blurred Placeholder */}
+                {content.type === 'video' && (
+                  <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-lg">
+                    {/* Blurred video content */}
+                  </div>
+                )}
+
+                {/* Description - Blurred */}
+                {content.description && (
+                  <div className="prose max-w-none mt-4">
+                    <p className="text-gray-600">{content.description}</p>
+                  </div>
+                )}
+
+                {/* Dummy Content - Just for visual structure */}
+                <div className="space-y-4 mt-6">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              </div>
+
+              {/* Premium Content Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-white shadow-2xl rounded-xl p-6 text-center max-w-md z-10">
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-amber-100 p-4 rounded-full">
+                      <SparklesIcon className="h-10 w-10 text-amber-600" />
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Narystės turinys</h2>
+                  <p className="text-gray-600 mb-6">
+                    Šis turinys yra prieinamas tik narystės nariams.
+                  </p>
+                  {!isAuthenticated ? (
+                    <div className="space-y-3">
+                      <Button 
+                        onClick={() => router.push('/login')} 
+                        className="w-full" 
+                        variant="outline"
+                      >
+                        Prisijungti
+                      </Button>
+                      <Button 
+                        onClick={() => router.push('/premium')} 
+                        className="w-full bg-amber-600 hover:bg-amber-700"
+                      >
+                        Sužinoti apie Narystę
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      onClick={() => router.push('/premium')} 
+                      className="bg-amber-600 hover:bg-amber-700" 
+                      size="lg"
+                    >
+                      Gauti Narystę
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar - Visible */}
+          <aside className="lg:col-span-3 space-y-6">
+            {/* Thumbnail - Visible but with premium badge overlay */}
+            {content.thumbnail_url && (
+              <div className="rounded-lg overflow-hidden relative aspect-video">
+                <Image
+                  src={content.thumbnail_url}
+                  alt={content.title}
+                  fill
+                  className="object-cover"
+                  onError={(e) => {
+                    console.error('Error loading thumbnail in ContentDetail:', content.thumbnail_url);
+                    // Replace with placeholder
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/png?text=No+Thumbnail';
+                  }}
+                />
+                <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center">
+                  <SparklesIcon className="h-3 w-3 mr-1" /> Narystė
+                </div>
+              </div>
+            )}
+
+            {/* Metadata - Visible */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+              <ContentDetailMetadata content={content} />
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <Logo size="medium" />
-            <Button
-              onClick={() => router.push('/')}
-              variant="outline"
-            >
-              ← Grįžti
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Premium Badge */}
-          {isPremium && (
-            <div className="px-6 py-4 bg-gradient-to-r from-yellow-400 to-yellow-600">
-              <div className="flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-black" />
-                <span className="font-semibold text-black">Premium turinys</span>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-9 space-y-6">
+          {/* Title and Date */}
+          <div className="border-b pb-4 flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-semibold mb-2">{content.title}</h1>
+              <div className="text-sm text-gray-500">
+                <time dateTime={content.created_at}>
+                  {new Date(content.created_at).toLocaleDateString('lt-LT', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </time>
               </div>
+            </div>
+            
+            {canEdit && (
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex items-center gap-1"
+                  onClick={() => router.push(`/manage/content/edit/${content.id}`)}
+                >
+                  <PencilIcon className="h-3 w-3" />
+                  Edit
+                </Button>
+                <DeleteContentDialog 
+                  contentId={content.id} 
+                  contentTitle={content.title} 
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Video Content */}
+          {content.type === 'video' && content.vimeo_id && (
+            <div className="aspect-w-16 aspect-h-9">
+              <iframe
+                src={`https://player.vimeo.com/video/${content.vimeo_id}`}
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                className="rounded-lg"
+              />
             </div>
           )}
 
-          {/* Content */}
-          <div className="p-6">
-            <h1 className="font-heading text-3xl mb-4 flex items-center gap-2">
-              {content.title}
-              {isPremium && (
-                <SparklesIcon className="w-6 h-6 text-yellow-500" />
-              )}
-            </h1>
-
-            {/* Thumbnail */}
-            {content.thumbnail_url && (
-              <div className={`relative mb-6 ${isLocked ? 'grayscale' : ''}`}>
-                <img
-                  src={content.thumbnail_url}
-                  alt={content.title}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-                {isLocked && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
-                    <div className="bg-black/75 backdrop-blur-sm px-6 py-3 rounded-lg flex items-center gap-3 shadow-xl">
-                      <LockClosedIcon className="w-6 h-6 text-yellow-400" />
-                      <span className="text-lg font-medium text-white">Premium turinys</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Description */}
-            <p className="text-gray-600 text-lg mb-6">{content.description}</p>
-
-            {/* Content Body */}
-            {!isLocked && (
-              <div className="mb-8">
-                {contentData ? (
-                  <RichContentForm
-                    contentBody={content.content_body || ''}
-                    onChange={() => {}}
-                    readOnly
-                  />
-                ) : (
-                  <p className="text-gray-500 italic">No content available.</p>
-                )}
-              </div>
-            )}
-
-            {/* Age Groups */}
-            <div className="mb-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-2">Amžiaus grupės:</h2>
-              <div className="flex flex-wrap gap-2">
-                {content.age_groups.map((group) => (
-                  <span
-                    key={group.id}
-                    className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-yellow-100 text-black"
-                  >
-                    {group.range}
-                  </span>
-                ))}
-              </div>
+          {/* Description */}
+          {content.description && (
+            <div className="prose max-w-none">
+              <p className="text-gray-600">{content.description}</p>
             </div>
+          )}
 
-            {/* Categories */}
-            <div className="mb-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-2">Kategorijos:</h2>
-              <div className="flex flex-wrap gap-2">
-                {content.categories.map((category) => (
-                  <span
-                    key={category.id}
-                    className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-900 text-white"
-                  >
-                    {category.name}
-                  </span>
-                ))}
-              </div>
+          {/* Main Content Body */}
+          {content.content_body && (
+            <div className="prose max-w-none">
+              <ContentBodyDisplay contentBody={content.content_body} />
             </div>
+          )}
 
-            {/* Content Type and Feedback */}
-            <div className="mt-8 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-yellow-50 text-black">
-                  {content.type === 'video' && 'Video'}
-                  {content.type === 'audio' && 'Daina'}
-                  {content.type === 'lesson_plan' && 'Pamoka'}
-                  {content.type === 'game' && 'Žaidimas'}
-                </span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          "gap-2 text-muted-foreground hover:text-foreground",
-                          feedbackStatus.hasGivenFeedback && "text-primary hover:text-primary"
-                        )}
-                        onClick={handleFeedback}
-                        disabled={isLoading}
-                      >
-                        {feedbackStatus.hasGivenFeedback ? (
-                          <HandThumbUpIcon className="h-4 w-4" />
-                        ) : (
-                          <HandThumbUpOutlineIcon className="h-4 w-4" />
-                        )}
-                        <span>
-                          {feedbackStatus.feedbackCount} {feedbackStatus.feedbackCount === 1 ? 'mokytojas naudoja' : 'mokytojai naudoja'}
-                        </span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {user ? (
-                        feedbackStatus.hasGivenFeedback ? 
-                          'Pažymėta, kad naudojate šią medžiagą. Spauskite dar kartą, jei norite atšaukti.' :
-                          'Pažymėkite, jei naudojate šią medžiagą savo pamokose.'
-                      ) : (
-                        'Prisijunkite, kad galėtumėte pažymėti naudojamą medžiagą.'
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              {isPremium && !isUserPremium && (
-                <Button
-                  onClick={() => router.push('/pricing')}
-                  className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black hover:from-yellow-500 hover:to-yellow-700"
-                >
-                  <SparklesIcon className="w-5 h-5 mr-2" />
-                  Gauti Premium
-                </Button>
-              )}
-            </div>
-          </div>
+          {/* Feedback Section */}
+          <ContentDetailFeedback content={content} />
         </div>
-      </main>
+
+        {/* Sidebar */}
+        <aside className="lg:col-span-3 space-y-6">
+          {/* Thumbnail */}
+          {content.thumbnail_url && (
+            <div className="rounded-lg overflow-hidden relative aspect-video">
+              <Image
+                src={content.thumbnail_url}
+                alt={content.title}
+                fill
+                className="object-cover"
+                onError={(e) => {
+                  console.error('Error loading thumbnail in ContentDetail:', content.thumbnail_url);
+                  // Replace with placeholder
+                  (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/png?text=No+Thumbnail';
+                }}
+              />
+            </div>
+          )}
+
+          {/* Metadata */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+            <ContentDetailMetadata content={content} />
+          </div>
+        </aside>
+      </div>
     </div>
   )
 } 

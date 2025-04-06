@@ -47,6 +47,7 @@ next-env.d.ts
 *.swo
 *.sublime-workspace
 *.sublime-project
+.cursor/
 
 # OS generated files
 .DS_Store
@@ -68,8 +69,8 @@ logs
 .eslintcache
 
 # Project documentation
-/docs/database-schema.md
-/docs/project-status.md
+/docs/
+CLAUDE.md
 
 # Supabase
 /supabase/.branches

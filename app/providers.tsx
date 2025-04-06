@@ -1,11 +1,27 @@
 'use client'
 
-import { AuthProvider } from '@/lib/context/auth'
+import { ThemeProvider } from "next-themes"
+import { SupabaseProvider } from '@/components/supabase-provider'
+import { AuthProvider } from '@/hooks/useAuth'
+import { ContentDeleteProvider } from '@/components/content/ContentDeleteManager'
 
-export function Providers({ children }: { children: React.ReactNode }) {
+// Using a more generic type for session to avoid serialization issues
+export function Providers({ 
+  children,
+  session
+}: { 
+  children: React.ReactNode
+  session: any
+}) {
   return (
-    <AuthProvider>
-      {children}
-    </AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <SupabaseProvider session={session}>
+        <AuthProvider initialSession={session}>
+          <ContentDeleteProvider>
+            {children}
+          </ContentDeleteProvider>
+        </AuthProvider>
+      </SupabaseProvider>
+    </ThemeProvider>
   )
-} 
+}

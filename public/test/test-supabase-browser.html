@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase Connection Test</title>
+</head>
+<body>
+  <h1>Supabase Connection Test</h1>
+  <div id="result">Testing connection...</div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+    const resultDiv = document.getElementById('result');
+    
+    try {
+      resultDiv.textContent = 'Creating Supabase client...';
+      
+      // Create Supabase client
+      const supabaseUrl = 'https://pybqaehxthpxjlboboaq.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5YnFhZWh4dGhweGpsYm9ib2FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQxMjgzMTcsImV4cCI6MjA0OTcwNDMxN30.WpnpFGbFfiy-Trp516zL-oJyAI5kX0vZuO1met_MaHc';
+      
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      resultDiv.textContent = 'Client created, testing query...';
+      
+      // Test a simple query
+      const { data, error } = await supabase
+        .from('age_groups')
+        .select('*')
+        .limit(3);
+      
+      if (error) {
+        resultDiv.textContent = `Error: ${error.message}`;
+        console.error('Supabase query error:', error);
+      } else {
+        resultDiv.textContent = `Success! Found ${data.length} age groups.`;
+        console.log('Age groups:', data);
+      }
+    } catch (error) {
+      resultDiv.textContent = `Exception: ${error.message}`;
+      console.error('Exception:', error);
+    }
+  </script>
+</body>
+</html> 

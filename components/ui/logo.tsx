@@ -25,17 +25,18 @@ export function Logo({ size = 'medium' }: LogoProps) {
   const { height, width } = sizes[size]
 
   return (
-    <Link href="/">
-      <div style={{ height, display: 'flex', alignItems: 'center' }}>
-        <Image
-          src="/images/logo.png"
-          alt="Solis Logo"
-          height={height}
-          width={width}
-          style={{ objectFit: 'contain' }}
-          priority
-        />
-      </div>
+    <Link href="/" className="flex items-center">
+      <Image
+        src="/images/logo.png"
+        alt="Solis Logo"
+        height={height}
+        width={width}
+        style={{ 
+          objectFit: 'contain',
+          height: 'auto'
+        }}
+        priority
+      />
     </Link>
   )
 } 

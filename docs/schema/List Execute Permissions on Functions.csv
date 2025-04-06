@@ -1,0 +1,7 @@
+﻿"function_name","arguments","role_granted_to"
+"get_my_role","","anon"
+"get_my_role","","authenticated"
+"is_admin","","anon"
+"is_admin","","authenticated"
+"user_matches_tier","tier_id uuid","anon"
+"user_matches_tier","tier_id uuid","authenticated"

@@ -1,37 +1,24 @@
-'use client'
+import { Metadata } from 'next'
+import { SignInForm } from '@/components/auth/sign-in-form'
 
-import { useEffect } from 'react'
-import { useAuth } from '@/lib/context/auth'
-import { useRouter } from 'next/navigation'
-import { AuthForm } from '@/components/auth/auth-form'
-import { Logo } from '@/components/ui/logo'
+export const metadata: Metadata = {
+  title: 'Login | Solis',
+  description: 'Login to your account',
+}
+
+export const dynamic = 'force-dynamic'
 
 export default function LoginPage() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.push('/')
-    }
-  }, [user, loading, router])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          Loading...
+  return (
+    <div className="container mx-auto py-10">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
+        <div className="mx-auto w-full max-w-md">
+          <h1 className="text-2xl font-bold text-center mb-6">
+            Login to Your Account
+          </h1>
+          <SignInForm />
         </div>
       </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Logo size="medium" />
-      </div>
-      <AuthForm />
     </div>
   )
-}
+} 
