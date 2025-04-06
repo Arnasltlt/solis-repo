@@ -20,7 +20,7 @@ async function setupTestEnvironment() {
   try {
     // Create a test user if it doesn't exist
     const testEmail = `test-recurring-${uuidv4()}@example.com`;
-    const testPassword = 'Test123!';
+    const testPassword = process.env.TEST_USER_PASSWORD || `TestPw_${uuidv4().substring(0, 8)}!`;
     
     console.log(`Creating test user: ${testEmail}`);
     

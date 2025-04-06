@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
     
     // Map user roles to access tier names
     const roleToTierMap = {
-      'administrator': '0aae0bac-7b10-4523-b148-0ab20c73ce13', // administrator tier ID
-      'authenticated': 'de4f073e-7f48-43b3-bded-0b39fd14a0cf'  // free tier ID
+      'administrator': process.env.ADMINISTRATOR_TIER_ID || '', // administrator tier ID
+      'authenticated': process.env.FREE_TIER_ID || ''  // free tier ID
     };
     
     // Add tier name to each user
