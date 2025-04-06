@@ -23,7 +23,7 @@ export function ContentDetailFeedback({ content }: ContentDetailFeedbackProps) {
   return (
     <div className="flex justify-end border-t pt-6">
       <Button
-        onClick={() => router.push('/pricing')}
+        onClick={() => router.push('/premium')}
         className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black hover:from-yellow-500 hover:to-yellow-700"
       >
         <PremiumBadge variant="icon" showLabel={false} className="mr-2" />
