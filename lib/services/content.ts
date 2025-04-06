@@ -269,7 +269,6 @@ export async function insertSampleContent(adminClient?: SupabaseClient) {
       description: 'Linksmas šokis vaikams, švenčiantis pavasario atėjimą',
       type: 'video' as const,
       published: true,
-      vimeo_id: '123456789',
       thumbnail_url: 'https://picsum.photos/seed/dance/400/300',
       author_id: 'system',
       access_tier_id: freeTierId
@@ -289,7 +288,6 @@ export async function insertSampleContent(adminClient?: SupabaseClient) {
       description: 'Edukacinės užduotys apie lietuvių liaudies tradicijas',
       type: 'lesson_plan' as const,
       published: true,
-      document_url: 'https://example.com/sample-doc.pdf',
       thumbnail_url: 'https://picsum.photos/seed/culture/400/300',
       author_id: 'system',
       access_tier_id: premiumTierId
@@ -299,7 +297,6 @@ export async function insertSampleContent(adminClient?: SupabaseClient) {
       description: 'Interaktyvus žaidimas ritmo pojūčiui lavinti',
       type: 'game' as const,
       published: true,
-      game_assets_url: 'https://example.com/game-assets.zip',
       thumbnail_url: 'https://picsum.photos/seed/game/400/300',
       author_id: 'system',
       access_tier_id: freeTierId

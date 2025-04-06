@@ -31,10 +31,7 @@ export interface ContentItem {
   slug: string
   type: 'video' | 'audio' | 'lesson_plan' | 'game'
   thumbnail_url: string | null
-  vimeo_id: string | null
   audio_url: string | null
-  document_url: string | null
-  game_assets_url: string | null
   metadata: Record<string, any>
   published: boolean
   author_id: string

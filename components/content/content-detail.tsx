@@ -242,14 +242,11 @@ export function ContentDetail({ content }: ContentDetailProps) {
           </div>
 
           {/* Video Content */}
-          {content.type === 'video' && content.vimeo_id && (
+          {content.type === 'video' && (
             <div className="aspect-w-16 aspect-h-9">
-              <iframe
-                src={`https://player.vimeo.com/video/${content.vimeo_id}`}
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
-                className="rounded-lg"
-              />
+              <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+                <p className="text-gray-500">Video content will be displayed here</p>
+              </div>
             </div>
           )}
 
