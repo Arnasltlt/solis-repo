@@ -3,10 +3,11 @@ import type { Database } from './database'
 export type ContentType = 'video' | 'audio' | 'lesson_plan' | 'game'
 
 export interface Attachment {
-  name: string
+  id: string
+  fileName: string
   url: string
-  type: string
-  size: number
+  fileType: string
+  fileSize: number
 }
 
 export interface ContentFormData {
@@ -20,4 +21,8 @@ export interface ContentFormData {
   accessTierId: string
   published: boolean
   mediaUrl?: string
+  metadata?: {
+    attachments?: Attachment[]
+    [key: string]: any
+  }
 } 

@@ -33,6 +33,8 @@ import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
 import { ContentItem } from '@/lib/types/database'
 import { updateContent } from '@/lib/services/content'
+import { SimpleAttachmentUploader } from '@/components/content/simplified-attachment-uploader'
+import type { SimpleAttachment } from '@/components/content/simplified-attachment-uploader'
 
 // Create a schema for content editing
 const formSchema = z.object({
@@ -69,6 +71,16 @@ export function EditContentForm({
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(content.thumbnail_url || null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [attachments, setAttachments] = useState<SimpleAttachment[]>(
+    (content.metadata && Array.isArray(content.metadata.attachments)) 
+      ? content.metadata.attachments.map(a => ({
+          id: a.id || String(Date.now()),
+          url: a.url || '',
+          fileName: a.fileName || a.name || 'file',
+          fileSize: a.fileSize || a.size || 0
+        }))
+      : []
+  )
   
   // Check authentication directly
   useEffect(() => {
@@ -263,7 +275,11 @@ export function EditContentForm({
         age_groups: values.ageGroups,
         categories: values.categories,
         access_tier_id: values.accessTierId,
-        published: values.published
+        published: values.published,
+        metadata: {
+          ...(content.metadata || {}),
+          attachments: attachments
+        }
       };
       
       // Use the content update API endpoint
@@ -586,6 +602,19 @@ export function EditContentForm({
                   </FormItem>
                 )}
               />
+              
+              {/* Attachments */}
+              <div className="space-y-4 mt-8">
+                <h2 className="text-lg font-semibold">Priedai</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Pridėkite failus, kuriuos vartotojai galės atsisiųsti
+                </p>
+                
+                <SimpleAttachmentUploader
+                  initialAttachments={attachments}
+                  onAttachmentsChange={setAttachments}
+                />
+              </div>
             </div>
             
             {/* Submit Button */}
