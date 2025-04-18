@@ -6,6 +6,7 @@ import { RadioCardGroup } from "@/components/ui/radio-card-group"
 import { CheckboxCardGroup } from "@/components/ui/checkbox-card-group"
 import { SparklesIcon } from "@heroicons/react/24/solid"
 import type { AgeGroup, Category, AccessTier } from "@/lib/types/database"
+import { ContentFormAttachments } from "./content-form-attachments"
 
 interface ContentFormMetadataProps {
   form: UseFormReturn<any>
@@ -112,6 +113,15 @@ export function ContentFormMetadata({
             <p className="text-destructive text-sm mt-2">Pasirinkite bent vieną kategoriją</p>
           )}
         </div>
+      </div>
+
+      <div className="mb-4">
+        <h3 className="text-lg font-medium mb-1">Priedai</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Pridėkite failus, kuriuos vartotojai galės atsisiųsti
+        </p>
+        
+        <ContentFormAttachments form={form} />
       </div>
     </div>
   )

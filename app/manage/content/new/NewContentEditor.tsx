@@ -32,6 +32,8 @@ import { createFileCopy } from '@/lib/utils/debug-utils'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
+import { SimpleAttachmentUploader } from '@/components/content/simplified-attachment-uploader'
+import type { SimpleAttachment } from '@/components/content/simplified-attachment-uploader'
 
 // Create a schema for content
 const formSchema = z.object({
@@ -45,6 +47,7 @@ const formSchema = z.object({
   categories: z.array(z.string()).min(1, { message: "Please select at least one category" }),
   accessTierId: z.string().min(1, { message: "Please select an access tier" }),
   published: z.boolean().default(false),
+  attachments: z.array(z.any()).optional(),
 })
 
 interface NewContentEditorProps {
@@ -65,6 +68,7 @@ export function NewContentEditor({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [attachments, setAttachments] = useState<SimpleAttachment[]>([])
   
   // Check authentication directly
   useEffect(() => {
@@ -110,6 +114,7 @@ export function NewContentEditor({
       categories: [],
       accessTierId: accessTiers.find(tier => tier.name === 'free')?.id || '',
       published: false,
+      attachments: [],
     },
   })
   
@@ -126,7 +131,7 @@ export function NewContentEditor({
       
       // Prepare the data payload for the API route
       // Exclude the thumbnail File object, it needs separate handling
-      const payload: Omit<z.infer<typeof formSchema>, 'thumbnail'> & { author_id?: string } = {
+      const payload: Omit<z.infer<typeof formSchema>, 'thumbnail'> & { author_id?: string, metadata?: any } = {
         title: values.title,
         description: values.description,
         type: values.type,
@@ -134,6 +139,9 @@ export function NewContentEditor({
         accessTierId: values.accessTierId,
         ageGroups: values.ageGroups,
         categories: values.categories,
+        metadata: {
+          attachments: attachments
+        }
       };
       
       console.log("Sending payload to API:", payload);
@@ -563,6 +571,19 @@ export function NewContentEditor({
                   </FormItem>
                 )}
               />
+              
+              {/* Attachments */}
+              <div className="space-y-4 mt-8">
+                <h2 className="text-lg font-semibold">Attachments</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Add files that users can download
+                </p>
+                
+                <SimpleAttachmentUploader
+                  initialAttachments={attachments}
+                  onAttachmentsChange={setAttachments}
+                />
+              </div>
             </div>
             
             {/* Submit Button */}

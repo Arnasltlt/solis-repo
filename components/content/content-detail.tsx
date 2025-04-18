@@ -30,6 +30,7 @@ import { ContentDetailMetadata } from './content-detail-metadata'
 import { ContentDetailMedia } from './content-detail-media'
 import { ContentDetailBody } from './content-detail-body'
 import { ContentDetailFeedback } from './content-detail-feedback'
+import { SimpleContentDetailAttachments } from './simple-content-detail-attachments'
 import Image from 'next/image'
 
 interface ContentDetailProps {
@@ -262,6 +263,11 @@ export function ContentDetail({ content }: ContentDetailProps) {
             <div className="prose max-w-none">
               <ContentBodyDisplay contentBody={content.content_body} />
             </div>
+          )}
+
+          {/* Attachments Section */}
+          {content.metadata?.attachments && content.metadata.attachments.length > 0 && (
+            <SimpleContentDetailAttachments attachments={content.metadata.attachments} />
           )}
 
           {/* Feedback Section */}

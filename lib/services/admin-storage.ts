@@ -8,6 +8,14 @@ export type UploadResult = {
   error: Error | null
 }
 
+export type AttachmentUploadResult = {
+  url: string
+  fileName: string
+  fileSize: number
+  fileType: string
+  error: Error | null
+}
+
 /**
  * IMPORTANT: These admin functions should ONLY be used from server-side code like API routes.
  * 
@@ -193,6 +201,102 @@ export async function uploadThumbnailAdmin(file: File): Promise<UploadResult> {
     return {
       url: '',
       error: error instanceof Error ? error : new Error('Unknown error during image upload')
+    }
+  }
+}
+
+/**
+ * Upload an attachment file using admin client to bypass RLS
+ * This is specifically for administrators to use in the content editor
+ */
+export async function uploadAttachmentAdmin(file: File): Promise<AttachmentUploadResult> {
+  const logPrefix = '🔍 ADMIN-ATTACHMENT';
+  console.log(`${logPrefix}: Upload starting for attachment`, {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type
+  });
+  
+  try {
+    // 1. Use the admin client to bypass RLS
+    console.log(`${logPrefix}: Creating admin client to bypass RLS`);
+    const adminClient = createAdminClient();
+    
+    // 2. Validate file
+    if (file.size === 0) {
+      console.error(`${logPrefix}: File is empty (0 bytes)`);
+      throw new Error('Cannot upload empty file');
+    }
+    
+    if (file.size > 50 * 1024 * 1024) {
+      console.error(`${logPrefix}: File too large: ${file.size} bytes`);
+      throw new Error('File size exceeds 50MB limit');
+    }
+    
+    console.log(`${logPrefix}: File validation passed`);
+    
+    // 3. Prepare file name
+    const timestamp = Date.now()
+    const uniqueSuffix = Math.random().toString(36).substring(2, 8)
+    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_') // Sanitize filename
+    const fileExt = originalName.split('.').pop() || 'bin'
+    const fileName = `attachments/${timestamp}-${uniqueSuffix}-${originalName}`
+    
+    console.log(`${logPrefix}: Generated filename: ${fileName}`);
+    
+    // 4. Create a blob copy of the file to ensure it's properly handled
+    console.log(`${logPrefix}: Creating file blob copy...`);
+    const fileBlob = new Blob([await file.arrayBuffer()], { type: file.type });
+    const fileCopy = new File([fileBlob], fileName, { 
+      type: file.type,
+      lastModified: file.lastModified 
+    });
+    console.log(`${logPrefix}: File copy created with size: ${fileCopy.size} bytes`);
+    
+    // 5. Upload the file to the documents bucket using admin client
+    console.log(`${logPrefix}: Attempting upload to documents bucket...`);
+    const { data: uploadData, error: uploadError } = await adminClient.storage
+      .from('documents')
+      .upload(fileName, fileCopy, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type
+      });
+    
+    if (uploadError) {
+      console.error(`${logPrefix}: Upload error:`, uploadError);
+      throw uploadError;
+    }
+    
+    console.log(`${logPrefix}: Upload successful, getting public URL...`);
+    
+    // 6. Get the public URL
+    const { data: urlData } = adminClient.storage
+      .from('documents')
+      .getPublicUrl(uploadData.path);
+    
+    if (!urlData || !urlData.publicUrl) {
+      console.error(`${logPrefix}: Failed to get public URL`);
+      throw new Error('Failed to get public URL for uploaded file');
+    }
+    
+    console.log(`${logPrefix}: Upload complete! Public URL:`, urlData.publicUrl);
+    
+    return { 
+      url: urlData.publicUrl,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      error: null 
+    };
+  } catch (error) {
+    console.error(`${logPrefix}: Error uploading attachment:`, error);
+    return {
+      url: '',
+      fileName: '',
+      fileSize: 0,
+      fileType: '',
+      error: error instanceof Error ? error : new Error('Unknown error during attachment upload')
     }
   }
 } 

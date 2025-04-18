@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server'
-import { uploadThumbnailAdmin, uploadEditorImageAdmin } from '@/lib/services/admin-storage'
+import { uploadThumbnailAdmin, uploadEditorImageAdmin, uploadAttachmentAdmin } from '@/lib/services/admin-storage'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/lib/types/database'
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     // 2. Get the multipart/form-data content from the request
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as string || 'editor'; // 'editor' or 'thumbnail'
+    const type = formData.get('type') as string || 'editor'; // 'editor', 'thumbnail', or 'attachment'
     
     if (!file || !(file instanceof File)) {
       console.error('API UPLOAD: No file found in request or invalid file');
@@ -119,6 +119,20 @@ export async function POST(request: NextRequest) {
     if (type === 'thumbnail') {
       console.log('API UPLOAD: Uploading thumbnail');
       result = await uploadThumbnailAdmin(file);
+    } else if (type === 'attachment') {
+      console.log('API UPLOAD: Uploading attachment');
+      result = await uploadAttachmentAdmin(file);
+      
+      if (!result.error) {
+        // For attachments, return additional metadata
+        return NextResponse.json({
+          success: true,
+          url: result.url,
+          fileName: result.fileName,
+          fileSize: result.fileSize,
+          fileType: result.fileType
+        });
+      }
     } else {
       console.log('API UPLOAD: Uploading editor image');
       result = await uploadEditorImageAdmin(file);

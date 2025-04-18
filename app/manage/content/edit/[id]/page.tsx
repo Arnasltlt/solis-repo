@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import type { Database } from '@/lib/types/database'
 import { EditContentForm } from './EditContentForm'
 
+export const dynamic = 'force-dynamic'
+
 export default async function EditContentPage({ params }: { params: { id: string } }) {
   const cookieStore = cookies()
 
@@ -29,12 +31,11 @@ export default async function EditContentPage({ params }: { params: { id: string
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   
   try {
-    const [content, ageGroups, categories, accessTiers] = await Promise.all([
-      getContentById(params.id, supabase),
-      getAgeGroups(supabase),
-      getCategories(supabase),
-      getAccessTiers(supabase)
-    ])
+    // Fetch data in sequence to avoid any race conditions
+    const content = await getContentById(params.id, supabase)
+    const ageGroups = await getAgeGroups(supabase)
+    const categories = await getCategories(supabase)
+    const accessTiers = await getAccessTiers(supabase)
     
     if (!content) {
       return redirect('/manage?error=Content+not+found')

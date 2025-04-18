@@ -10,6 +10,7 @@ import type { AgeGroup, Category, AccessTier } from "@/lib/types/database"
 import { ContentFormStepBasics } from './content-form-step-basics'
 import { ContentFormStepMedia } from './content-form-step-media'
 import { ContentFormStepContent } from './content-form-step-content'
+import { ContentFormStepAttachments } from './content-form-step-attachments'
 import { ContentFormStepMetadata } from './content-form-step-metadata'
 import { ContentFormStepPreview } from './content-form-step-preview'
 import { toast } from "@/components/ui/use-toast"
@@ -35,6 +36,11 @@ const steps: Step[] = [
     id: 'content',
     title: 'Turinys',
     description: 'Sukurkite turinio turinį'
+  },
+  {
+    id: 'attachments',
+    title: 'Priedai',
+    description: 'Pridėkite failų priedus'
   },
   {
     id: 'metadata',
@@ -103,7 +109,7 @@ export function ContentFormStepper({
         
         // Mark all steps as completed when editing
         if (editContentId) {
-          setCompletedSteps(['basics', 'media', 'content', 'metadata', 'preview'])
+          setCompletedSteps(['basics', 'media', 'content', 'attachments', 'metadata', 'preview'])
         }
       }
     } catch (error) {
@@ -253,6 +259,13 @@ export function ContentFormStepper({
           />
         )}
         {currentStep === 3 && (
+          <ContentFormStepAttachments
+            initialData={formData}
+            onUpdate={updateFormData}
+            onComplete={handleStepComplete}
+          />
+        )}
+        {currentStep === 4 && (
           <ContentFormStepMetadata
             initialData={formData}
             onUpdate={updateFormData}
@@ -262,7 +275,7 @@ export function ContentFormStepper({
             accessTiers={accessTiers}
           />
         )}
-        {currentStep === 4 && (
+        {currentStep === 5 && (
           <ContentFormStepPreview
             formData={formData}
             onComplete={handleStepComplete}

@@ -141,6 +141,34 @@ export async function PATCH(
         if (requestBody.access_tier_id !== undefined) updatePayload.access_tier_id = requestBody.access_tier_id;
         if (requestBody.published !== undefined) updatePayload.published = requestBody.published;
         
+        // Add metadata handling for attachments and other metadata fields for bypass mode
+        if (requestBody.metadata !== undefined) {
+          // First get existing metadata to properly merge
+          const { data: existingData, error: fetchError } = await supabaseAdmin
+            .from('content_items')
+            .select('metadata')
+            .eq('id', contentId)
+            .single();
+            
+          if (fetchError) {
+            console.error('API PATCH content (bypass): Error fetching existing metadata:', fetchError);
+            // Continue with just the new metadata
+            updatePayload.metadata = requestBody.metadata;
+          } else {
+            // Merge existing metadata with new metadata
+            updatePayload.metadata = {
+              ...(existingData?.metadata || {}),
+              ...requestBody.metadata,
+              // Ensure attachments array is preserved
+              attachments: Array.isArray(requestBody.metadata.attachments) 
+                ? requestBody.metadata.attachments 
+                : (existingData?.metadata?.attachments || [])
+            };
+          }
+          
+          console.log('API PATCH content (bypass): Updating metadata:', updatePayload.metadata);
+        }
+        
         // If title is updated, update the slug with a unique value
         if (requestBody.title) {
           const slug = requestBody.title.toLowerCase().replace(/[^\w-]+/g, '-');
@@ -261,6 +289,34 @@ export async function PATCH(
     if (requestBody.type !== undefined) updatePayload.type = requestBody.type;
     if (requestBody.access_tier_id !== undefined) updatePayload.access_tier_id = requestBody.access_tier_id;
     if (requestBody.published !== undefined) updatePayload.published = requestBody.published;
+    
+    // Add metadata handling for attachments and other metadata fields
+    if (requestBody.metadata !== undefined) {
+      // First get existing metadata to properly merge
+      const { data: existingData, error: fetchError } = await supabaseAdmin
+        .from('content_items')
+        .select('metadata')
+        .eq('id', contentId)
+        .single();
+        
+      if (fetchError) {
+        console.error('API PATCH content: Error fetching existing metadata:', fetchError);
+        // Continue with just the new metadata
+        updatePayload.metadata = requestBody.metadata;
+      } else {
+        // Merge existing metadata with new metadata
+        updatePayload.metadata = {
+          ...(existingData?.metadata || {}),
+          ...requestBody.metadata,
+          // Ensure attachments array is preserved
+          attachments: Array.isArray(requestBody.metadata.attachments) 
+            ? requestBody.metadata.attachments 
+            : (existingData?.metadata?.attachments || [])
+        };
+      }
+      
+      console.log('API PATCH content: Updating metadata:', updatePayload.metadata);
+    }
     
     // If title is updated, update the slug with a unique value
     if (requestBody.title) {
