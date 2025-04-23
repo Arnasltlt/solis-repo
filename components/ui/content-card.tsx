@@ -66,7 +66,6 @@ export function ContentCard({
             aspectRatio="video"
           />
           
-          {/* Premium badge temporarily disabled
           {isPremium && (
             <div className="absolute top-2 right-2">
               <PremiumBadge />
@@ -80,7 +79,6 @@ export function ContentCard({
               </div>
             </div>
           )}
-          */}
         </div>
         <CardContent className="p-4 flex-grow">
           <h3 className="text-lg font-semibold mb-2">{content.title}</h3>
@@ -89,13 +87,11 @@ export function ContentCard({
               {content.description}
             </p>
           )}
-          {/* Premium content text temporarily disabled
           {isPremiumLocked && (
             <p className="text-amber-600 text-sm mt-2 font-medium">
               Narystės turinys
             </p>
           )}
-          */}
         </CardContent>
       </div>
       

@@ -41,9 +41,9 @@ export function ContentFilterSidebar({
   
   return (
     <div className={`space-y-4 ${className}`}>
+      {/* Filters section completely removed since there's only premium filter
       <div>
         <h3 className="mb-2 text-lg font-semibold">Filtrai</h3>
-        {/* Premium content filter temporarily disabled
         <button
           onClick={() => {
             onPremiumToggle()
@@ -58,9 +58,9 @@ export function ContentFilterSidebar({
           <SparklesIcon className="w-4 h-4" />
           Narystės turinys
         </button>
-        */}
       </div>
       <Separator />
+      */}
       <div>
         <h3 className="mb-2 text-lg font-semibold">Amžiaus grupės</h3>
         <div className="space-y-1">

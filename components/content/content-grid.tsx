@@ -45,13 +45,11 @@ export function ContentGrid({
   const filteredForDisplay = content.filter(item => {
     // 1. Apply Premium Filter (if toggle is ON)
     //    This is now purely a visual filter based on the toggle state.
-    /* Premium filtering temporarily disabled
     if (showPremiumOnly) {
       const isPremium = item.access_tier?.name === 'premium';
       if (!isPremium) return false; // Only keep premium items if filter is ON
     }
     // If showPremiumOnly is OFF, all items pass this step.
-    */
 
     // 2. Apply Content Type Filter (if applicable)
     if (contentType && contentType !== 'all') {
@@ -98,13 +96,11 @@ export function ContentGrid({
                 ? 'Nerasta premium turinio pagal pasirinktus filtrus'
                 : 'Nėra turinio pagal pasirinktus filtrus'}
             </p>
-            {/* Premium upgrade button temporarily disabled
             {showPremiumOnly && !canAccessPremiumContent() && (
               <Button onClick={handlePremiumUpgrade}>
                 {isAuthenticated ? 'Atnaujinti į Premium' : 'Prisijungti'}
               </Button>
             )}
-            */}
           </div>
         )}
       </div>

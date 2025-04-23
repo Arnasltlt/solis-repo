@@ -150,7 +150,6 @@ export function HomeClientContent({
       )}
       
       {/* Premium Banner for non-premium users */}
-      {/* 
       {isAuthenticated && !canAccessPremiumContent() && (
         <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-lg">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -172,7 +171,6 @@ export function HomeClientContent({
           </div>
         </div>
       )}
-      */}
       
       <ContentLayout
         content={displayContent}
