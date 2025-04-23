@@ -161,12 +161,14 @@ export function Navigation() {
               </div>
             ) : (
               <>
+                {/*
                 <Link href="/login">
                   <Button variant="outline">Prisijungti</Button>
                 </Link>
                 <Link href="/signup">
                   <Button>Registruotis</Button>
                 </Link>
+                */}
               </>
             )}
           </div>
@@ -262,6 +264,7 @@ export function Navigation() {
           {!isAuthenticated && (
             <div className="pt-4 pb-3 border-t border-gray-200">
               <div className="flex items-center px-5 space-x-3">
+                {/*
                 <Link 
                   href="/login" 
                   className="block w-full px-4 py-2 text-center text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
@@ -276,6 +279,7 @@ export function Navigation() {
                 >
                   Registruotis
                 </Link>
+                */}
               </div>
             </div>
           )}
