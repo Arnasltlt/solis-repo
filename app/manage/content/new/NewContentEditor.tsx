@@ -236,12 +236,12 @@ export function NewContentEditor({
       
       // Show success message
       toast({
-        title: "Content created",
-        description: "Now let's add the full content body",
+        title: "Content created successfully",
+        description: "You can now edit the content body from the content management page",
       })
       
-      // Always navigate to the editor page
-      router.push(`/manage/content/editor/${contentId}`)
+      // Navigate to homepage where content is displayed  
+      router.push(`/`)
       
     } catch (err) {
       // --- ADDED DEBUG LOG --- 

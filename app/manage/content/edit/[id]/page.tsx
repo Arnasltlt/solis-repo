@@ -33,9 +33,10 @@ export default async function EditContentPage({ params }: { params: { id: string
   try {
     // Fetch data in sequence to avoid any race conditions
     const content = await getContentById(params.id, supabase)
-    const ageGroups = await getAgeGroups(supabase)
-    const categories = await getCategories(supabase)
-    const accessTiers = await getAccessTiers(supabase)
+    // Fetch public reference data with anon client to avoid session role issues
+    const ageGroups = await getAgeGroups()
+    const categories = await getCategories()
+    const accessTiers = await getAccessTiers()
     
     if (!content) {
       return redirect('/manage?error=Content+not+found')

@@ -198,8 +198,8 @@ export function EditContentForm({
         throw new Error("No authenticated user found. Please log in again.")
       }
       
-      // Get auth token
-      const token = localStorage.getItem('supabase_access_token');
+      // Use cookie-based session; no need to send Authorization header
+      const token: string | null = null;
       
       // First check if there's a new thumbnail to upload
       let thumbnailUrl = content.thumbnail_url;
@@ -214,9 +214,7 @@ export function EditContentForm({
           console.log('Uploading thumbnail via API endpoint');
           const uploadResponse = await fetch('/api/manage/upload-image', {
             method: 'POST',
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : ''
-            },
+            // cookies will be sent automatically
             body: formData
           });
           
@@ -237,7 +235,7 @@ export function EditContentForm({
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': token ? `Bearer ${token}` : ''
+                  // cookie auth
                 },
                 body: JSON.stringify({
                   thumbnail_url: uploadResult.url
@@ -287,7 +285,7 @@ export function EditContentForm({
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
+          // cookie auth
         },
         body: JSON.stringify(updatePayload)
       });

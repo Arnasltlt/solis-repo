@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
-import { createClient as createAdminClient } from '@/lib/supabase/admin' // Admin client for DB ops
-import { createServerClient, type CookieOptions } from '@supabase/ssr' // Use createServerClient
+import { createClient as createAdminClient } from '@/lib/supabase/admin'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createCategoryOnServer } from '@/lib/services/categories'
 import type { Database } from '@/lib/types/database'
@@ -16,13 +16,7 @@ type CreateCategoryRequestBody = {
 }
 
 export async function POST(request: NextRequest) {
-  // Debug headers and cookies
-  console.log('API POST categories: Request headers:', Object.fromEntries(request.headers));
-  const cookieStore = cookies();
-  const allCookies = cookieStore.getAll();
-  console.log('API POST categories: Available cookies:', allCookies);
-  
-  // 1. Create client based on request cookies to check auth
+  const cookieStore = cookies()
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -41,61 +35,32 @@ export async function POST(request: NextRequest) {
     }
   )
 
-  // Try to verify auth from cookies first
-  try {
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    console.log('API POST categories: Checking cookie auth. User:', user);
-    
-    if (user && user.role === 'administrator') {
-      console.log('API POST categories: User authorized via cookies');
-      
-      // Process the request with authorized user
-      return await processCreateCategoryRequest(request);
-    }
-  } catch (err) {
-    console.error('API POST categories: Cookie auth error:', err);
+  // Verify session
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
-  
-  // If cookie auth failed, try token auth from Authorization header
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    try {
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-      console.log('API POST categories: Checking token auth');
-      
-      // Create a new client with the token
-      const { data: { user }, error: tokenAuthError } = await supabase.auth.getUser(token);
-      
-      if (tokenAuthError) {
-        console.error('API POST categories: Token auth error:', tokenAuthError);
-        return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
-      }
-      
-      if (!user) {
-        console.error('API POST categories: Token auth returned no user');
-        return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
-      }
-      
-      console.log('API POST categories: Token auth user:', user);
-      console.log('API POST categories: Token auth user role:', user.role);
-      
-      if (user.role !== 'administrator') {
-        console.error(`API POST categories: Admin check failed. User role is '${user.role}', not 'administrator'.`);
-        return NextResponse.json({ error: 'Admin privileges required' }, { status: 403 });
-      }
-      
-      // Process the request with authorized user
-      return await processCreateCategoryRequest(request);
-    } catch (err) {
-      console.error('API POST categories: Token processing error:', err);
-    }
+
+  // Verify admin via users/access_tiers
+  const userId = session.user.id
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('subscription_tier_id')
+    .eq('id', userId)
+    .single()
+  if (!userRow?.subscription_tier_id) {
+    return NextResponse.json({ error: 'Admin privileges required' }, { status: 403 })
   }
-  
-  // TEMPORARY FALLBACK: Skip auth checks and proceed for debugging
-  console.log('API POST categories: USING FALLBACK - NO VALID AUTH METHOD WORKED');
-  
-  // Process the request anyway for debugging
-  return await processCreateCategoryRequest(request);
+  const { data: tierRow } = await supabase
+    .from('access_tiers')
+    .select('name')
+    .eq('id', userRow.subscription_tier_id)
+    .single()
+  if (!tierRow || tierRow.name !== 'administrator') {
+    return NextResponse.json({ error: 'Admin privileges required' }, { status: 403 })
+  }
+
+  return await processCreateCategoryRequest(request)
 }
 
 // Helper function to process the category creation

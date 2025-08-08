@@ -5,10 +5,13 @@ import { createClient as createAdminClient } from '@/lib/supabase/admin'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  // Use admin client to bypass RLS
   try {
+    // Restrict to development only
+    if (process.env.NODE_ENV !== 'development') {
+      return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+    }
+
     const adminClient = createAdminClient();
-    console.log('Using admin client to check storage buckets');
     
     // Check buckets
     const { data: buckets, error: bucketError } = await adminClient.storage.listBuckets();

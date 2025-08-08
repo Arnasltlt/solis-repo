@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+      "supabase": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres.pybqaehxthpxjlboboaq:ekx1jah5mvx4yfa@JAU@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"]
+      },
+      "simpleevals": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:xae9wtw.nqz!jwr*QPB@db.bgolcydgvgrqnhstqnht.supabase.co:5432/postgres"]
+      }
+    }
+  }

@@ -503,7 +503,8 @@ export async function getContentById(id: string, adminClient?: SupabaseClient) {
   console.log('Getting content by ID:', id);
   
   try {
-    const client = getSupabaseClient()
+    // Use admin client if provided (needed for unpublished content), otherwise use default client
+    const client = adminClient || getSupabaseClient()
     
     // First, check if the content exists
     const { data: contentExists, error: existsError } = await client

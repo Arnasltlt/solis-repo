@@ -7,9 +7,12 @@ import path from 'path'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
-  console.log('API FIX STORAGE: Starting storage policy fix');
-  
   try {
+    // Restrict to development only
+    if (process.env.NODE_ENV !== 'development') {
+      return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+    }
+
     // Get admin client
     const adminClient = createAdminClient();
     
@@ -100,7 +103,6 @@ export async function POST(request: NextRequest) {
     `;
     
     // Execute the SQL
-    console.log('API FIX STORAGE: Executing SQL');
     const { error } = await adminClient.rpc('exec_sql', { sql });
     
     if (error) {
@@ -108,15 +110,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `SQL execution failed: ${error.message}` }, { status: 500 });
     }
     
-    console.log('API FIX STORAGE: SQL executed successfully');
-    
     // List buckets to verify
     const { data: buckets, error: bucketError } = await adminClient.storage.listBuckets();
     
     if (bucketError) {
       console.error('API FIX STORAGE: Error listing buckets:', bucketError);
     } else {
-      console.log('API FIX STORAGE: Available buckets:', buckets);
+      // do not log buckets in production
     }
     
     // Check current policies
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     if (policyError) {
       console.error('API FIX STORAGE: Error listing policies:', policyError);
     } else {
-      console.log('API FIX STORAGE: Storage policies:', policies);
+      // do not log policies in production
     }
     
     return NextResponse.json({ 

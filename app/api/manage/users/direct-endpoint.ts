@@ -8,8 +8,11 @@ export const dynamic = 'force-dynamic'
 // Simplified GET endpoint for retrieving all users in development mode
 export async function GET(request: NextRequest) {
   try {
-    console.log('DIRECT USERS API: Starting request');
-    
+    // Restrict to development only
+    if (process.env.NODE_ENV !== 'development') {
+      return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+    }
+
     // Check that environment variables exist
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('DIRECT USERS API: Missing required Supabase environment variables');
@@ -24,8 +27,6 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
-    
-    console.log('DIRECT USERS API: Admin client created, fetching users');
     
     // Get all users
     const { data: users, error: usersError } = await supabaseAdmin
@@ -61,8 +62,6 @@ export async function GET(request: NextRequest) {
         tierName: tier?.name
       }
     });
-    
-    console.log(`DIRECT USERS API: Successfully fetched ${usersWithTierName?.length || 0} users`);
     
     return NextResponse.json({ 
       users: usersWithTierName || [],

@@ -5,6 +5,9 @@ import { createClient as createAdminClient } from '@/lib/supabase/admin'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+  }
   const { searchParams } = new URL(request.url)
   const url = searchParams.get('url')
   

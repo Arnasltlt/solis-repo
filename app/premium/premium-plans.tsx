@@ -38,12 +38,12 @@ export function PremiumPlans() {
             {/* Standard Plan */}
             <div className="w-full md:w-1/2 border rounded-lg shadow-sm overflow-hidden">
               <div className="p-6 border-b">
-                <h3 className="text-xl font-bold">Standartinė</h3>
+                <h3 className="text-xl font-bold">Standartinis</h3>
                 <div className="mt-4 flex items-end">
-                  <span className="text-3xl font-bold">Nemokama</span>
+                  <span className="text-3xl font-bold">Nemokamas</span>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
-                  Pagrindinė prieiga prie mokymosi turinio
+                  Pagrindinė prieiga prie mokomojo turinio
                 </p>
               </div>
               
@@ -55,11 +55,11 @@ export function PremiumPlans() {
                   </li>
                   <li className="flex">
                     <CheckIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                    <span>Pagrindiniai mokymosi ištekliai</span>
+                    <span>Pagrindiniai mokymosi šaltiniai</span>
                   </li>
                   <li className="flex">
                     <CheckIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                    <span>Turinio filtravimas pagal kategoriją</span>
+                    <span>Turinio filtravimas pagal kategorijas</span>
                   </li>
                   <li className="flex opacity-50">
                     <span className="h-5 w-5 border border-gray-300 rounded-full mr-2 flex-shrink-0"></span>
@@ -67,6 +67,7 @@ export function PremiumPlans() {
                   </li>
                 </ul>
                 
+                {/*
                 <Button
                   variant="outline"
                   className="w-full mt-6"
@@ -75,6 +76,7 @@ export function PremiumPlans() {
                 >
                   {isAuthenticated ? 'Dabartinis planas' : 'Registruotis nemokamai'}
                 </Button>
+                */}
               </div>
             </div>
             
@@ -100,7 +102,7 @@ export function PremiumPlans() {
                 <ul className="space-y-4">
                   <li className="flex">
                     <CheckIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                    <span>Viskas, kas yra standartiniame plane</span>
+                    <span>Viskas, kas įtraukta į standartinį planą</span>
                   </li>
                   <li className="flex">
                     <CheckIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
@@ -108,7 +110,7 @@ export function PremiumPlans() {
                   </li>
                   <li className="flex">
                     <CheckIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                    <span>Aukštos kokybės mokymosi medžiaga</span>
+                    <span>Aukštos kokybės mokomoji medžiaga</span>
                   </li>
                 </ul>
                 
@@ -121,7 +123,7 @@ export function PremiumPlans() {
                 </Button>
                 
                 <p className="text-xs text-center mt-4 text-gray-500">
-                  Galite atšaukti bet kuriuo metu.
+                  Galite atšaukti bet kada.
                 </p>
               </div>
             </div>
