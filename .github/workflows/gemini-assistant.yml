@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   run-gemini-on-pr-comment:
-    if: github.event.issue.pull_request != null && contains(github.event.comment.body, '@gemini-cli')
+    if: github.event.issue.pull_request != null && (contains(github.event.comment.body, '@gemini-cli') || contains(github.event.comment.body, '/implement') || contains(github.event.comment.body, '/gemini'))
     runs-on: ubuntu-latest
     steps:
       - name: Auth GH for git pushes
@@ -34,8 +34,12 @@ jobs:
             });
             const headRef = pr.data.head.ref;
             const headRepo = pr.data.head.repo.full_name;
-            const raw = context.payload.comment.body || '';
-            const prompt = raw.replace(/^\s*@gemini-cli\s*/i, '');
+            const raw = (context.payload.comment.body || '').trim();
+            let cleaned = raw;
+            cleaned = cleaned.replace(/^@gemini-cli\s*/i, '');
+            cleaned = cleaned.replace(/^\/implement\s*/i, '');
+            cleaned = cleaned.replace(/^\/gemini\s*/i, '');
+            const prompt = cleaned;
             core.setOutput('head_ref', headRef);
             core.setOutput('head_repo', headRepo);
             core.setOutput('prompt', prompt);
