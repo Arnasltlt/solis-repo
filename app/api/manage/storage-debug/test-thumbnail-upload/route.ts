@@ -5,6 +5,9 @@ import { uploadThumbnailAdmin } from '@/lib/services/admin-storage'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+  }
   console.log('TEST-THUMBNAIL: Starting test thumbnail upload');
 
   try {

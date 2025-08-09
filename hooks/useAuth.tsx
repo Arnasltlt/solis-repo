@@ -66,16 +66,8 @@ export function AuthProvider({
   const [userRole, setUserRole] = useState<UserRoles | null>(getUserRole(initialSession?.user?.role))
   const [loading, setLoading] = useState<boolean>(!initialSession)
 
-  // Function to set token in localStorage
-  const setAuthToken = (currentSession: Session | null) => {
-    if (currentSession?.access_token) {
-      console.log('AuthProvider: Setting auth token in localStorage.');
-      localStorage.setItem('supabase_access_token', currentSession.access_token);
-    } else {
-      console.log('AuthProvider: Removing auth token from localStorage.');
-      localStorage.removeItem('supabase_access_token');
-    }
-  }
+  // Avoid persisting access tokens in localStorage to reduce XSS impact
+  const setAuthToken = (_currentSession: Session | null) => {}
 
   // Set token initially if initialSession exists
   useEffect(() => {
@@ -93,7 +85,7 @@ export function AuthProvider({
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
         setUserRole(getUserRole(currentSession?.user?.role))
-        setAuthToken(currentSession); // Update token on state change
+         setAuthToken(currentSession);
         setLoading(false) // Ensure loading is false after state change
       }
     )
@@ -108,7 +100,7 @@ export function AuthProvider({
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
           setUserRole(getUserRole(currentSession?.user?.role));
-          setAuthToken(currentSession);
+           setAuthToken(currentSession);
        }
        // Ensure loading is set to false even if session hasn't changed
        setLoading(false);
@@ -119,6 +111,40 @@ export function AuthProvider({
       subscription.unsubscribe()
     }
   }, [supabase])
+
+  // Derive admin role from subscription tier metadata (client-side UI only)
+  useEffect(() => {
+    if (!supabase) return
+    const currentUser = session?.user
+    if (!currentUser) {
+      return
+    }
+
+    const deriveRoleFromTier = async () => {
+      try {
+        const subscriptionTierId = (currentUser.user_metadata as any)?.subscription_tier_id as string | undefined
+        if (!subscriptionTierId) {
+          return
+        }
+        const { data: adminTier, error } = await supabase
+          .from('access_tiers')
+          .select('id')
+          .eq('name', 'administrator')
+          .single()
+        if (error) return
+        const isAdminByTier = adminTier?.id && subscriptionTierId === adminTier.id
+        if (isAdminByTier) {
+          // Reflect admin in the in-memory user object for UI checks
+          setUser(prev => (prev ? { ...prev, role: UserRoles.ADMIN } : prev))
+          setUserRole(UserRoles.ADMIN)
+        }
+      } catch {
+        // no-op
+      }
+    }
+
+    deriveRoleFromTier()
+  }, [supabase, session?.user?.id])
 
   // Sign up the user
   const signUp = async (email: string, password: string, metadata?: object) => {
@@ -225,7 +251,7 @@ export function AuthProvider({
       setUser(null)
       setUserRole(null)
       setSession(null) // Explicitly set session to null
-      setAuthToken(null) // Remove token
+      setAuthToken(null)
 
       // Redirect the user to the home page
       router.push('/')

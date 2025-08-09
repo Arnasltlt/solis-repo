@@ -6,6 +6,9 @@ import { NextResponse } from 'next/server'
  * Only returns the presence (not the actual values) of sensitive environment variables
  */
 export async function GET(request: Request) {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+  }
   try {
     // Check if the requester is an admin
     // In a production environment, you would authenticate this properly

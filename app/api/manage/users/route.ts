@@ -59,34 +59,18 @@ export async function GET(request: NextRequest) {
       'authenticated': process.env.FREE_TIER_ID || ''  // free tier ID
     };
     
-    // Add tier name to each user
+    // Add tier name to each user (strictly metadata/tier-based, ignore JWT role)
     const usersWithTierName = users?.users?.map((user: any) => {
-      // Check both direct property and in user_metadata
-      let subscription_tier_id = user.subscription_tier_id || user.user_metadata?.subscription_tier_id;
-      
-      // If no tier ID is found, use role-based mapping
-      if (!subscription_tier_id && user.role) {
-        subscription_tier_id = roleToTierMap[user.role as keyof typeof roleToTierMap];
-        console.log(`USERS API: No tier_id found for user ${user.id}, using role-based mapping: ${user.role} -> ${subscription_tier_id}`);
-      }
-      
+      const subscription_tier_id = user.user_metadata?.subscription_tier_id || user.subscription_tier_id;
       const tier = tiers?.find(t => t.id === subscription_tier_id);
-      
-      // Get role-based tier if no subscription tier is found
-      let tierName = tier?.name;
-      if (!tierName && user.role === 'administrator') {
-        tierName = 'administrator';
-      } else if (!tierName) {
-        // Default to role-based tier name if no subscription tier is found
-        tierName = user.role === 'authenticated' ? 'free' : 'unknown';
-      }
-      
+      const tierName = tier?.name || 'unknown';
+
       return {
         ...user,
         id: user.id,
         email: user.email,
-        subscription_tier_id: subscription_tier_id,
-        tierName: tierName
+        subscription_tier_id,
+        tierName
       }
     });
     

@@ -10,7 +10,7 @@ import { useAuthorization } from '@/hooks/useAuthorization'
 import type { ContentItem, AgeGroup, Category } from '@/lib/types/database'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { SparklesIcon } from '@heroicons/react/24/solid'
+ 
 
 interface HomeClientContentProps {
   initialContent: ContentItem[]
@@ -149,28 +149,7 @@ export function HomeClientContent({
         </div>
       )}
       
-      {/* Premium Banner for non-premium users */}
-      {isAuthenticated && !canAccessPremiumContent() && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-lg">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex-1">
-              <h3 className="font-medium text-amber-800 flex items-center">
-                <SparklesIcon className="h-5 w-5 mr-2 text-amber-500" />
-                Gaukite Narystę
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Gaukite neribotą prieigą prie viso narystės turinio.
-              </p>
-            </div>
-            <Button 
-              className="bg-amber-600 hover:bg-amber-700 whitespace-nowrap"
-              onClick={() => router.push('/premium')}
-            >
-              Peržiūrėti Narystės Planus
-            </Button>
-          </div>
-        </div>
-      )}
+      
       
       <ContentLayout
         content={displayContent}

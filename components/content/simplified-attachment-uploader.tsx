@@ -42,7 +42,8 @@ export function SimpleAttachmentUploader({
         
         setAttachments(prev => {
           const updated = [...prev, newAttachment]
-          onAttachmentsChange(updated)
+          // Defer notifying parent to avoid setState during render warnings
+          queueMicrotask(() => onAttachmentsChange(updated))
           return updated
         })
       }

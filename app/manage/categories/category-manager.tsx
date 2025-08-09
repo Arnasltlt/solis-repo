@@ -65,18 +65,11 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
 
   useEffect(() => {
     const loadUsageCounts = async () => {
-      // Get token from localStorage
-      const token = localStorage.getItem('supabase_access_token');
-      
       const usagePromises = categories.map(async (category) => {
         try {
-          // First try with regular authenticated request
+          // Cookie-based auth only; server verifies admin via DB
           const response = await fetch(`/api/manage/categories/${category.id}/usage`, {
             credentials: 'include',
-            headers: {
-              // Pass token in a custom header
-              'Authorization': token ? `Bearer ${token}` : ''
-            }
           });
           
           if (response.ok) {
@@ -109,15 +102,11 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
     setError(null)
     setIsCreating(true)
     
-    // Get token from localStorage
-    const token = localStorage.getItem('supabase_access_token');
-
     try {
       const response = await fetch('/api/manage/categories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -161,17 +150,10 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
 
     setIsDeleting(true);
     
-    // Get token from localStorage
-    const token = localStorage.getItem('supabase_access_token');
-
     try {
       const response = await fetch(`/api/manage/categories/${selectedCategory.id}`, {
         method: 'DELETE',
         credentials: 'include',
-        headers: {
-          // Pass token in a custom header
-          'Authorization': token ? `Bearer ${token}` : ''
-        }
       });
 
       const data = await response.json();

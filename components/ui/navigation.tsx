@@ -7,7 +7,7 @@ import { Logo } from '@/components/ui/logo'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
-import { SparklesIcon } from '@heroicons/react/24/solid'
+ 
 
 export function Navigation() {
   const { user, loading, signOut } = useAuth()
@@ -57,17 +57,6 @@ export function Navigation() {
                 }`}
               >
                 Pradžia
-              </Link>
-              <Link 
-                href="/premium" 
-                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center ${
-                  pathname === '/premium' 
-                    ? 'text-amber-600 font-semibold' 
-                    : 'text-amber-600 hover:text-amber-700'
-                }`}
-              >
-                <SparklesIcon className="h-4 w-4 mr-1" />
-                Narystė
               </Link>
               {isAuthenticated && (
                 <Link 
@@ -121,16 +110,6 @@ export function Navigation() {
                       >
                         Profilis
                       </Link>
-                      {!isPremium() && (
-                        <Link 
-                          href="/premium" 
-                          className="flex items-center px-4 py-2 text-sm text-amber-600 hover:bg-amber-50"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          <SparklesIcon className="h-4 w-4 mr-1" />
-                          Gauti Narystę
-                        </Link>
-                      )}
                       {isAdmin() && (
                         <>
                           <Link 
@@ -208,18 +187,6 @@ export function Navigation() {
               onClick={() => setIsMenuOpen(false)}
             >
               Pradžia
-            </Link>
-            <Link 
-              href="/premium" 
-              className={`flex items-center px-3 py-2 rounded-md text-base font-medium ${
-                pathname === '/premium' 
-                  ? 'text-amber-600 font-semibold' 
-                  : 'text-amber-600 hover:text-amber-700'
-              }`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <SparklesIcon className="h-4 w-4 mr-1" />
-              Narystė
             </Link>
             {isAuthenticated && (
               <Link 
@@ -299,16 +266,6 @@ export function Navigation() {
                 )}
               </div>
               <div className="mt-3 px-2 space-y-1">
-                {!isPremium() && (
-                  <Link 
-                    href="/premium" 
-                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-amber-600 hover:bg-amber-50 flex items-center"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <SparklesIcon className="h-4 w-4 mr-2" />
-                    Gauti Narystę
-                  </Link>
-                )}
                 {isAdmin() && (
                   <>
                     <Link 
