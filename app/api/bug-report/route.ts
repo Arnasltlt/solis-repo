@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        event_type: 'website-bug-report',
+        event_type: 'website-bug-issue',
         client_payload: { title, description },
       }),
     })
