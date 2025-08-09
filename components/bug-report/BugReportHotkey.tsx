@@ -135,7 +135,7 @@ export function BugReportHotkey(): React.JSX.Element | null {
       const res = await fetch('/api/bug-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({ title, description, body: description }),
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
