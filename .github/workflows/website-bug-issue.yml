@@ -37,7 +37,7 @@ jobs:
             const description = process.env.DESCRIPTION || '';
             const branch = `auto/issue-${issue_number}`;
             const prompt = [
-              '@gemini-cli',
+              '/implement',
               'Please implement the following request from this Issue.',
               '',
               'Steps:',
