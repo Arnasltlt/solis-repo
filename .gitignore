@@ -73,6 +73,7 @@ logs
 # Project documentation
 /docs/
 CLAUDE.md
+GEMINI.md
 
 # Supabase
 /supabase/.branches
