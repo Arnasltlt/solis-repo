@@ -14,9 +14,18 @@ jobs:
     if: github.event.issue.pull_request == null && (contains(github.event.comment.body, '@gemini-cli') || contains(github.event.comment.body, '/implement') || contains(github.event.comment.body, '/gemini'))
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Auth GH for git pushes
         run: |
           gh auth setup-git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
         env:
           GH_TOKEN: ${{ secrets.PR_AUTOMATION_TOKEN }}
       - name: Extract prompt from comment
