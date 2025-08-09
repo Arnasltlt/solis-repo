@@ -33,6 +33,7 @@ jobs:
         id: pr
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PR_AUTOMATION_TOKEN }}
           script: |
             const head = process.env.HEAD_REF;
             const base = process.env.BASE_REF || 'main';
@@ -56,6 +57,7 @@ jobs:
       - name: Post request to Gemini CLI in PR comments
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PR_AUTOMATION_TOKEN }}
           script: |
             const prNumber = Number(process.env.PR_NUMBER);
             const description = process.env.REQUEST_BODY || '';
