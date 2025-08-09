@@ -1,0 +1,64 @@
+name: Gemini CLI Assistant (PR comments)
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  run-gemini-on-pr-comment:
+    if: github.event.issue.pull_request != null && contains(github.event.comment.body, '@gemini-cli')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract PR head info and prompt
+        id: info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number,
+            });
+            const headRef = pr.data.head.ref;
+            const headRepo = pr.data.head.repo.full_name;
+            const raw = context.payload.comment.body || '';
+            const prompt = raw.replace(/^\s*@gemini-cli\s*/i, '');
+            core.setOutput('head_ref', headRef);
+            core.setOutput('head_repo', headRepo);
+            core.setOutput('prompt', prompt);
+
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.info.outputs.head_repo }}
+          ref: ${{ steps.info.outputs.head_ref }}
+          fetch-depth: 0
+
+      - name: Run Gemini CLI with prompt
+        id: gemini
+        uses: google-github-actions/run-gemini-cli@v0.1.10
+        with:
+          prompt: ${{ steps.info.outputs.prompt }}
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Comment summary
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          SUMMARY: ${{ steps.gemini.outputs.summary }}
+        with:
+          script: |
+            const summary = process.env.SUMMARY;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: summary ? `Gemini summary:\n\n${summary}` : 'Gemini run completed.'
+            });
+          result-encoding: string
+

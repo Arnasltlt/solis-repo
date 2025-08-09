@@ -1,0 +1,61 @@
+name: Website-triggered Bug PR
+
+on:
+  repository_dispatch:
+    types: [website-bug-report]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  create-pr-and-request-gemini:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+
+      - name: Prepare branch and empty commit
+        id: prep
+        env:
+          BRANCH_NAME: auto/bugfix-${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH_NAME"
+          # Create an empty commit so PR can be opened even without file diffs
+          git commit --allow-empty -m "chore: init bugfix PR - ${{ github.event.client_payload.title }}"
+          git push origin "$BRANCH_NAME"
+          echo "branch=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Open PR
+        id: pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(gh pr create \
+            --title "Bug: ${{ github.event.client_payload.title }}" \
+            --body "Requested by website admin via automation.\n\n---\n\n${{ github.event.client_payload.description }}" \
+            --head "${{ steps.prep.outputs.branch }}")
+          echo "url=$PR_URL" >> "$GITHUB_OUTPUT"
+          PR_NUMBER=$(gh pr view "$PR_URL" --json number --jq .number)
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Post request to Gemini CLI in PR comments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            const description = process.env.REQUEST_BODY || '';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `@gemini-cli Please implement the following request from the admin panel.\n\n---\n\n${description}`
+            });
+          result-encoding: string
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REQUEST_BODY: ${{ github.event.client_payload.description }}
+
