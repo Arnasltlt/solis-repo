@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   run-gemini-on-pr-comment:
-    if: github.event.issue.pull_request != null && (contains(github.event.comment.body, '@gemini-cli') || contains(github.event.comment.body, '/implement') || contains(github.event.comment.body, '/gemini'))
+    if: github.event.issue.pull_request != null && (contains(github.event.comment.body, '@gemini-cli') || contains(github.event.comment.body, '/implement'))
     runs-on: ubuntu-latest
     steps:
       - name: Auth GH for git pushes

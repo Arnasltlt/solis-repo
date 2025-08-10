@@ -11,8 +11,8 @@ permissions:
 
 jobs:
   run-gemini-cli:
-    # Trigger only on explicit /gemini commands to avoid duplicate runs with other workflows
-    if: github.event.issue != null && contains(github.event.comment.body, '/gemini')
+    # Keep general assistant but disable by default to reduce noise (enable later if needed)
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Extract context and prompt
