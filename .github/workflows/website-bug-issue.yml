@@ -35,36 +35,7 @@ jobs:
             });
             core.setOutput('number', issue.number.toString());
 
-      - name: Ask Gemini to implement from Issue
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.PR_AUTOMATION_TOKEN }}
-          script: |
-            const issue_number = Number(process.env.ISSUE_NUMBER);
-            const description = process.env.DESCRIPTION || '';
-            const branch = `auto/issue-${issue_number}`;
-            const prompt = [
-              '/implement',
-              'Please implement the following request from this Issue.',
-              '',
-              'Steps:',
-              `- Create and work on branch: ${branch} from base: main`,
-              '- Make the required code changes, commit, and push to the branch',
-              `- Open a Pull Request to main referencing this Issue #${issue_number}`,
-              '',
-              'Request body:',
-              '---',
-              description
-            ].join('\n');
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number,
-              body: prompt,
-            });
-        env:
-          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
-          DESCRIPTION: ${{ github.event.client_payload.description }}
+      # Removed auto-comment on the Issue to avoid duplicate runs. Only PR comment triggers Gemini.
 
       - name: Scaffold branch and placeholder commit
         run: |
