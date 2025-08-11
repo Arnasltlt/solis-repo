@@ -65,6 +65,7 @@ export function NewContentManagementPage({
   
   // Handle file change
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const scrollPosition = window.scrollY
     const file = e.target.files?.[0]
     if (file) {
       // Validate file size (max 5MB)
@@ -76,7 +77,7 @@ export function NewContentManagementPage({
         })
         return
       }
-      
+
       // Validate file type
       if (!file.type.startsWith('image/')) {
         toast({
@@ -86,9 +87,12 @@ export function NewContentManagementPage({
         })
         return
       }
-      
+
       setFile(file)
       setPreviewUrl(URL.createObjectURL(file))
+
+      // Restore scroll position after thumbnail preview causes layout shift
+      requestAnimationFrame(() => window.scrollTo(0, scrollPosition))
     }
   }
   

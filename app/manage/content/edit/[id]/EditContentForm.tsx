@@ -591,7 +591,7 @@ export function EditContentForm({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>
+                      <FormLabel htmlFor="published">
                         Published
                       </FormLabel>
                       <FormDescription>
