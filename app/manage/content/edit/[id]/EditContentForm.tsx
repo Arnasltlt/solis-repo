@@ -585,12 +585,13 @@ export function EditContentForm({
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
                       <Checkbox
+                        id="published"
                         checked={field.value}
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>
+                      <FormLabel htmlFor="published">
                         Published
                       </FormLabel>
                       <FormDescription>
