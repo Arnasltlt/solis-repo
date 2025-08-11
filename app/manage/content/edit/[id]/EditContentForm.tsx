@@ -598,24 +598,7 @@ export function EditContentForm({
                         Content will be visible to users based on the selected access tier
                       </FormDescription>
                     </div>
-                  </FormItem>
-                      <Checkbox
-                        id="published"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                      <label
-                        htmlFor="published"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Publish immediately
-                      </label>
-                    </div>
-                    <FormDescription>
-                      Content will be visible to users based on the selected access tier
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
+                    </FormItem>
                 )}
               />
               
