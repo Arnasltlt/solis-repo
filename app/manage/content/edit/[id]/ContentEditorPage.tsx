@@ -102,40 +102,44 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
   }, [hasChanges, isSaving, contentBody]);
   
   // Handle save
-  const handleSave = async () => {
+  const handleSave = async (redirectToList = false) => {
     if (!supabase) {
       setError('Supabase client not initialized')
       return
     }
-    
+
     if (!session) {
       setError('You must be logged in to update content')
       return
     }
-    
+
     try {
       setIsSaving(true)
       setError(null)
-      
+
       console.log('Saving content body for ID:', contentItem.id)
-      
+
       // Update content body
       await updateContentBody(contentItem.id, contentBody, supabase)
-      
+
       // Update original content to reflect saved state
       setOriginalContentBody(contentBody)
       setLastSaved(new Date())
       setHasChanges(false)
-      
+
       // Show success toast
       toast({
         title: 'Content Saved',
         description: 'Your content has been saved successfully',
       })
+
+      if (redirectToList) {
+        router.push('/manage/content?tab=list')
+      }
     } catch (error) {
       const errorMsg = `Error saving content: ${error instanceof Error ? error.message : String(error)}`
       setError(errorMsg)
-      
+
       // Show error toast
       toast({
         variant: 'destructive',
@@ -279,9 +283,9 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
             <ImageIcon className="mr-2 h-4 w-4" />
             Add Image
           </Button>
-          <Button 
-            variant="default" 
-            onClick={handleSave}
+          <Button
+            variant="default"
+            onClick={() => handleSave(true)}
             disabled={isSaving || !hasChanges}
           >
             {isSaving ? (
