@@ -144,7 +144,7 @@ export function AuthProvider({
     }
 
     deriveRoleFromTier()
-  }, [supabase, session?.user?.id])
+  }, [supabase, session])
 
   // Sign up the user
   const signUp = async (email: string, password: string, metadata?: object) => {
