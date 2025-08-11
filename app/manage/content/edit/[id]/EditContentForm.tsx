@@ -585,6 +585,7 @@ export function EditContentForm({
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
                       <Checkbox
+                        id="published"
                         checked={field.value}
                         onCheckedChange={field.onChange}
                       />
@@ -597,7 +598,7 @@ export function EditContentForm({
                         Content will be visible to users based on the selected access tier
                       </FormDescription>
                     </div>
-                  </FormItem>
+                    </FormItem>
                 )}
               />
               
