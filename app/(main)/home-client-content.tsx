@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import { ContentLayout } from '@/components/content/content-layout'
 import { useContent } from '@/lib/hooks/useContent'
@@ -28,6 +28,8 @@ export function HomeClientContent({
   categories?: any[]
 }) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const isAuthenticated = !!user
   const { canAccessPremiumContent, isAdmin } = useAuthorization()
@@ -35,6 +37,24 @@ export function HomeClientContent({
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showPremiumOnly, setShowPremiumOnly] = useState(false)
+
+  // Read filters from URL on initial load
+  useEffect(() => {
+    const ageGroupsParam = searchParams.get('ageGroups')
+    const categoriesParam = searchParams.get('categories')
+    const premiumParam = searchParams.get('premium')
+
+    if (ageGroupsParam) {
+      setSelectedAgeGroups(ageGroupsParam.split(',').filter(Boolean))
+    }
+    if (categoriesParam) {
+      setSelectedCategories(categoriesParam.split(',').filter(Boolean))
+    }
+    if (premiumParam === '1' || premiumParam === 'true') {
+      setShowPremiumOnly(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   
   // Add safety checks
   const hasContent = Array.isArray(initialContent) && initialContent.length > 0
@@ -119,7 +139,24 @@ export function HomeClientContent({
   // Trigger content refresh when filters change
   useEffect(() => {
     refresh()
-  }, [selectedAgeGroups, selectedCategories, refresh])
+  }, [selectedAgeGroups, selectedCategories, showPremiumOnly, refresh])
+
+  // Sync filter state with URL
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (selectedAgeGroups.length > 0) {
+      params.set('ageGroups', selectedAgeGroups.join(','))
+    }
+    if (selectedCategories.length > 0) {
+      params.set('categories', selectedCategories.join(','))
+    }
+    if (showPremiumOnly) {
+      params.set('premium', '1')
+    }
+
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }, [selectedAgeGroups, selectedCategories, showPremiumOnly, pathname, router])
   
   // Handle errors
   useEffect(() => {
@@ -167,4 +204,4 @@ export function HomeClientContent({
       />
     </>
   )
-} 
+}
