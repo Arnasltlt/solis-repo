@@ -210,7 +210,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         codeBlock: false,
       }),
       Placeholder.configure({
-        placeholder: 'Start typing or paste content here...',
+        placeholder: 'Start editing your content here...',
         showOnlyWhenEditable: true,
       }),
       Link.configure({
