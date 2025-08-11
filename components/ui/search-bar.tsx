@@ -45,4 +45,3 @@ export function SearchBar({ className, onSearch }: SearchBarProps) {
 }
 
 export default SearchBar
-
