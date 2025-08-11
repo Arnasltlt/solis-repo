@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import { ContentLayout } from '@/components/content/content-layout'
 import { useContent } from '@/lib/hooks/useContent'
@@ -27,7 +27,8 @@ export function HomeClientContent({
   ageGroups?: any[],
   categories?: any[]
 }) {
-  const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchQuery = searchParams.get('search') || ''
   const { user } = useAuth()
   const isAuthenticated = !!user
   const { canAccessPremiumContent, isAdmin } = useAuthorization()
@@ -38,8 +39,6 @@ export function HomeClientContent({
   
   // Add safety checks
   const hasContent = Array.isArray(initialContent) && initialContent.length > 0
-  const hasFilters = (Array.isArray(ageGroups) && ageGroups.length > 0) || 
-                    (Array.isArray(categories) && categories.length > 0)
 
   // If we have no content, show a message
   if (!hasContent) {
@@ -62,6 +61,7 @@ export function HomeClientContent({
   } = useContent({
     ageGroups: selectedAgeGroups.length > 0 ? selectedAgeGroups : undefined,
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+    searchQuery: searchQuery || undefined,
     showPremiumOnly,
     initialLoad: false // Don't load on initial render, we already have initialContent
   })
@@ -73,11 +73,15 @@ export function HomeClientContent({
   useEffect(() => {
     if (content && content.length > 0) {
       setDisplayContent(content)
-    } else if (content && content.length === 0 && (selectedAgeGroups.length > 0 || selectedCategories.length > 0)) {
-      // If we have filters applied and no content was found, show empty array
+    } else if (
+      content &&
+      content.length === 0 &&
+      (selectedAgeGroups.length > 0 || selectedCategories.length > 0 || searchQuery)
+    ) {
+      // If we have filters applied or search query and no content was found, show empty array
       setDisplayContent([])
     }
-  }, [content, selectedAgeGroups.length, selectedCategories.length])
+  }, [content, selectedAgeGroups.length, selectedCategories.length, searchQuery])
   
   // Handle age group selection
   const handleAgeGroupSelect = useCallback((id: string) => {
@@ -119,7 +123,7 @@ export function HomeClientContent({
   // Trigger content refresh when filters change
   useEffect(() => {
     refresh()
-  }, [selectedAgeGroups, selectedCategories, refresh])
+  }, [selectedAgeGroups, selectedCategories, searchQuery, refresh])
   
   // Handle errors
   useEffect(() => {
