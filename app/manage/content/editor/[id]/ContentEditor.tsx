@@ -53,10 +53,14 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   useEffect(() => {
     // Process the initial content - handle different formats
     let processedContent = initialContent
-    
-    // If the content is empty, start with something
-    if (!initialContent || initialContent === '') {
-      processedContent = '<p>Start editing your content here...</p>'
+
+    // If the content is empty or just the placeholder, start with an empty string
+    if (
+      !initialContent ||
+      initialContent === '' ||
+      initialContent.trim() === '<p>Start editing your content here...</p>'
+    ) {
+      processedContent = ''
     } else {
       // Try to see if it's JSON format
       try {
