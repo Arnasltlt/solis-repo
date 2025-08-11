@@ -582,8 +582,23 @@ export function EditContentForm({
                 control={form.control}
                 name="published"
                 render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center space-x-2">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        id="published"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Published
+                      </FormLabel>
+                      <FormDescription>
+                        Content will be visible to users based on the selected access tier
+                      </FormDescription>
+                    </div>
+                  </FormItem>
                       <Checkbox
                         id="published"
                         checked={field.value}
