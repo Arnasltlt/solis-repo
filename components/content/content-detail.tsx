@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getFeedback, addFeedback } from '@/lib/services/content'
 import type { ContentItem } from '@/lib/types/database'
@@ -19,6 +18,7 @@ import { cn } from '@/lib/utils/index'
 import { validateStorageUrl } from '@/lib/utils/index'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
+import { useVideoEmbed } from '@/lib/hooks/useVideoEmbed'
 import {
   Tooltip,
   TooltipContent,
@@ -64,21 +64,8 @@ export function ContentDetail({ content }: ContentDetailProps) {
 
   const canEdit = isAdmin();
 
-  const [videoLoaded, setVideoLoaded] = useState(false)
   const videoUrl = content?.metadata?.mediaUrl || content?.metadata?.embed_links?.[0]
-
-  const getEmbedUrl = (url: string) => {
-    if (!url) return ''
-    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([\w-]{11})/i)
-    if (ytMatch) {
-      return `https://www.youtube.com/embed/${ytMatch[1]}`
-    }
-    const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
-    if (vimeoMatch) {
-      return `https://player.vimeo.com/video/${vimeoMatch[1]}`
-    }
-    return url
-  }
+  const { embedUrl, videoLoaded, handleLoad } = useVideoEmbed(videoUrl)
 
   if (!content) {
     return (
@@ -266,11 +253,11 @@ export function ContentDetail({ content }: ContentDetailProps) {
                 </div>
               )}
               <iframe
-                src={getEmbedUrl(videoUrl)}
+                src={embedUrl}
                 className={`w-full h-full rounded-lg ${videoLoaded ? '' : 'hidden'}`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                onLoad={() => setVideoLoaded(true)}
+                onLoad={handleLoad}
               />
             </div>
           )}
