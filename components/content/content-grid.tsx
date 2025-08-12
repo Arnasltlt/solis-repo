@@ -78,11 +78,11 @@ export function ContentGrid({
         {isLoading ? (
           <ContentSkeleton count={6} />
         ) : filteredForDisplay.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {filteredForDisplay.map((item, index) => (
-              <ContentCard 
-                key={item.id} 
-                content={item} 
+              <ContentCard
+                key={item.id}
+                content={item}
                 index={index}
                 isPremiumLocked={item.access_tier?.name === 'premium' && (!isAuthenticated || !canAccessPremiumContent())}
                 showEditButton={showEditButtons}
