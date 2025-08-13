@@ -242,10 +242,12 @@
 
 /* Ensure iframes are properly displayed in content */
 .rich-content-display iframe {
-  max-width: 100%;
+  display: block;
+  width: 100% !important;
+  height: auto;
+  aspect-ratio: 16 / 9;
   border: none;
   border-radius: 0.5rem;
-  aspect-ratio: 16 / 9;
   margin: 1rem 0;
 }
 
@@ -272,5 +274,23 @@
   height: 100%;
   border: none;
   border-radius: 0.5rem;
+}
+
+/* Ensure YouTube/Vimeo containers from TipTap blocks scale correctly */
+.youtube-container, .video-container {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 */
+  height: 0;
+  overflow: hidden;
+  width: 100%;
+  border-radius: 0.5rem;
+}
+
+.youtube-container iframe, .video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
 }
 

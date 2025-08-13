@@ -59,9 +59,8 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
     }
     
     const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`
-    const videoLink = `https://www.youtube.com/watch?v=${videoId}`
     
-    // Create HTML structure with an actual iframe for the YouTube Block
+    // Create HTML structure with an actual iframe for the YouTube Block (no extra caption/button)
     return [
       'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
@@ -69,7 +68,6 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
         'class': 'youtube-block',
         'data-video-id': videoId,
       }),
-      // Add an iframe container with proper responsive design
       ['div', { class: 'youtube-container' },
         [
           'iframe',
@@ -82,16 +80,6 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
             height: '100%',
             style: 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;'
           }
-        ]
-      ],
-      ['div', { class: 'youtube-caption' }, 
-        ['a', 
-          { 
-            href: videoLink,
-            target: '_blank',
-            rel: 'noopener noreferrer' 
-          }, 
-          `Watch on YouTube`
         ]
       ]
     ]
@@ -109,8 +97,6 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
             type: this.name,
             attrs: options
           })
-          // Add a paragraph after the video for better editing experience
-          .insertContent({ type: 'paragraph' })
           .run()
       },
     }
@@ -125,16 +111,21 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
     return [
       {
         find: /(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([a-zA-Z0-9_-]{11})(?:\S*)?/g,
-        handler: ({ match, chain, editor }: any) => {
+        handler: ({ match, chain, editor, range }: any) => {
           const videoId = match[1] // Extract the ID from the URL
           if (videoId) {
-            chain().insertContent({
-              type: this.name,
-              attrs: {
-                videoId,
-                src: match[0],
-              },
-            }).run()
+            // Replace the pasted URL with the YouTube block (no leftover link text)
+            editor
+              .chain()
+              .focus()
+              .insertContentAt(range, {
+                type: this.name,
+                attrs: {
+                  videoId,
+                  src: match[0],
+                },
+              })
+              .run()
           }
           // Return void instead of boolean
         },

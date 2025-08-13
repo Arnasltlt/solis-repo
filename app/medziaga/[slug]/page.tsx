@@ -21,13 +21,7 @@ const createClient = () => {
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        // Add set/remove if needed, although likely not required for metadata/page load
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        }
+        // Do not set/remove cookies from an RSC page
       }
     }
   )

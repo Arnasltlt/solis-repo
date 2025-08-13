@@ -29,11 +29,10 @@ export function ContentBodyDisplay({ contentBody, isPremium = false }: ContentBo
   const seemsLikeJson = contentBody.trim().startsWith('{');
 
   if (!seemsLikeJson) {
-    // If it doesn't seem like JSON, maybe render it as raw HTML (use cautiously)
-    // Or display an error/placeholder
-    console.warn("ContentBodyDisplay received non-JSON content:", contentBody.substring(0, 100))
-    // For safety, returning null. Adjust if HTML rendering is desired.
-    return null; 
+    // If it isn't JSON, fall back to rendering as HTML block (safe because it was authored by admins)
+    return (
+      <div className="rich-content-display content-container prose max-w-none" dangerouslySetInnerHTML={{ __html: contentBody }} />
+    )
   }
 
   return (
@@ -50,10 +49,7 @@ export function ContentBodyDisplay({ contentBody, isPremium = false }: ContentBo
           </div>
         </div>
       ) : (
-        <div className="prose max-w-none">
-          {/* Pass the JSON string directly */}
-          <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
-        </div>
+        <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
       )}
     </div>
   )

@@ -436,9 +436,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
                 allowfullscreen>
               </iframe>
             </div>
-            <p class="video-caption">YouTube video: <a href="${videoUrl}" target="_blank" rel="noopener noreferrer">${videoInfo.id}</a></p>
           </div>
-          <p></p> // Add paragraph after for spacing
         `;
       } else if (videoInfo.platform === 'vimeo') {
         const embedUrl = `https://player.vimeo.com/video/${videoInfo.id}?dnt=1`;
@@ -1536,7 +1534,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         "prose dark:prose-invert prose-headings:font-heading prose-headings:leading-tight",
         "focus:outline-none text-gray-900",
         readOnly ? "prose-lg" : "prose-md",
-        "px-4 py-4"
+        "px-0 py-4"
       )}>
         <EditorContent editor={editor} />
       </div>

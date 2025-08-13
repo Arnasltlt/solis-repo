@@ -83,16 +83,6 @@ export const VimeoBlock = Node.create<VimeoBlockOptions>({
             style: 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;'
           }
         ]
-      ],
-      ['div', { class: 'vimeo-caption' }, 
-        ['a', 
-          { 
-            href: videoLink,
-            target: '_blank',
-            rel: 'noopener noreferrer' 
-          }, 
-          `Watch on Vimeo`
-        ]
       ]
     ]
   },
@@ -109,8 +99,6 @@ export const VimeoBlock = Node.create<VimeoBlockOptions>({
             type: this.name,
             attrs: options
           })
-          // Add a paragraph after the video for better editing experience
-          .insertContent({ type: 'paragraph' })
           .run()
       },
     }
@@ -125,16 +113,20 @@ export const VimeoBlock = Node.create<VimeoBlockOptions>({
     return [
       {
         find: /https?:\/\/(www\.)?vimeo\.com\/(\d+)(?:\?.*)?/g,
-        handler: ({ match, chain, editor }: any) => {
+        handler: ({ match, chain, editor, range }: any) => {
           const videoId = match[2] // Extract the ID from the URL
           if (videoId) {
-            chain().insertContent({
-              type: this.name,
-              attrs: {
-                videoId,
-                src: match[0],
-              },
-            }).run()
+            editor
+              .chain()
+              .focus()
+              .insertContentAt(range, {
+                type: this.name,
+                attrs: {
+                  videoId,
+                  src: match[0],
+                },
+              })
+              .run()
           }
           // Return void instead of boolean
         },

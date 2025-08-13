@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/tooltip"
 import { ContentDetailHeader } from './content-detail-header'
 import { ContentDetailMetadata } from './content-detail-metadata'
-import { ContentDetailMedia } from './content-detail-media'
 import { ContentDetailBody } from './content-detail-body'
 import { ContentDetailFeedback } from './content-detail-feedback'
 import { SimpleContentDetailAttachments } from './simple-content-detail-attachments'
@@ -242,27 +241,18 @@ export function ContentDetail({ content }: ContentDetailProps) {
             )}
           </div>
 
-          {/* Video Content */}
-          {content.type === 'video' && (
-            <div className="aspect-w-16 aspect-h-9">
-              <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
-                <p className="text-gray-500">Video content will be displayed here</p>
-              </div>
-            </div>
-          )}
+          {/* Video content is rendered inside the rich body via ContentBodyDisplay (embeds). */}
 
           {/* Description */}
           {content.description && (
-            <div className="prose max-w-none">
-              <p className="text-gray-600">{content.description}</p>
-            </div>
+            <p className="text-gray-700 leading-7">
+              {content.description}
+            </p>
           )}
 
           {/* Main Content Body */}
           {content.content_body && (
-            <div className="prose max-w-none">
-              <ContentBodyDisplay contentBody={content.content_body} />
-            </div>
+            <ContentBodyDisplay contentBody={content.content_body} />
           )}
 
           {/* Attachments Section */}
@@ -275,7 +265,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
         </div>
 
         {/* Sidebar */}
-        <aside className="lg:col-span-3 space-y-6">
+        <aside className="lg:col-span-3 space-y-6 lg:sticky lg:top-24 self-start">
           {/* Thumbnail */}
           {content.thumbnail_url && (
             <div className="rounded-lg overflow-hidden relative aspect-video">

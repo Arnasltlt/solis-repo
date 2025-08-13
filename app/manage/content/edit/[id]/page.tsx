@@ -18,12 +18,8 @@ export default async function EditContentPage({ params }: { params: { id: string
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        }
+        // Do not expose set/remove in a Server Component page to avoid Next.js runtime errors
+        // Cookie mutations must happen in Route Handlers or Server Actions
       }
     }
   )
