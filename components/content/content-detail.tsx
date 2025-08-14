@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getFeedback, addFeedback } from '@/lib/services/content'
 import type { ContentItem } from '@/lib/types/database'
@@ -19,6 +18,7 @@ import { cn } from '@/lib/utils/index'
 import { validateStorageUrl } from '@/lib/utils/index'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
+import { useVideoEmbed } from '@/lib/hooks/useVideoEmbed'
 import {
   Tooltip,
   TooltipContent,
@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/tooltip"
 import { ContentDetailHeader } from './content-detail-header'
 import { ContentDetailMetadata } from './content-detail-metadata'
-import { ContentDetailMedia } from './content-detail-media'
 import { ContentDetailBody } from './content-detail-body'
 import { ContentDetailFeedback } from './content-detail-feedback'
 import { SimpleContentDetailAttachments } from './simple-content-detail-attachments'
@@ -64,6 +63,9 @@ export function ContentDetail({ content }: ContentDetailProps) {
   const isPremiumLocked = isPremium && (!isAuthenticated || !canAccessPremiumContent());
 
   const canEdit = isAdmin();
+
+  const videoUrl = content?.metadata?.mediaUrl || content?.metadata?.embed_links?.[0]
+  const { embedUrl, videoLoaded, handleLoad } = useVideoEmbed(videoUrl)
 
   if (!content) {
     return (
@@ -243,11 +245,20 @@ export function ContentDetail({ content }: ContentDetailProps) {
           </div>
 
           {/* Video Content */}
-          {content.type === 'video' && (
+          {content.type === 'video' && videoUrl && (
             <div className="aspect-w-16 aspect-h-9">
-              <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
-                <p className="text-gray-500">Video content will be displayed here</p>
-              </div>
+              {!videoLoaded && (
+                <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+                  <p className="text-gray-500">Video content will be displayed here</p>
+                </div>
+              )}
+              <iframe
+                src={embedUrl}
+                className={`w-full h-full rounded-lg ${videoLoaded ? '' : 'hidden'}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                onLoad={handleLoad}
+              />
             </div>
           )}
 
