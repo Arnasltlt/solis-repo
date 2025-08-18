@@ -128,14 +128,6 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
         handler: ({ match, chain, editor }: any) => {
           const videoId = match[1] // Extract the ID from the URL
           if (videoId) {
-            // Show a brief toast notification
-            if (typeof window !== 'undefined' && window.toast) {
-              window.toast({
-                title: "YouTube video detected",
-                description: "Converting URL to embedded video...",
-              });
-            }
-            
             chain().insertContent({
               type: this.name,
               attrs: {

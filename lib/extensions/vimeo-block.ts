@@ -128,14 +128,6 @@ export const VimeoBlock = Node.create<VimeoBlockOptions>({
         handler: ({ match, chain, editor }: any) => {
           const videoId = match[1] || match[2] // Extract the ID from the URL
           if (videoId) {
-            // Show a brief toast notification
-            if (typeof window !== 'undefined' && window.toast) {
-              window.toast({
-                title: "Vimeo video detected",
-                description: "Converting URL to embedded video...",
-              });
-            }
-            
             chain().insertContent({
               type: this.name,
               attrs: {
