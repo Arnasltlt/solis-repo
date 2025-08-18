@@ -10,8 +10,8 @@ import { ProtectedUserManagement } from './ProtectedUserManagement'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'User Management | Solis',
-  description: 'Solis platform user management dashboard',
+  title: 'Vartotojų valdymas | Solis',
+  description: 'Solis platformos vartotojų valdymo skydelis',
 }
 
 export default async function UserManagementPage() {
@@ -23,7 +23,7 @@ export default async function UserManagementPage() {
 
   return (
     <div className="container py-10">
-      <h1 className="text-2xl font-bold mb-6">User Management</h1>
+      <h1 className="text-2xl font-bold mb-6">Vartotojų valdymas</h1>
       <ProtectedUserManagement
         initialUsers={[]} // Empty array - users will be loaded client-side
         accessTiers={serializedAccessTiers}

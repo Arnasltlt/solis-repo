@@ -37,7 +37,7 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
     const content = await getContentById(params.id, supabase)
     
     if (!content) {
-      return redirect('/manage/content?error=Content+not+found')
+      return redirect('/manage/content?error=Turinys+nerastas')
     }
     
     const serializedContent = serializeForClient(content.content_body || '')
@@ -45,14 +45,14 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
     return (
       <div className="container py-8">
         <div className="mb-6">
-          <PageHeader title="Content Editor" backUrl="/" />
+          <PageHeader title="Turinio redaktorius" backUrl="/" />
           
           <div className="mt-4 flex justify-between items-center">
-            <p className="text-gray-600">Edit your content body</p>
+            <p className="text-gray-600">Redaguokite turinio tekstą</p>
             <Button asChild variant="outline">
               <Link href="/">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Homepage
+                Atgal į pradžios puslapį
               </Link>
             </Button>
           </div>
@@ -63,6 +63,7 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
     )
   } catch (error) {
     console.error('Error fetching content:', error)
-    return redirect('/manage/content?error=Error+fetching+content')
+    return redirect('/manage/content?error=Klaida+gaunant+turinį')
   }
-} 
+}
+

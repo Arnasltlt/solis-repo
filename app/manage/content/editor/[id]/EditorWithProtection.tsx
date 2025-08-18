@@ -28,8 +28,8 @@ export function EditorWithProtection({
     if (!supabase) {
       console.error('Supabase client not initialized');
       toast({
-        title: "Error",
-        description: "Database connection not available",
+        title: "Klaida",
+        description: "Duomenų bazės ryšys nepasiekiamas",
         variant: "destructive"
       });
       return;
@@ -65,7 +65,7 @@ export function EditorWithProtection({
       if (error) {
         console.error('Error updating content:', error);
         toast({
-          title: "Error updating content",
+          title: "Klaida atnaujinant turinį",
           description: error.message,
           variant: "destructive"
         });
@@ -159,8 +159,8 @@ export function EditorWithProtection({
       }
       
       toast({
-        title: "Content updated",
-        description: "Your content has been updated successfully"
+        title: "Turinys atnaujintas",
+        description: "Jūsų turinys sėkmingai atnaujintas"
       });
       
       // Redirect to content list
@@ -169,8 +169,8 @@ export function EditorWithProtection({
     } catch (error) {
       console.error('Error submitting content:', error);
       toast({
-        title: "Error",
-        description: "Failed to update content. Please try again.",
+        title: "Klaida",
+        description: "Nepavyko atnaujinti turinio. Bandykite dar kartą.",
         variant: "destructive"
       });
     }

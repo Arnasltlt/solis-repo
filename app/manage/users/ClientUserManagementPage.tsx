@@ -76,8 +76,8 @@ export function ClientUserManagementPage({
     } catch (error) {
       console.error('Error loading users:', error);
       toast({
-        title: "Error",
-        description: "Failed to load users. Please try again.",
+        title: "Klaida",
+        description: "Nepavyko įkelti vartotojų. Bandykite dar kartą.",
         variant: "destructive"
       });
     }
@@ -124,8 +124,8 @@ export function ClientUserManagementPage({
         }));
         
         toast({
-          title: "Success",
-          description: `User's access tier has been updated`,
+          title: "Sėkmė",
+          description: `Vartotojo prieigos lygis atnaujintas`,
         });
       } else {
         throw new Error('Failed to update user tier');
@@ -133,8 +133,8 @@ export function ClientUserManagementPage({
     } catch (error) {
       console.error('Error updating user tier:', error);
       toast({
-        title: "Error",
-        description: "Failed to update user tier. Please try again.",
+        title: "Klaida",
+        description: "Nepavyko atnaujinti vartotojo prieigos lygio. Bandykite dar kartą.",
         variant: "destructive"
       });
     } finally {
@@ -158,13 +158,13 @@ export function ClientUserManagementPage({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>User Management</CardTitle>
-        <CardDescription>Manage user access tiers and permissions</CardDescription>
+        <CardTitle>Vartotojų valdymas</CardTitle>
+        <CardDescription>Valdykite vartotojų prieigos lygius ir leidimus</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mb-4">
           <Input
-            placeholder="Search users by email..."
+            placeholder="Ieškoti vartotojų pagal el. paštą..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -175,17 +175,17 @@ export function ClientUserManagementPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Current Tier</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>El. paštas</TableHead>
+                <TableHead>Esamas lygis</TableHead>
+                <TableHead>Sukūrimo data</TableHead>
+                <TableHead>Veiksmai</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    No users found
+                    Vartotojų nerasta
                   </TableCell>
                 </TableRow>
               ) : (
@@ -194,13 +194,13 @@ export function ClientUserManagementPage({
                     <TableCell className="font-medium">{user.email}</TableCell>
                     <TableCell>
                       <Badge variant={getTierBadgeVariant(user.tierName) as any}>
-                        {user.tierName || 'Unknown'}
+                        {user.tierName || 'Nežinoma'}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       {user.created_at 
                         ? new Date(user.created_at).toLocaleDateString() 
-                        : 'Unknown'}
+                        : 'Nežinoma'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -210,7 +210,7 @@ export function ClientUserManagementPage({
                           disabled={isUpdating === user.id}
                         >
                           <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Select tier" />
+                            <SelectValue placeholder="Pasirinkite lygį" />
                           </SelectTrigger>
                           <SelectContent>
                             {accessTiers.map((tier) => (
