@@ -124,10 +124,18 @@ export const VimeoBlock = Node.create<VimeoBlockOptions>({
 
     return [
       {
-        find: /https?:\/\/(www\.)?vimeo\.com\/(\d+)(?:\?.*)?/g,
+        find: /(?:https?:\/\/)?(?:www\.)?(?:vimeo\.com\/(\d+)(?:\/[a-zA-Z0-9_-]+)?|player\.vimeo\.com\/video\/(\d+))(?:\?.*)?/g,
         handler: ({ match, chain, editor }: any) => {
-          const videoId = match[2] // Extract the ID from the URL
+          const videoId = match[1] || match[2] // Extract the ID from the URL
           if (videoId) {
+            // Show a brief toast notification
+            if (typeof window !== 'undefined' && window.toast) {
+              window.toast({
+                title: "Vimeo video detected",
+                description: "Converting URL to embedded video...",
+              });
+            }
+            
             chain().insertContent({
               type: this.name,
               attrs: {

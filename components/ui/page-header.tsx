@@ -17,7 +17,7 @@ interface PageHeaderProps {
  * - Page title
  * - Back button to return to previous page
  */
-export function PageHeader({ title, backUrl = '/' }: PageHeaderProps) {
+export function PageHeader({ title, backUrl }: PageHeaderProps) {
   const router = useRouter()
 
   return (

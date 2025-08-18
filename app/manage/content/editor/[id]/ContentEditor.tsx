@@ -13,6 +13,13 @@ import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
 import { isBrowser } from '@/lib/utils/index'
+import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { getAgeGroups, getCategories, getAccessTiers, getContentById, updateContent } from '@/lib/services/content'
 
 // Dynamically import the editor to avoid SSR issues
 const Editor = dynamic(() => import('@/components/editor/editor-wrapper').then(mod => mod.Editor), {
@@ -39,15 +46,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   const [isSaving, setIsSaving] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   
-  // Log auth status on load
-  useEffect(() => {
-    console.log('ContentEditor auth status:', {
-      userRole,
-      authLoading,
-      isAdmin: isAdmin(),
-      canManageContent: canManageContent()
-    })
-  }, [userRole, authLoading, isAdmin, canManageContent])
+
   
   // Set initial content
   useEffect(() => {
@@ -141,7 +140,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     const autoSaveTimer = setTimeout(async () => {
       try {
         if (isSaving) return
-        console.log('Auto-saving content...')
+
         
         // Get auth token for the API request header
         let token = ''
@@ -169,7 +168,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
         
         setLastSavedContent(editorContent)
         setLastAutoSave(new Date())
-        console.log('Auto-save successful at', new Date().toLocaleTimeString())
+
       } catch (error) {
         console.error('Error during auto-save:', error)
       }
@@ -182,7 +181,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   const saveContent = async () => {
     try {
       setIsSaving(true)
-      console.log(`Saving content for ID: ${contentId}, content length: ${editorContent.length}`)
+
       
       // Get auth token for the API request header
       let token = ''
@@ -216,7 +215,6 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
             // Wait before retrying (exponential backoff)
             if (retries < maxRetries) {
               const delayMs = 1000 * Math.pow(2, retries);
-              console.log(`Retrying in ${delayMs}ms...`);
               await new Promise(resolve => setTimeout(resolve, delayMs));
             } else {
               throw new Error(errorData.error || 'Failed to save content');
@@ -244,14 +242,14 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
         }
       }
       
-      console.log('Content saved successfully')
+
       
       toast({
         title: "Content saved",
         description: "Your content has been saved successfully"
       })
       
-      // Automatically redirect to homepage after saving
+      // Redirect to homepage after saving
       router.push('/')
     } catch (error) {
       console.error('Error saving content:', error)
@@ -271,9 +269,9 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     }
   }
   
-  // Handle going back to homepage
+  // Handle going back to content management
   const handleBack = () => {
-    router.push('/')
+    router.push('/manage/content/list')
   }
   
   // Add keyboard shortcut for saving
@@ -293,9 +291,98 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isSaving, saveContent])
-  
+
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [detailsLoading, setDetailsLoading] = useState(false)
+  const [metaTitle, setMetaTitle] = useState('')
+  const [metaDescription, setMetaDescription] = useState('')
+  const [metaType, setMetaType] = useState<'video'|'audio'|'lesson_plan'|'game'>('video')
+  const [metaAgeGroups, setMetaAgeGroups] = useState<string[]>([])
+  const [metaCategories, setMetaCategories] = useState<string[]>([])
+  const [metaAccessTier, setMetaAccessTier] = useState<string>('')
+  const [metaPublished, setMetaPublished] = useState<boolean>(false)
+  const [refAgeGroups, setRefAgeGroups] = useState<any[]>([])
+  const [refCategories, setRefCategories] = useState<any[]>([])
+  const [refAccessTiers, setRefAccessTiers] = useState<any[]>([])
+
+  const openDetails = async () => {
+    try {
+      setDetailsOpen(true)
+      setDetailsLoading(true)
+      // Load refs in parallel
+      const [ags, cats, tiers] = await Promise.all([
+        getAgeGroups(),
+        getCategories(),
+        getAccessTiers()
+      ])
+      setRefAgeGroups(ags || [])
+      setRefCategories(cats || [])
+      setRefAccessTiers(tiers || [])
+      // Load current content snapshot
+      const content = await getContentById(contentId)
+      if (content) {
+        setMetaTitle(content.title || '')
+        setMetaDescription(content.description || '')
+        setMetaType(content.type)
+        setMetaAgeGroups((content.age_groups || []).map((ag: any) => ag.id))
+        setMetaCategories((content.categories || []).map((c: any) => c.id))
+        setMetaAccessTier(content.access_tier?.id || '')
+        setMetaPublished(!!content.published)
+      }
+    } catch (e) {
+      console.error('Failed to load details refs/content', e)
+      toast({ title: 'Error', description: 'Failed to load details', variant: 'destructive' })
+    } finally {
+      setDetailsLoading(false)
+    }
+  }
+
+  const toggleIdIn = (list: string[], id: string) => (
+    list.includes(id) ? list.filter(x => x !== id) : [...list, id]
+  )
+
+  const saveDetails = async () => {
+    try {
+      if (!supabase) return
+      setIsSaving(true)
+      await updateContent(
+        contentId,
+        {
+          title: metaTitle,
+          description: metaDescription,
+          type: metaType,
+          ageGroups: metaAgeGroups,
+          categories: metaCategories,
+          accessTierId: metaAccessTier,
+          published: metaPublished
+        },
+        supabase
+      )
+      toast({ title: 'Details saved', description: 'Metadata updated successfully' })
+      setDetailsOpen(false)
+    } catch (e: any) {
+      console.error('Failed to save details', e)
+      toast({ title: 'Error', description: e?.message || 'Failed to save details', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ProtectedRoute requiredRole={UserRoles.ADMIN}>
+
+      
       <Card className="p-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -309,15 +396,42 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
             </div>
             <div className="space-x-2 flex items-center">
               <div className="mr-4 flex items-center">
-                <input
-                  type="checkbox"
-                  id="autoSaveToggle"
-                  checked={autoSaveEnabled}
-                  onChange={() => setAutoSaveEnabled(!autoSaveEnabled)}
-                  className="mr-2"
-                />
-                <label htmlFor="autoSaveToggle" className="text-sm">Auto-save</label>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    id="autoSaveToggle"
+                    checked={autoSaveEnabled}
+                    onChange={() => setAutoSaveEnabled(!autoSaveEnabled)}
+                    className="sr-only"
+                  />
+                  <label 
+                    htmlFor="autoSaveToggle"
+                    className={cn(
+                      "flex items-center cursor-pointer p-2 rounded-md transition-colors duration-200",
+                      autoSaveEnabled 
+                        ? "bg-green-100 text-green-700 hover:bg-green-200" 
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-2 h-2 rounded-full mr-2 transition-colors duration-200",
+                      autoSaveEnabled ? "bg-green-500" : "bg-gray-400"
+                    )} />
+                    <span className="text-sm font-medium">
+                      Auto-save {autoSaveEnabled ? "ON" : "OFF"}
+                    </span>
+                  </label>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={openDetails}
+                className={cn("text-xs hover:bg-gray-100")}
+              >
+                Details
+              </Button>
+              
               <Button
                 variant="outline"
                 onClick={handleBack}
@@ -333,12 +447,16 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
                 disabled={isSaving}
                 type="button"
                 title="Save (Ctrl+S)"
+                className="relative overflow-hidden"
               >
                 {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                    <div className="w-16 bg-white/20 h-1 rounded-full overflow-hidden">
+                      <div className="bg-white h-1 rounded-full animate-pulse" style={{ width: '60%' }} />
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <Save className="mr-2 h-4 w-4" />
@@ -350,6 +468,22 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
           </div>
           
           <div className="min-h-[500px] border rounded-md">
+            {/* Smart Save Status Indicator */}
+            <div className="flex items-center space-x-2 p-3 border-b bg-gray-50">
+              <div className={cn(
+                "w-2 h-2 rounded-full transition-all duration-200",
+                editorContent !== lastSavedContent ? "bg-yellow-400 animate-pulse" : "bg-green-400"
+              )} />
+              <span className="text-xs text-gray-600 font-medium">
+                {editorContent !== lastSavedContent ? "Unsaved changes" : "All changes saved"}
+              </span>
+              {lastAutoSave && (
+                <span className="text-xs text-gray-500 ml-auto">
+                  Last auto-save: {lastAutoSave.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+            
             <Editor
               initialData={editorContent}
               onChange={handleContentChange}
@@ -358,9 +492,69 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
             />
           </div>
           
+          {/* Contextual Toolbar Hints */}
+          <div className="text-xs text-gray-400 mt-3 text-center p-2 bg-gray-50 rounded-md">
+            <span className="font-medium">💡 Pro tip:</span> 
+            {editorContent.length > 800 
+              ? "Content is getting long - consider adding headings to organize it better" 
+              : editorContent.length > 500 
+              ? "Great progress! Use headings and lists to structure your content"
+              : editorContent.length > 100
+              ? "Content is taking shape! Try adding some formatting or media"
+              : "Start typing to see formatting options and tips appear here"}
+          </div>
+          
+          {/* Keyboard Shortcut Badges */}
+          <div className="flex justify-center space-x-2 mt-2">
+            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md border">
+              ⌘S Save
+            </span>
+            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md border">
+              ⌘Z Undo
+            </span>
+            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md border">
+              ⌘Y Redo
+            </span>
+          </div>
+          
+          {/* Floating Action Button for Quick Actions */}
+          <div className="fixed bottom-6 right-6 z-50">
+            <Button
+              size="sm"
+              className={cn(
+                "rounded-full shadow-lg hover:shadow-xl transition-all duration-200",
+                "w-12 h-12 p-0",
+                editorContent !== lastSavedContent 
+                  ? "bg-blue-500 hover:bg-blue-600 text-white" 
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+              )}
+              onClick={saveContent}
+              disabled={isSaving}
+              title={editorContent !== lastSavedContent ? "Save changes" : "No changes to save"}
+            >
+              {isSaving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Save className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+          
           <div className="text-xs text-gray-500 flex justify-between">
-            <div>
-              Content length: {editorContent.length} characters
+            <div className="flex items-center space-x-2">
+              <div className="w-20 bg-gray-200 rounded-full h-2">
+                <div 
+                  className={cn(
+                    "h-2 rounded-full transition-all duration-300",
+                    editorContent.length > 800 ? "bg-red-500" : 
+                    editorContent.length > 500 ? "bg-yellow-500" : "bg-blue-500"
+                  )}
+                  style={{ width: `${Math.min((editorContent.length / 1000) * 100, 100)}%` }}
+                />
+              </div>
+              <span className="text-gray-500">
+                {editorContent.length}/1000 chars
+              </span>
             </div>
             <div>
               Keyboard shortcuts: Ctrl+S to save
@@ -368,6 +562,90 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
           </div>
         </div>
       </Card>
+
+      {/* Details Modal */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Details</DialogTitle>
+            <DialogDescription>Update metadata for this content item.</DialogDescription>
+          </DialogHeader>
+
+          {detailsLoading ? (
+            <div className="py-12 text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-gray-600">Loading…</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Title</Label>
+                <Input value={metaTitle} onChange={e => setMetaTitle(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Description</Label>
+                <Textarea rows={3} value={metaDescription} onChange={e => setMetaDescription(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Type</Label>
+                  <Select value={metaType} onValueChange={v => setMetaType(v as any)}>
+                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="video">Video</SelectItem>
+                      <SelectItem value="audio">Audio</SelectItem>
+                      <SelectItem value="lesson_plan">Lesson Plan</SelectItem>
+                      <SelectItem value="game">Game</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Access Tier</Label>
+                  <Select value={metaAccessTier} onValueChange={setMetaAccessTier}>
+                    <SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger>
+                    <SelectContent>
+                      {refAccessTiers.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Age Groups</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {refAgeGroups.map((ag) => (
+                    <label key={ag.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={metaAgeGroups.includes(ag.id)} onCheckedChange={() => setMetaAgeGroups(prev => toggleIdIn(prev, ag.id))} />
+                      {ag.range}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Categories</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {refCategories.map((cat) => (
+                    <label key={cat.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={metaCategories.includes(cat.id)} onCheckedChange={() => setMetaCategories(prev => toggleIdIn(prev, cat.id))} />
+                      {cat.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="published-toggle" checked={metaPublished} onCheckedChange={(c) => setMetaPublished(!!c)} />
+                <Label htmlFor="published-toggle" className="text-sm">Published</Label>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Cancel</Button>
+            <Button onClick={saveDetails} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ProtectedRoute>
   )
 }

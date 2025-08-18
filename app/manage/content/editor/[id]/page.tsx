@@ -45,16 +45,10 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
     return (
       <div className="container py-8">
         <div className="mb-6">
-          <PageHeader title="Content Editor" backUrl="/" />
+          <PageHeader title="Content Editor" backUrl="/manage/content/list" />
           
           <div className="mt-4 flex justify-between items-center">
             <p className="text-gray-600">Edit your content body</p>
-            <Button asChild variant="outline">
-              <Link href="/">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Homepage
-              </Link>
-            </Button>
           </div>
         </div>
         

@@ -124,10 +124,18 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
 
     return [
       {
-        find: /(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([a-zA-Z0-9_-]{11})(?:\S*)?/g,
+        find: /(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|music\/watch\?v=))([a-zA-Z0-9_-]{11})(?:\S*)?/g,
         handler: ({ match, chain, editor }: any) => {
           const videoId = match[1] // Extract the ID from the URL
           if (videoId) {
+            // Show a brief toast notification
+            if (typeof window !== 'undefined' && window.toast) {
+              window.toast({
+                title: "YouTube video detected",
+                description: "Converting URL to embedded video...",
+              });
+            }
+            
             chain().insertContent({
               type: this.name,
               attrs: {

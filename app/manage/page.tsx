@@ -34,11 +34,31 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
         
+        {/* Content Management Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <List className="h-5 w-5" />
+              Turinio valdymas
+            </CardTitle>
+            <CardDescription>
+              Valdykite ir redaguokite esamą turinį
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/manage/content/list">
+              <Button className="w-full">
+                Valdyti turinį
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         {/* Content Creation Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Layers className="h-5 w-5" />
+              <Edit className="h-5 w-5" />
               Turinio kūrimas
             </CardTitle>
             <CardDescription>

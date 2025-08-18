@@ -153,12 +153,13 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
   
   // Handle back navigation
   const handleBack = () => {
+    const target = '/manage/content/list'
     if (hasChanges) {
       if (window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
-        router.push('/manage/content?tab=list')
+        router.push(target)
       }
     } else {
-      router.push('/manage/content?tab=list')
+      router.push(target)
     }
   }
   
@@ -269,10 +270,7 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
           <p className="text-gray-500 mt-1">{contentItem.description}</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleBack}
-          >
+          <Button variant="outline" onClick={handleBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>

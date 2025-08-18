@@ -115,7 +115,9 @@ For more details on Vercel deployment, see [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLO
 - `/profile`: User profile management
 - `/manage`: Admin dashboard
 - `/manage/content/new`: Content creation page
-- `/manage/content/edit/[id]`: Content editing page
+- `/manage/content/editor/[id]`: Content editing page (unified)
+
+> Note: Legacy path `/manage/content/edit/[id]` now redirects to `/manage/content/editor/[id]`. The old edit form and alternative creation page have been removed.
 
 ## Payment Integration
 
