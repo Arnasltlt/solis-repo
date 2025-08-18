@@ -231,7 +231,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
                   size="sm" 
                   variant="outline" 
                   className="flex items-center gap-1"
-                  onClick={() => router.push(`/manage/content/edit/${content.id}`)}
+                  onClick={() => router.push(`/manage/content/editor/${content.id}`)}
                 >
                   <PencilIcon className="h-3 w-3" />
                   Edit

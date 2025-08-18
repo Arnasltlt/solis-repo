@@ -124,9 +124,9 @@ export const VimeoBlock = Node.create<VimeoBlockOptions>({
 
     return [
       {
-        find: /https?:\/\/(www\.)?vimeo\.com\/(\d+)(?:\?.*)?/g,
+        find: /(?:https?:\/\/)?(?:www\.)?(?:vimeo\.com\/(\d+)(?:\/[a-zA-Z0-9_-]+)?|player\.vimeo\.com\/video\/(\d+))(?:\?.*)?/g,
         handler: ({ match, chain, editor }: any) => {
-          const videoId = match[2] // Extract the ID from the URL
+          const videoId = match[1] || match[2] // Extract the ID from the URL
           if (videoId) {
             chain().insertContent({
               type: this.name,

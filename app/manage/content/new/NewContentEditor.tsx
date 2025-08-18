@@ -237,11 +237,19 @@ export function NewContentEditor({
       // Show success message
       toast({
         title: "Content created successfully",
-        description: "You can now edit the content body from the content management page",
+        description: "Redirecting to content editor to add the content body",
       })
       
-      // Navigate to homepage where content is displayed  
-      router.push(`/`)
+      // Navigate to content editor to edit the content body
+      const editorUrl = `/manage/content/editor/${contentId}`;
+      console.log('Redirecting to content editor:', editorUrl);
+      console.log('Current authentication state:', { isAuthenticated, loading });
+      
+      // Use a slight delay to ensure the toast is shown before redirecting
+      setTimeout(() => {
+        console.log('Executing redirect to:', editorUrl);
+        router.push(editorUrl);
+      }, 1000);
       
     } catch (err) {
       // --- ADDED DEBUG LOG --- 
@@ -308,17 +316,10 @@ export function NewContentEditor({
       <div className="container py-8">
         <PageHeader
           title="Create New Content"
-          backUrl="/manage"
+          backUrl="/manage/content/list"
         />
         
-        <div className="flex justify-end mb-6">
-          <Button asChild variant="outline">
-            <Link href="/manage">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Link>
-          </Button>
-        </div>
+        
         
         {error && (
           <Alert variant="destructive" className="mb-6">

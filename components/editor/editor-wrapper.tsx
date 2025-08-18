@@ -54,7 +54,7 @@ interface EditorProps {
 }
 
 // Enhanced video ID extraction with better pattern matching and diagnostics
-function extractVideoId(url: string): { platform: string; id: string } | null {
+function extractVideoId(url: string): { platform: string; id: string; title?: string } | null {
   try {
     // Sanitize URL input
     url = url.trim();
@@ -98,32 +98,33 @@ function extractVideoId(url: string): { platform: string; id: string } | null {
       console.log('Extracted YouTube ID (shorts format):', match[1]);
       return { platform: 'youtube', id: match[1] };
     }
-
-    // Vimeo - handle multiple URL formats with more comprehensive regex
     
-    // Standard vimeo.com/ID format
-    match = url.match(/vimeo\.com\/(?:video\/|channels\/[^\/]+\/|groups\/[^\/]+\/videos\/|album\/[^\/]+\/video\/)?([0-9]+)(?:\/|\?|#|$)/i);
+    // YouTube music
+    match = url.match(/music\.youtube\.com\/watch\?(?:.*&)?v=([a-zA-Z0-9_-]{11})(?:&|\?|#|$)/i);
     if (match && match[1]) {
-      console.log('Extracted Vimeo ID (standard format):', match[1]);
+      console.log('Extracted YouTube ID (music format):', match[1]);
+      return { platform: 'youtube', id: match[1] };
+    }
+    
+    // Vimeo - handle multiple formats
+    match = url.match(/vimeo\.com\/(\d+)(?:\/|\?|#|$)/i);
+    if (match && match[1]) {
       return { platform: 'vimeo', id: match[1] };
     }
     
-    // Embedded player format
-    match = url.match(/player\.vimeo\.com\/video\/([0-9]+)(?:\/|\?|#|$)/i);
+    // Vimeo player URLs
+    match = url.match(/player\.vimeo\.com\/video\/(\d+)(?:\/|\?|#|$)/i);
     if (match && match[1]) {
-      console.log('Extracted Vimeo ID (player format):', match[1]);
       return { platform: 'vimeo', id: match[1] };
     }
     
-    // App links
-    match = url.match(/vimeo\.com\/app\/([0-9]+)/i);
+    // Vimeo with title
+    match = url.match(/vimeo\.com\/(\d+)\/([a-zA-Z0-9_-]+)/i);
     if (match && match[1]) {
-      console.log('Extracted Vimeo ID (app format):', match[1]);
-      return { platform: 'vimeo', id: match[1] };
+      return { platform: 'vimeo', id: match[1], title: match[2] };
     }
     
-    // If we got here, no patterns matched
-    console.log('No recognized video platform or ID found in URL:', url);
+    // No match found
     return null;
   } catch (error) {
     console.error('Error extracting video ID:', error);
@@ -131,49 +132,51 @@ function extractVideoId(url: string): { platform: string; id: string } | null {
   }
 }
 
-// Function to validate a video URL input
-function validateVideoUrl(url: string): string | null {
-  // Empty check
-  if (!url || url.trim() === '') {
+// Enhanced video URL validation with better error messages
+const validateVideoUrl = (url: string): string | null => {
+  if (!url.trim()) {
     return 'Please enter a video URL';
   }
   
-  // Basic format check
+  // Check if it's a valid URL format
   try {
-    // Try to parse URL - will throw if malformed
     new URL(url.startsWith('http') ? url : `https://${url}`);
-  } catch (e) {
-    return 'Please enter a valid URL';
+  } catch {
+    return 'Please enter a valid URL format';
   }
   
-  // Video platform check
-  if (!url.includes('youtube') && !url.includes('youtu.be') && !url.includes('vimeo')) {
-    return 'Only YouTube and Vimeo videos are supported';
+  // Check if it's a supported platform
+  const videoInfo = extractVideoId(url);
+  if (!videoInfo) {
+    return 'This video platform is not supported. We support YouTube and Vimeo videos.';
   }
   
-  // If everything passed, return null (no error)
-  return null;
-}
+  // Platform-specific validation
+  switch (videoInfo.platform) {
+    case 'youtube':
+      if (videoInfo.id.length !== 11) {
+        return 'Invalid YouTube video ID format';
+      }
+      break;
+    case 'vimeo':
+      if (!/^\d+$/.test(videoInfo.id)) {
+        return 'Invalid Vimeo video ID format';
+      }
+      break;
+  }
+  
+  return null; // URL is valid
+};
 
 // Improved video embed URL generation with proper parameters
 function getVideoEmbedSrc(platform: string, id: string): string {
-  try {
-    switch (platform) {
-      case 'youtube':
-        // Use regular youtube.com since youtube-nocookie might be blocked
-        // Safely handle window.location for SSR
-        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&origin=${encodeURIComponent(origin)}`;
-      case 'vimeo':
-        // Add parameters for better embedding
-        return `https://player.vimeo.com/video/${id}?dnt=1`;
-      default:
-        console.error('Unknown platform:', platform);
-        return '';
-    }
-  } catch (error) {
-    console.error('Error generating embed URL:', error);
-    return '';
+  switch (platform) {
+    case 'youtube':
+      return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&showinfo=0&controls=1&origin=${encodeURIComponent(window.location.origin)}`;
+    case 'vimeo':
+      return `https://player.vimeo.com/video/${id}?dnt=1&title=0&byline=0&portrait=0`;
+    default:
+      return '';
   }
 }
 
@@ -424,7 +427,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
       // Prepare the HTML content to insert
       let videoHtml = '';
       if (videoInfo.platform === 'youtube') {
-        const embedUrl = `https://www.youtube.com/embed/${videoInfo.id}?rel=0&modestbranding=1`;
+        const embedUrl = getVideoEmbedSrc('youtube', videoInfo.id);
         videoHtml = `
           <div class="video-block youtube-block">
             <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin: 1.5em 0;">
@@ -438,10 +441,10 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
             </div>
             <p class="video-caption">YouTube video: <a href="${videoUrl}" target="_blank" rel="noopener noreferrer">${videoInfo.id}</a></p>
           </div>
-          <p></p> // Add paragraph after for spacing
+          <p></p>
         `;
       } else if (videoInfo.platform === 'vimeo') {
-        const embedUrl = `https://player.vimeo.com/video/${videoInfo.id}?dnt=1`;
+        const embedUrl = getVideoEmbedSrc('vimeo', videoInfo.id);
         videoHtml = `
           <div class="video-block vimeo-block">
             <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin: 1.5em 0;">
@@ -455,7 +458,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
             </div>
             <p class="video-caption">Vimeo video: <a href="${videoUrl}" target="_blank" rel="noopener noreferrer">${videoInfo.id}</a></p>
           </div>
-          <p></p> // Add paragraph after for spacing
+          <p></p>
         `;
       }
 
@@ -839,7 +842,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
               <Input
                 id="video-url"
                 type="url"
-                placeholder="https://youtube.com/watch?v=xxxx or https://vimeo.com/xxxx"
+                placeholder="Paste any supported video URL here..."
                 value={videoUrl}
                 onChange={(e) => {
                   setVideoUrl(e.target.value)
@@ -859,17 +862,41 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
             </div>
             
             <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-md">
-              <p className="font-medium mb-1">Supported formats:</p>
-              <ul className="list-disc pl-5 space-y-1 text-xs">
-                <li>YouTube: youtube.com/watch?v=ID or youtu.be/ID</li>
-                <li>YouTube Shorts: youtube.com/shorts/ID</li>
-                <li>Vimeo: vimeo.com/ID</li>
-                <li>Embedded links (player.vimeo.com/video/ID or youtube.com/embed/ID)</li>
-              </ul>
+              <p className="font-medium mb-2">🎥 Supported platforms:</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center space-x-2">
+                  <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                  <span>YouTube (all formats)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                  <span>Vimeo</span>
+                </div>
+              </div>
               <p className="mt-2 text-xs">
-                <strong>Tip:</strong> You can add multiple videos by repeating this process at different positions in your content.
+                <strong>💡 Pro tip:</strong> You can paste URLs directly from your browser's address bar. The editor will automatically detect the platform and format.
               </p>
             </div>
+            
+            {videoUrl && !videoError && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm text-blue-600 font-medium">Video detected!</span>
+                </div>
+                <div className="text-xs text-blue-600">
+                  {(() => {
+                    const videoInfo = extractVideoId(videoUrl);
+                    if (videoInfo) {
+                      return `Ready to embed ${videoInfo.platform === 'youtube' ? 'YouTube' : 'Vimeo'} video: ${videoInfo.id}`;
+                    }
+                    return 'URL looks good! Click "Embed Video" to add it to your content.';
+                  })()}
+                </div>
+              </div>
+            )}
             
             {videoError && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3">
@@ -883,6 +910,9 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
             )}
           </div>
           <DialogFooter>
+            <div className="text-xs text-gray-500 mr-auto">
+              Press <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Enter</kbd> to embed, <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Esc</kbd> to cancel
+            </div>
             <Button
               variant="outline"
               onClick={() => {
@@ -1313,94 +1343,6 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
               box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             }
             
-            /* YouTube Block Styling */
-            .youtube-block {
-              display: block;
-              width: 100%;
-              margin: 2rem 0;
-              border-radius: 8px;
-              overflow: hidden;
-              max-width: 100%;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            }
-            
-            /* Generic video container styling */
-            .video-container, .youtube-container, .vimeo-container {
-              position: relative;
-              padding-bottom: 56.25%; /* 16:9 aspect ratio */
-              height: 0;
-              overflow: hidden;
-              background-color: #000;
-              margin: 1.5rem 0;
-              border-radius: 8px;
-            }
-            
-            .youtube-thumbnail {
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-              transition: transform 0.3s ease;
-            }
-            
-            .youtube-link:hover .youtube-thumbnail {
-              transform: scale(1.05);
-            }
-            
-            .youtube-play-button {
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              width: 68px;
-              height: 48px;
-              background-color: rgba(0, 0, 0, 0.7);
-              border-radius: 14px;
-              pointer-events: none;
-            }
-            
-            .youtube-play-button::after {
-              content: '';
-              position: absolute;
-              top: 50%;
-              left: 55%;
-              transform: translate(-50%, -50%);
-              border-style: solid;
-              border-width: 12px 0 12px 20px;
-              border-color: transparent transparent transparent white;
-            }
-            
-            .youtube-caption {
-              padding: 0.5rem;
-              text-align: center;
-              background-color: #f5f5f5;
-            }
-            
-            .youtube-caption a {
-              color: #0066cc;
-              text-decoration: none;
-              font-weight: 500;
-            }
-            
-            .youtube-caption a:hover {
-              text-decoration: underline;
-            }
-            
-            /* Ensure the YouTube block shows up in the content display */
-            .prose [data-youtube-block],
-            .content-container [data-youtube-block],
-            .ProseMirror [data-youtube-block] {
-              display: block;
-              width: 100%;
-              margin: 2rem 0;
-              border-radius: 8px;
-              overflow: hidden;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-              max-width: 100%;
-            }
-            
             /* Vimeo Block Styling */
             .vimeo-block {
               display: block;
@@ -1435,7 +1377,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
             .vimeo-logo {
               width: 100px;
               height: 30px;
-              background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 30" fill="white"><path d="M95.4,8.8c-0.4-3-2.2-5.4-5.4-5.4c-1.7,0-3.1,0.5-4.3,1.6c-1.6,1.5-2.3,3.4-2.3,5.7c0,2.1,0.7,3.8,2.1,5.2 c1.4,1.4,3.1,2.1,5.1,2.1c2.2,0,4-0.7,5.3-2.2C96.1,14.4,95.9,11.9,95.4,8.8z M90.1,14.6c-0.8,0.9-1.7,1.4-2.8,1.4 c-1.2,0-2.1-0.5-2.9-1.4C83.6,13.7,83,13,83,11c0-1.4,0.3-2.5,0.9-3.4c0.7-1,1.7-1.4,2.9-1.4c1.1,0,2,0.5,2.8,1.4 c0.7,0.9,1.1,2.1,1.1,3.4C90.7,12.4,90.5,13.6,90.1,14.6z M79.1,3.4c-0.7,0-1.1,0.2-1.4,0.5c-0.3,0.3-0.5,0.8-0.5,1.4v7.5 c-0.6,0.7-1.2,1.3-1.8,1.8c-0.9,0.7-1.5,1-2,1c-0.5,0-0.9-0.2-1.1-0.6c-0.2-0.4-0.4-1-0.4-1.8V5.2c0-0.5-0.2-1-0.5-1.3 c-0.3-0.3-0.8-0.5-1.3-0.5c-1.2,0-1.8,0.6-1.8,1.9v8.5c0,1.3,0.3,2.3,0.8,3c0.5,0.7,1.4,1.1,2.4,1.1c1.4,0,2.8-0.6,4.3-1.8 c0.1,0.5,0.4,1,0.7,1.3c0.4,0.3,0.8,0.5,1.4,0.5c0.5,0,1-0.2,1.3-0.5c0.3-0.3,0.5-0.8,0.5-1.3V5.2c0-0.5-0.2-1-0.6-1.3 C80,3.6,79.6,3.4,79.1,3.4z M65.6,12.1c-0.7,0.7-1.3,1.3-1.9,1.7c-0.8,0.6-1.4,0.9-1.9,0.9c-0.8,0-1.2-0.6-1.2-1.9V5.7h2.6 c0.5,0,0.9-0.1,1.2-0.4c0.3-0.2,0.4-0.6,0.4-1.1c0-0.5-0.1-0.8-0.4-1.1c-0.3-0.2-0.7-0.4-1.2-0.4h-2.6V1.3c0-0.6-0.2-1-0.5-1.3 C59.8,0,59.3,0,58.9,0c-1.2,0-1.9,0.5-1.9,1.5v18.8c0,1.2,0.3,2.1,0.8,2.7c0.6,0.7,1.4,1,2.4,1c1.4,0,3-0.8,4.7-2.5 c0.9-0.9,1.7-1.8,2.4-2.7V13C66.8,10.7,66.4,11.2,65.6,12.1z M46.8,3.4c-1.5,0-2.9,0.5-4.1,1.6c-1.6,1.4-2.4,3.2-2.4,5.5 c0,2.3,0.7,4.1,2.2,5.5c1.5,1.4,3.2,2.1,5.2,2.1c0.9,0,1.7-0.1,2.5-0.3c0.8-0.2,1.5-0.4,2.1-0.8c0.5-0.3,0.7-0.7,0.7-1.1 c0-0.4-0.1-0.7-0.4-1c-0.3-0.3-0.6-0.4-1-0.4c-0.2,0-0.4,0-0.6,0.1c-0.2,0.1-0.5,0.2-0.9,0.3c-0.8,0.3-1.5,0.4-2.2,0.4 c-1.1,0-2-0.4-2.8-1.1c-0.7-0.7-1.1-1.7-1.1-2.9h8.3c0.6,0,1.1-0.1,1.4-0.4c0.3-0.3,0.5-0.7,0.5-1.2c0-1.7-0.6-3.2-1.7-4.5 C49.5,4,48.2,3.4,46.8,3.4z M44.2,8.7c0.1-0.7,0.4-1.3,0.9-1.8c0.5-0.5,1.2-0.7,1.9-0.7c0.7,0,1.3,0.2,1.7,0.7 c0.4,0.5,0.7,1.1,0.7,1.8H44.2z M37.1,3.4c-1.2,0-1.9,0.6-1.9,1.9v10c0,0.6,0.2,1,0.5,1.3c0.3,0.3,0.8,0.5,1.3,0.5 c0.6,0,1-0.2,1.4-0.5c0.3-0.3,0.5-0.8,0.5-1.3v-10c0-0.5-0.2-1-0.5-1.3C38,3.6,37.6,3.4,37.1,3.4z M37.1,1.8 c0.7,0,1.2-0.2,1.7-0.5C39.3,0.9,39.5,0.5,39.5,0c0-0.5-0.2-0.9-0.6-1.2C38.4-0.5,37.9-0.6,37.2-0.6c-0.7,0-1.2,0.2-1.7,0.5 c-0.5,0.3-0.7,0.7-0.7,1.2c0,0.5,0.2,0.9,0.6,1.2C35.9,1.6,36.4,1.8,37.1,1.8z M26.9,16.4c-0.9,0-1.7-0.3-2.3-1 c-0.6-0.7-0.9-1.5-0.9-2.6V4.9h1.8c0.6,0,1-0.1,1.3-0.4c0.3-0.3,0.4-0.7,0.4-1.1c0-0.5-0.1-0.8-0.4-1.1c-0.3-0.3-0.7-0.4-1.3-0.4 h-1.8V0.8c0-0.5-0.2-1-0.5-1.3C22.9-0.8,22.5-1,22-1c-0.5,0-0.9,0.2-1.3,0.5c-0.3,0.3-0.5,0.7-0.5,1.3v1.1h-0.6 c-0.5,0-1,0.1-1.3,0.4c-0.3,0.3-0.4,0.6-0.4,1.1c0,0.4,0.1,0.8,0.4,1.1c0.3,0.3,0.7,0.4,1.3,0.4h0.6v8c0,1.8,0.5,3.2,1.6,4.3 c1.1,1.1,2.5,1.6,4.2,1.6c0.5,0,1-0.1,1.6-0.2c0.5-0.1,0.9-0.3,1.1-0.5c0.2-0.2,0.3-0.5,0.3-0.9c0-0.4-0.1-0.7-0.4-1 c-0.3-0.3-0.6-0.4-1-0.4C27.4,16.4,27.1,16.4,26.9,16.4z M17.2,3.4c-0.6,0-1.1,0.2-1.4,0.5c-0.3,0.3-0.5,0.8-0.5,1.3v10 c0,0.6,0.2,1,0.5,1.3c0.3,0.3,0.8,0.5,1.4,0.5c0.5,0,1-0.2,1.3-0.5c0.3-0.3,0.5-0.8,0.5-1.3v-10c0-0.5-0.2-1-0.5-1.3 C18.2,3.6,17.8,3.4,17.2,3.4z M17.2,1.8c0.7,0,1.2-0.2,1.7-0.5C19.3,0.9,19.6,0.5,19.6,0c0-0.5-0.2-0.9-0.6-1.2 c-0.4-0.3-0.9-0.5-1.7-0.5c-0.7,0-1.2,0.2-1.7,0.5c-0.5,0.3-0.7,0.7-0.7,1.2c0,0.5,0.2,0.9,0.6,1.2C16,1.6,16.5,1.8,17.2,1.8z M6.9,15.8c-0.7,0-1.2-0.3-1.8-0.8C4.6,14.6,4.3,14,4.3,13.4c0-0.6,0.3-1.2,0.8-1.7c0.5-0.5,1.1-0.7,1.8-0.7 c0.6,0,1.1,0.3,1.6,0.8c0.5,0.5,0.7,1.1,0.7,1.7c0,0.6-0.2,1.2-0.7,1.6C8,15.5,7.5,15.8,6.9,15.8z M2.2,15.8c-0.7,0-1.2-0.3-1.7-0.8 C0.1,14.6,0,14,0,13.4c0-0.6,0.2-1.2,0.7-1.7c0.5-0.5,1.1-0.7,1.7-0.7c0.6,0,1.1,0.3,1.6,0.8c0.5,0.5,0.7,1.1,0.7,1.7 c0,0.6-0.2,1.2-0.7,1.7C3.5,15.5,3,15.8,2.2,15.8z"/></svg>');
+              background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 30" fill="white"><path d="M95.4,8.8c-0.4-3-2.2-5.4-5.4-5.4c-1.7,0-3.1,0.5-4.3,1.6c-1.6,1.5-2.3,3.4-2.3,5.7c0,2.1,0.7,3.8,2.1,5.2 c1.4,1.4,3.1,2.1,5.1,2.1c2.2,0,4-0.7,5.3-2.2C96.1,14.4,95.9,11.9,95.4,8.8z M90.1,14.6c-0.8,0.9-1.7,1.4-2.8,1.4 c-1.2,0-2.1-0.5-2.9-1.4C83.6,13.7,83,13,83,11c0-1.4,0.3-2.5,0.9-3.4c0.7-1,1.7-1.4,2.9-1.4c1.1,0,2,0.5,2.8,1.4 c0.7,0.9,1.1,2.1,1.1,3.4C90.7,12.4,90.5,13.6,90.1,14.6z M79.1,3.4c-0.7,0-1.1,0.2-1.4,0.5c-0.3,0.3-0.5,0.8-0.5,1.4v7.5 c-0.6,0.7-1.2,1.3-1.8,1.8c-0.9,0.7-1.5,1-2,1c-0.5,0-0.9-0.2-1.1-0.6c-0.2-0.4-0.4-1-0.4-1.8V5.2c0-0.5-0.2-1-0.5-1.3 c-0.3-0.3-0.8-0.5-1.3-0.5c-1.2,0-1.8,0.6-1.8,1.9v8.5c0,1.3,0.3,2.3,0.8,3c0.5,0.7,1.4,1.1,2.4,1.1c1.4,0,2.8-0.6,4.3-1.8 c0.1,0.5,0.4,1,0.7,1.3c0.4,0.3,0.8,0.5,1.4,0.5c0.5,0,1-0.2,1.3-0.5c0.3-0.3,0.5-0.8,0.5-1.3V5.2c0-0.5-0.2-1-0.6-1.3 C80,3.6,79.6,3.4,79.1,3.4z M65.6,12.1c-0.7,0.7-1.3,1.3-1.9,1.7c-0.8,0.6-1.4,0.9-1.9,0.9c-0.8,0-1.2-0.6-1.2-1.9V5.7h2.6 c0.5,0,0.9-0.1,1.2-0.4c0.3-0.2,0.4-0.6,0.4-1.1c0-0.5-0.1-0.8-0.4-1.1c-0.3-0.3-0.7-0.4-1.2-0.4h-2.6V1.3c0-0.6-0.2-1-0.5-1.3 C59.8,0,59.3,0,58.9,0c-1.2,0-1.9,0.5-1.9,1.5v18.8c0,1.2,0.3,2.1,0.8,2.7c0.6,0.7,1.4,1,2.4,1c1.4,0,3-0.8,4.7-2.5 c0.9-0.9,1.7-1.8,2.4-2.7V13C66.8,10.7,66.4,11.2,65.6,12.1z M46.8,3.4c-1.5,0-2.9,0.5-4.1,1.6c-1.6,1.4-2.4,3.2-2.4,5.5 c0,2.3,0.7,4.1,2.2,5.5c1.5,1.4,3.2,2.1,5.2,2.1c0.9,0,1.7-0.1,2.5-0.3c0.8-0.2,1.5-0.4,2.1-0.8c0.5-0.3,0.7-0.7,0.7-1.1 c0-0.4-0.1-0.7-0.4-1c-0.3-0.3-0.6-0.4-1-0.4c-0.2,0-0.4,0-0.6,0.1c-0.2,0.1-0.5,0.2-0.9,0.3c-0.8,0.3-1.5,0.4-2.2,0.4 c-1.1,0-2-0.4-2.8-1.1c-0.7-0.7-1.1-1.7-1.1-2.9h8.3c0.6,0,1.1-0.1,1.4-0.4c0.3-0.3,0.5-0.7,0.5-1.2c0-1.7-0.6-3.2-1.7-4.5 C49.5,4,48.2,3.4,46.8,3.4z M44.2,8.7c0.1-0.7,0.4-1.3,0.9-1.8c0.5-0.5,1.2-0.7,1.9-0.7c0.7,0,1.3,0.2,1.7,0.7 c0.4,0.5,0.7,1.1,0.7,1.8H44.2z M37.1,3.4c-1.2,0-1.9,0.6-1.9,1.9v10c0,0.6,0.2,1,0.5,1.3c0.3,0.3,0.8,0.5,1.3,0.5 c0.6,0,1-0.2,1.4-0.5c0.3-0.3,0.5-0.8,0.5-1.3v-10c0-0.5-0.2-1-0.5-1.3C38,3.6,37.6,3.4,37.1,3.4z M37.1,1.8 c0.7,0,1.2-0.2,1.7-0.5C39.3,0.9,39.5,0.5,39.5,0c0-0.5-0.2-0.9-0.6-1.2C38.4-0.5,37.9-0.6,37.2-0.6c-0.7,0-1.2,0.2-1.7,0.5 c-0.5,0.3-0.7,0.7-0.7,1.2c0,0.5,0.2,0.9,0.6,1.2C35.9,1.6,36.4,1.8,37.1,1.8z M26.9,16.4c-0.9,0-1.7-0.3-2.3-1 c-0.6-0.7-0.9-1.5-0.9-2.6V4.9h1.8c0.6,0,1-0.1,1.3-0.4c0.3-0.3,0.4-0.7,0.4-1.1c0-0.5-0.1-0.8-0.4-1.1c-0.3-0.3-0.7-0.4-1.3-0.4 h-1.8V0.8c0-0.5-0.2-1-0.5-1.3C22.9-0.8,22.5-1,22-1c-0.5,0-0.9,0.2-1.3,0.5c-0.3,0.3-0.5,0.7-0.5,1.3v1.1h-0.6 c-0.5,0-1,0.1-1.3,0.4c-0.3,0.3-0.4,0.6-0.4,1.1c0,0.4,0.1,0.8,0.4,1.1c0.3,0.3,0.7,0.4,1.3,0.4h0.6v8c0,1.8,0.5,3.2,1.6,4.3 c1.1,1.1,2.5,1.6,4.2,1.6c0.5,0,1-0.1,1.6-0.2c0.5-0.1,0.9-0.3,1.1-0.5c0.2-0.2,0.3-0.5,0.3-0.9c0-0.4-0.1-0.7-0.4-1 c-0.3-0.3-0.6-0.4-1-0.4C27.4,16.4,27.1,16.4,26.9,16.4z M17.2,3.4c-0.6,0-1.1,0.2-1.4,0.5c-0.3,0.3-0.5,0.8-0.5,1.3v10 c0,0.6,0.2,1,0.5,1.3c0.3,0.3,0.8,0.5,1.4,0.5c0.5,0,1-0.2,1.3-0.5c0.3-0.3,0.5-0.8,0.5-1.3v-10c0-0.5-0.2-1-0.5-1.3 C18.2,3.6,17.8,3.4,17.2,3.4z M17.2,1.8c0.7,0,1.2-0.2,1.7-0.5C19.3,0.9,19.6,0.5,19.6,0c0-0.5-0.2-0.9-0.6-1.2 c-0.4-0.3-0.9-0.5-1.7-0.5c-0.7,0-1.2,0.2-1.7,0.5c-0.5,0.3-0.7,0.7-0.7,1.2c0,0.5,0.2,0.9,0.6,1.2C16,1.6,16.5,1.8,17.2,1.8z M6.9,15.8c-0.7,0-1.2-0.3-1.8-0.8C4.6,14.6,4.3,14,4.3,13.4c0-0.6,0.3-1.2,0.8-1.7c0.5-0.5,1.1-0.7,1.8-0.7 c0.6,0,1.1,0.3,1.6,0.8c0.5,0.5,0.7,1.1,0.7,1.7c0,0.6-0.2,1.2-0.7,1.6C8,15.5,7.5,15.8,6.9,15.8z M2.2,15.8c-0.7,0-1.2-0.3-1.7-0.8 C0.1,14.6,0,14,0,13.4c0-0.6,0.2-1.2,0.7-1.7c0.5-0.5,1.1-0.7,1.7-0.7c0.6,0,1.1,0.3,1.6,0.8c0.5,0.5,0.7,1.1,0.7,1.7 c0,0.6-0.2,1.2-0.7,1.7C3.5,15.5,3,15.8,2.2,15.8z"/></svg>');
               background-repeat: no-repeat;
               background-position: center;
               filter: brightness(1.2);
@@ -1480,9 +1422,50 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
               text-decoration: underline;
             }
             
-            /* Ensure the Vimeo block shows up in the content display */
+            /* YouTube Block Styling */
+            .youtube-block {
+              display: block;
+              width: 100%;
+              margin: 2rem 0;
+              border-radius: 8px;
+              overflow: hidden;
+              max-width: 100%;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Generic video container styling */
+            .video-container, .youtube-container, .vimeo-container {
+              position: relative;
+              padding-bottom: 56.25%; /* 16:9 aspect ratio */
+              height: 0;
+              overflow: hidden;
+              background-color: #000;
+              margin: 1.5rem 0;
+              border-radius: 8px;
+            }
+            
+            .youtube-caption {
+              padding: 0.5rem;
+              text-align: center;
+              background-color: #f5f5f5;
+            }
+            
+            .youtube-caption a {
+              color: #0066cc;
+              text-decoration: none;
+              font-weight: 500;
+            }
+            
+            .youtube-caption a:hover {
+              text-decoration: underline;
+            }
+            
+            /* Ensure all video blocks show up properly in content display */
+            .prose [data-youtube-block],
             .prose [data-vimeo-block],
+            .content-container [data-youtube-block],
             .content-container [data-vimeo-block],
+            .ProseMirror [data-youtube-block],
             .ProseMirror [data-vimeo-block] {
               display: block;
               width: 100%;
@@ -1494,7 +1477,12 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
             }
             
             /* Special node selectors to ensure proper display */
-            div[data-youtube-block], div[data-vimeo-block], .video-block, .youtube-block, .vimeo-block, .ProseMirror .editor-image {
+            div[data-youtube-block], 
+            div[data-vimeo-block], 
+            .video-block, 
+            .youtube-block, 
+            .vimeo-block,
+            .ProseMirror .editor-image {
               position: relative;
               clear: both;
               display: block;

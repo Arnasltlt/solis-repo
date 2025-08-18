@@ -40,7 +40,7 @@ export function ContentManagementPage({
   
   // Handle edit button click
   const handleEdit = (id: string) => {
-    router.push(`/manage/content/edit/${id}`)
+    router.push(`/manage/content/editor/${id}`)
   }
   
   // Handle view button click
@@ -51,6 +51,11 @@ export function ContentManagementPage({
   // Handle edit content button click
   const handleEditContent = (id: string) => {
     router.push(`/manage/content/editor/${id}`)
+  }
+  
+  // Handle edit metadata button click
+  const handleEditMetadata = (id: string) => {
+    router.push(`/manage/content/metadata/${id}`)
   }
   
   return (
@@ -124,16 +129,8 @@ export function ContentManagementPage({
                               size="sm"
                               onClick={() => handleEdit(item.id)}
                             >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canCreate && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditContent(item.id)}
-                            >
-                              Redaguoti turinį
+                              <Edit className="h-4 w-4 mr-2" />
+                              Redaguoti
                             </Button>
                           )}
                           <Button

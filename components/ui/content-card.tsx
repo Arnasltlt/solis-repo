@@ -106,9 +106,9 @@ export function ContentCard({
               size="sm" 
               variant="ghost" 
               className="h-8 text-xs"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/manage/content/edit/${content.id}`);
+              onClick={() => {
+                if (!content?.id) return;
+                router.push(`/manage/content/editor/${content.id}`);
               }}
             >
               <PencilIcon className="h-3 w-3 mr-1" />

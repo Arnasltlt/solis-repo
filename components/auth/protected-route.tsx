@@ -38,17 +38,30 @@ export function ProtectedRoute({
     
     const isSessionValid = !!user || !!session;
     
+    console.log('ProtectedRoute auth check:', {
+      isClient,
+      loading,
+      authCheckComplete,
+      hasUser: !!user,
+      hasSession: !!session,
+      isSessionValid,
+      requiredRole,
+      userRole: user?.role,
+      hasMinimumRole: requiredRole !== UserRoles.FREE ? hasMinimumRole(requiredRole) : true
+    });
+    
     if (isSessionValid) {
       setAuthCheckComplete(true);
       
       if (requiredRole !== UserRoles.FREE && !hasMinimumRole(requiredRole)) {
         console.log(`Role check failed: user does not have minimum required role: ${requiredRole}`);
+        console.log('User details:', { userRole: user?.role, hasMinimumRole: hasMinimumRole(requiredRole) });
         toast({
           title: 'Access denied',
           description: `You need ${requiredRole} access to view this page.`,
           variant: 'destructive',
         });
-        router.push('/');
+        router.push('/manage/content?error=Insufficient+permissions');
       } 
       return;
     }
@@ -58,6 +71,7 @@ export function ProtectedRoute({
       if (isBrowser()) {
         const returnUrl = forcedReturnUrl || pathname;
         const encodedReturnUrl = encodeURIComponent(returnUrl);
+        console.log('Redirecting to login:', { returnUrl, encodedReturnUrl });
         toast({
           title: 'Authentication required',
           description: 'Please sign in to access this page',
