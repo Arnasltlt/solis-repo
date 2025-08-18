@@ -159,7 +159,13 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
         router.push(target)
       }
     } else {
-      router.push(target)
+  const handleBack = () => {
+    const target = '/manage/content/list'
+    if (hasChanges && !window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
+      return;
+    }
+    router.push(target)
+  }
     }
   }
   
