@@ -1,4 +1,4 @@
-import { getContentById } from '@/lib/services/content'
+import { getContentById, getAgeGroups, getCategories, getAccessTiers } from '@/lib/services/content'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { serializeForClient } from '@/lib/utils/serialization'
-import { ContentEditor } from './ContentEditor'
+import { EditorWithProtection } from './EditorWithProtection'
 
 export default async function ContentEditorPage({ params }: { params: { id: string } }) {
   const cookieStore = cookies()
@@ -42,6 +42,25 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
     
     const serializedContent = serializeForClient(content.content_body || '')
     
+    // Fetch supporting metadata
+    const [ageGroups, categories, accessTiers] = await Promise.all([
+      getAgeGroups(supabase as any),
+      getCategories(supabase as any),
+      getAccessTiers(supabase as any),
+    ])
+    
+    // Prepare initial data for the editor form
+    const initialData = {
+      title: content.title,
+      description: content.description || '',
+      type: content.type,
+      ageGroups: (content.age_groups || []).map((ag: any) => ag.id),
+      categories: (content.categories || []).map((cat: any) => cat.id),
+      accessTierId: content.access_tier?.id || content.access_tier_id || '',
+      contentBody: serializedContent as any,
+      published: !!content.published,
+    }
+    
     return (
       <div className="container py-8">
         <div className="mb-6">
@@ -58,7 +77,13 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
           </div>
         </div>
         
-        <ContentEditor contentId={params.id} initialContent={serializedContent} />
+        <EditorWithProtection 
+          contentId={params.id}
+          ageGroups={ageGroups}
+          categories={categories}
+          accessTiers={accessTiers}
+          initialData={initialData}
+        />
       </div>
     )
   } catch (error) {
