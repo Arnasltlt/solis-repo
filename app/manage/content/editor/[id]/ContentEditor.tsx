@@ -336,8 +336,8 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
       setDetailsLoading(false)
     }
   }
-
-  const toggleIdIn = (list: string[], id: string) => (
+        setMetaAgeGroups((content.age_groups || []).map((ag: { id: string }) => ag.id))
+        setMetaCategories((content.categories || []).map((c: { id: string }) => c.id))
     list.includes(id) ? list.filter(x => x !== id) : [...list, id]
   )
 
