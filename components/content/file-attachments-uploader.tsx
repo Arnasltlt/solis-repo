@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { DocumentIcon, XMarkIcon, TrashIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/lib/utils'
 
@@ -19,6 +19,7 @@ interface FileAttachmentsUploaderProps {
   label?: string;
   description?: string;
   maxFiles?: number;
+  onUploadingChange?: (isUploading: boolean) => void;
 }
 
 export function FileAttachmentsUploader({
@@ -27,13 +28,19 @@ export function FileAttachmentsUploader({
   className,
   label = 'Įkelti priedus',
   description = 'PDF, DOC, XLS, ZIP ir kiti formatai iki 50MB',
-  maxFiles = 10
+  maxFiles = 10,
+  onUploadingChange
 }: FileAttachmentsUploaderProps) {
   const [attachments, setAttachments] = useState<AttachmentFile[]>(initialAttachments)
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Keep internal state in sync when initialAttachments prop changes (e.g., in edit forms)
+  useEffect(() => {
+    setAttachments(initialAttachments)
+  }, [initialAttachments])
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
@@ -61,6 +68,7 @@ export function FileAttachmentsUploader({
 
   const uploadFile = async (file: File) => {
     setIsUploading(true)
+    onUploadingChange?.(true)
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -97,6 +105,7 @@ export function FileAttachmentsUploader({
       return false
     } finally {
       setIsUploading(false)
+      onUploadingChange?.(false)
     }
   }
 

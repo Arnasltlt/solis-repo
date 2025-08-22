@@ -32,8 +32,8 @@ import { createFileCopy } from '@/lib/utils/debug-utils'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
-import { SimpleAttachmentUploader } from '@/components/content/simplified-attachment-uploader'
-import type { SimpleAttachment } from '@/components/content/simplified-attachment-uploader'
+import { FileAttachmentsUploader } from '@/components/content/file-attachments-uploader'
+import type { AttachmentFile } from '@/components/content/file-attachments-uploader'
 
 // Create a schema for content
 const formSchema = z.object({
@@ -68,7 +68,8 @@ export function NewContentEditor({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [attachments, setAttachments] = useState<SimpleAttachment[]>([])
+  const [attachments, setAttachments] = useState<AttachmentFile[]>([])
+  const [attachmentsUploading, setAttachmentsUploading] = useState(false)
   
   // Check authentication directly
   useEffect(() => {
@@ -120,6 +121,14 @@ export function NewContentEditor({
   
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (attachmentsUploading) {
+      toast({
+        title: 'Failai dar įkeliami',
+        description: 'Palaukite kol įkėlimas bus užbaigtas prieš kuriant turinį.',
+        variant: 'destructive'
+      })
+      return
+    }
     // --- ADDED DEBUG LOG --- 
     console.log('%%% ENTERING NewContentEditor onSubmit - API Route Version %%%');
     
@@ -581,9 +590,10 @@ export function NewContentEditor({
                   Add files that users can download
                 </p>
                 
-                <SimpleAttachmentUploader
+                <FileAttachmentsUploader
                   initialAttachments={attachments}
                   onAttachmentsChange={setAttachments}
+                  onUploadingChange={setAttachmentsUploading}
                 />
               </div>
             </div>

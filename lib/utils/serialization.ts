@@ -28,22 +28,24 @@ export function serializeSession(session: any | null) {
   
   try {
     // Extract only the essential properties we need from the session
-    return {
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-      expires_at: session.expires_at,
-      expires_in: session.expires_in,
-      token_type: session.token_type,
+    // and ensure all nested values are JSON-serializable primitives
+    const safe = {
+      access_token: session.access_token ?? null,
+      refresh_token: session.refresh_token ?? null,
+      expires_at: session.expires_at ?? null,
+      expires_in: session.expires_in ?? null,
+      token_type: session.token_type ?? null,
       user: session.user ? {
-        id: session.user.id,
-        email: session.user.email,
-        role: session.user.role,
-        app_metadata: session.user.app_metadata,
-        user_metadata: session.user.user_metadata,
-        created_at: session.user.created_at,
-        updated_at: session.user.updated_at,
+        id: session.user.id ?? null,
+        email: session.user.email ?? null,
+        role: session.user.role ?? null,
+        app_metadata: serializeForClient(session.user.app_metadata ?? {}),
+        user_metadata: serializeForClient(session.user.user_metadata ?? {}),
+        created_at: session.user.created_at ?? null,
+        updated_at: session.user.updated_at ?? null,
       } : null
-    };
+    }
+    return serializeForClient(safe)
   } catch (e) {
     console.error("Error serializing session:", e);
     return null;

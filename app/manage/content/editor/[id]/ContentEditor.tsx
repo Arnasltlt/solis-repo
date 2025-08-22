@@ -20,6 +20,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { getAgeGroups, getCategories, getAccessTiers, getContentById, updateContent } from '@/lib/services/content'
+import { FileAttachmentsUploader } from '@/components/content/file-attachments-uploader'
+import type { AttachmentFile } from '@/components/content/file-attachments-uploader'
 
 // Dynamically import the editor to avoid SSR issues
 const Editor = dynamic(() => import('@/components/editor/editor-wrapper').then(mod => mod.Editor), {
@@ -304,6 +306,8 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   const [refAgeGroups, setRefAgeGroups] = useState<any[]>([])
   const [refCategories, setRefCategories] = useState<any[]>([])
   const [refAccessTiers, setRefAccessTiers] = useState<any[]>([])
+  const [metaAttachments, setMetaAttachments] = useState<AttachmentFile[]>([])
+  const [attachmentsUploading, setAttachmentsUploading] = useState(false)
 
   const openDetails = async () => {
     try {
@@ -319,7 +323,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
       setRefCategories(cats || [])
       setRefAccessTiers(tiers || [])
       // Load current content snapshot
-      const content = await getContentById(contentId)
+      const content = await getContentById(contentId, supabase as any)
       if (content) {
         setMetaTitle(content.title || '')
         setMetaDescription(content.description || '')
@@ -328,6 +332,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
         setMetaCategories((content.categories || []).map((c: any) => c.id))
         setMetaAccessTier(content.access_tier?.id || '')
         setMetaPublished(!!content.published)
+        setMetaAttachments(Array.isArray(content.metadata?.attachments) ? content.metadata.attachments : [])
       }
     } catch (e) {
       console.error('Failed to load details refs/content', e)
@@ -345,6 +350,11 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     try {
       if (!supabase) return
       setIsSaving(true)
+      if (attachmentsUploading) {
+        toast({ title: 'Failai dar įkeliami', description: 'Palaukite kol įkėlimas bus užbaigtas.', variant: 'destructive' })
+        setIsSaving(false)
+        return
+      }
       await updateContent(
         contentId,
         {
@@ -354,7 +364,8 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
           ageGroups: metaAgeGroups,
           categories: metaCategories,
           accessTierId: metaAccessTier,
-          published: metaPublished
+          published: metaPublished,
+          metadata: { attachments: metaAttachments }
         },
         supabase
       )
@@ -565,7 +576,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
 
       {/* Details Modal */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Details</DialogTitle>
             <DialogDescription>Update metadata for this content item.</DialogDescription>
@@ -636,6 +647,16 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
               <div className="flex items-center gap-2">
                 <Checkbox id="published-toggle" checked={metaPublished} onCheckedChange={(c) => setMetaPublished(!!c)} />
                 <Label htmlFor="published-toggle" className="text-sm">Published</Label>
+              </div>
+
+              {/* Attachments editor */}
+              <div className="space-y-2">
+                <Label className="text-sm">Priedai</Label>
+                <FileAttachmentsUploader
+                  initialAttachments={metaAttachments}
+                  onAttachmentsChange={setMetaAttachments}
+                  onUploadingChange={setAttachmentsUploading}
+                />
               </div>
             </div>
           )}

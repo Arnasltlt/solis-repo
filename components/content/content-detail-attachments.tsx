@@ -24,14 +24,10 @@ export function ContentDetailAttachments({ attachments }: ContentDetailAttachmen
     // Create an invisible anchor element for each file and click it
     attachments.forEach(file => {
       const link = document.createElement('a')
-      link.href = file.url
-      link.download = file.fileName
-      link.target = '_blank'
+      link.href = `/api/download?url=${encodeURIComponent(file.url)}&name=${encodeURIComponent(file.fileName)}`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      
-      // Small delay between downloads to avoid browser limitations
       setTimeout(() => {}, 100)
     })
   }
@@ -50,7 +46,6 @@ export function ContentDetailAttachments({ attachments }: ContentDetailAttachmen
           </button>
         )}
       </div>
-      
       <ul className="divide-y divide-gray-200 border border-gray-200 rounded-md overflow-hidden">
         {attachments.map((file) => (
           <li
@@ -66,10 +61,7 @@ export function ContentDetailAttachments({ attachments }: ContentDetailAttachmen
             </div>
             <div>
               <a
-                href={file.url}
-                download={file.fileName}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/api/download?url=${encodeURIComponent(file.url)}&name=${encodeURIComponent(file.fileName)}`}
                 className="text-primary hover:text-primary/80"
               >
                 <ArrowDownTrayIcon className="h-5 w-5" />

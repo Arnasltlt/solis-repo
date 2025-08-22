@@ -23,6 +23,16 @@ interface ContentFormData {
   contentFile?: string | null
   contentText?: string | null
   published: boolean
+  metadata?: {
+    attachments?: Array<{
+      id: string
+      url: string
+      fileName: string
+      fileSize: number
+      fileType?: string
+    }>
+    [key: string]: any
+  }
 }
 
 // Define the CreateContentRequest type to match ContentFormData
@@ -808,7 +818,7 @@ export async function updateContent(
     if (data.description !== undefined) payload.description = data.description
     if (data.type !== undefined) payload.type = data.type
     if (data.published !== undefined) payload.published = data.published
-    if (data.accessTierId !== undefined) payload.access_tier_id = data.accessTierId
+    if (data.accessTierId !== undefined && data.accessTierId) payload.access_tier_id = data.accessTierId
     
     // Special handling for content_body to ensure it's properly updated
     if (data.contentBody !== undefined) {
@@ -829,12 +839,20 @@ export async function updateContent(
       console.log('content_body not provided in update data');
     }
 
-    // Debug the full update payload
-    console.log('Full updateContent payload:', {
-      id,
-      payloadKeys: Object.keys(payload),
-      hasContentBody: 'content_body' in payload
-    });
+    // Merge metadata if provided (supports attachments updates in editor Details)
+    if (data.metadata) {
+      try {
+        const { data: existingMetaRow } = await supabase
+          .from('content_items')
+          .select('metadata')
+          .eq('id', id)
+          .single()
+        const merged = { ...(existingMetaRow?.metadata || {}), ...data.metadata }
+        payload.metadata = merged
+      } catch (e) {
+        payload.metadata = data.metadata
+      }
+    }
 
     // If title is updated, update the slug with a unique value
     if (data.title) {
