@@ -23,8 +23,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from 'next/link'
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  email: z.string().email({ message: 'Įveskite teisingą el. pašto adresą.' }),
+  password: z.string().min(6, { message: 'Slaptažodis turi būti bent 6 simbolių.' }),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -68,8 +68,8 @@ export function SignInForm() {
       
       // If signIn didn't throw an error, show success toast and redirect
       toast({
-        title: 'Success',
-        description: 'You have been signed in',
+        title: 'Sėkmingai',
+        description: 'Jūs prisijungėte',
       })
       
       // Redirect to callback URL if provided, otherwise go to homepage
@@ -80,8 +80,8 @@ export function SignInForm() {
       // or other unexpected errors during the process.
       // However, the current signIn implementation catches its own Supabase errors.
       toast({
-        title: 'Error',
-        description: error.message || 'An unexpected error occurred',
+        title: 'Klaida',
+        description: error.message || 'Įvyko netikėta klaida',
         variant: 'destructive',
       })
     } finally {
@@ -92,9 +92,9 @@ export function SignInForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Sign In</CardTitle>
+        <CardTitle>Prisijungti</CardTitle>
         <CardDescription>
-          Enter your email and password to access your account
+          Įveskite el. paštą ir slaptažodį, kad pasiektumėte paskyrą
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -105,7 +105,7 @@ export function SignInForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>El. paštas</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="email@example.com" 
@@ -123,7 +123,7 @@ export function SignInForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Slaptažodis</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="••••••••" 
@@ -141,7 +141,7 @@ export function SignInForm() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Prisijungiama...' : 'Prisijungti'}
             </Button>
           </form>
         </Form>
@@ -149,13 +149,13 @@ export function SignInForm() {
       <CardFooter className="flex flex-col space-y-2">
         <div className="text-sm text-center">
           <Link href="/reset-password" className="text-primary hover:underline">
-            Forgot password?
+            Pamiršote slaptažodį?
           </Link>
         </div>
         <div className="text-sm text-center">
-          Don&apos;t have an account?{' '}
+          Neturite paskyros?{' '}
           <Link href="/signup" className="text-primary hover:underline">
-            Sign up
+            Registruotis
           </Link>
         </div>
       </CardFooter>

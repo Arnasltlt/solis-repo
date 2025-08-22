@@ -38,7 +38,7 @@ export default function HomePage() {
         const response = await fetch('/api/content');
         
         if (!response.ok) {
-          throw new Error('Failed to fetch content data');
+          throw new Error('Nepavyko gauti turinio duomenų');
         }
         
         const data = await response.json();
@@ -55,8 +55,8 @@ export default function HomePage() {
           ...prev,
           loading: false,
           error: {
-            message: error instanceof Error ? error.message : 'Unknown error occurred',
-            name: error instanceof Error ? error.name : 'Error'
+            message: error instanceof Error ? error.message : 'Įvyko nežinoma klaida',
+            name: error instanceof Error ? error.name : 'Klaida'
           }
         }));
       }

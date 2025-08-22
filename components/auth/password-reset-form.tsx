@@ -22,7 +22,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from 'next/link'
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  email: z.string().email({ message: 'Įveskite teisingą el. pašto adresą.' }),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -45,13 +45,13 @@ export function PasswordResetForm() {
       await resetPassword(values.email)
       setIsSubmitted(true)
       toast({
-        title: 'Password reset email sent',
-        description: 'Please check your email for a link to reset your password.',
+        title: 'Slaptažodžio atstatymo laiškas išsiųstas',
+        description: 'Patikrinkite el. paštą, norėdami gauti slaptažodžio atstatymo nuorodą.',
       })
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to send reset password email. Please try again.',
+        title: 'Klaida',
+        description: error.message || 'Nepavyko išsiųsti slaptažodžio atstatymo laiško. Bandykite dar kartą.',
         variant: 'destructive',
       })
     } finally {
@@ -63,28 +63,28 @@ export function PasswordResetForm() {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
-          <CardTitle>Check Your Email</CardTitle>
+          <CardTitle>Patikrinkite el. paštą</CardTitle>
           <CardDescription>
-            We&apos;ve sent a password reset link to your email address.
+            Išsiuntėme slaptažodžio atstatymo nuorodą į jūsų el. paštą.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center">
           <p>
-            Please check your email and follow the instructions to reset your password.
+            Patikrinkite el. paštą ir sekite instrukcijas slaptažodžiui atkurti.
           </p>
           <p className="mt-4">
-            Didn&apos;t receive an email?{' '}
+            Negavote laiško?{' '}
             <button
               onClick={() => setIsSubmitted(false)}
               className="text-primary hover:underline"
             >
-              Try again
+              Pabandykite dar kartą
             </button>
           </p>
         </CardContent>
         <CardFooter className="flex justify-center">
           <Link href="/login" className="text-primary hover:underline">
-            Back to login
+            Atgal į prisijungimą
           </Link>
         </CardFooter>
       </Card>
@@ -94,9 +94,9 @@ export function PasswordResetForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Reset Password</CardTitle>
+        <CardTitle>Atkurti slaptažodį</CardTitle>
         <CardDescription>
-          Enter your email address and we&apos;ll send you a link to reset your password.
+          Įveskite el. pašto adresą ir atsiųsime nuorodą slaptažodžiui atkurti.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -107,7 +107,7 @@ export function PasswordResetForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>El. paštas</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="email@example.com" 
@@ -125,19 +125,19 @@ export function PasswordResetForm() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Sending reset link...' : 'Send Reset Link'}
+              {isLoading ? 'Siunčiama nuoroda...' : 'Siųsti nuorodą'}
             </Button>
           </form>
         </Form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <div className="text-sm text-center">
-          Remember your password?{' '}
+          Prisiminate slaptažodį?{' '}
           <Link href="/login" className="text-primary hover:underline">
-            Sign in
+            Prisijungti
           </Link>
         </div>
       </CardFooter>
     </Card>
   )
-} 
+}

@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { SignInForm } from '@/components/auth/sign-in-form'
 
 export const metadata: Metadata = {
-  title: 'Login | Solis',
-  description: 'Login to your account',
+  title: 'Prisijungimas | Solis',
+  description: 'Prisijunkite prie savo paskyros',
 }
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +14,7 @@ export default function LoginPage() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
         <div className="mx-auto w-full max-w-md">
           <h1 className="text-2xl font-bold text-center mb-6">
-            Login to Your Account
+            Prisijunkite prie savo paskyros
           </h1>
           <SignInForm />
         </div>
