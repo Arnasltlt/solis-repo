@@ -254,6 +254,52 @@ export async function DELETE(
         // Delete references in related tables first to avoid foreign key constraints
         console.log('API DELETE content: Deleting related records first...');
         
+        // Attempt to delete attachments and thumbnail from storage
+        try {
+          const { data: contentData } = await supabaseAdmin
+            .from('content_items')
+            .select('metadata, thumbnail_url')
+            .eq('id', contentId)
+            .single();
+
+          const extractStoragePath = (url: string, bucket: string): string | null => {
+            const marker = `/storage/v1/object/public/${bucket}/`;
+            const idx = url.indexOf(marker);
+            if (idx === -1) return null;
+            return url.substring(idx + marker.length);
+          };
+
+          // Delete attachment files from 'documents' bucket
+          const attachmentPaths: string[] = Array.isArray(contentData?.metadata?.attachments)
+            ? (contentData!.metadata.attachments
+                .map((a: any) => typeof a?.url === 'string' ? extractStoragePath(a.url, 'documents') : null)
+                .filter((p: string | null) => !!p))
+            : [];
+          if (attachmentPaths.length > 0) {
+            const { error: removeAttachmentsError } = await supabaseAdmin.storage
+              .from('documents')
+              .remove(attachmentPaths as string[]);
+            if (removeAttachmentsError) {
+              console.error('API DELETE content: Error removing attachment files:', removeAttachmentsError);
+            }
+          }
+
+          // Delete thumbnail file from 'thumbnails' bucket if present
+          if (contentData?.thumbnail_url) {
+            const thumbPath = extractStoragePath(contentData.thumbnail_url as string, 'thumbnails');
+            if (thumbPath) {
+              const { error: removeThumbError } = await supabaseAdmin.storage
+                .from('thumbnails')
+                .remove([thumbPath]);
+              if (removeThumbError) {
+                console.error('API DELETE content: Error removing thumbnail file:', removeThumbError);
+              }
+            }
+          }
+        } catch (storageCleanupError) {
+          console.error('API DELETE content: Storage cleanup error (bypass):', storageCleanupError);
+        }
+
         try {
           const { error: ageGroupsError } = await supabaseAdmin
             .from('content_age_groups')
@@ -322,6 +368,52 @@ export async function DELETE(
     // Delete references in related tables first to avoid foreign key constraints
     console.log('API DELETE content: Deleting related records first...');
     
+    // Attempt to delete attachments and thumbnail from storage
+    try {
+      const { data: contentData } = await supabaseAdmin
+        .from('content_items')
+        .select('metadata, thumbnail_url')
+        .eq('id', contentId)
+        .single();
+
+      const extractStoragePath = (url: string, bucket: string): string | null => {
+        const marker = `/storage/v1/object/public/${bucket}/`;
+        const idx = url.indexOf(marker);
+        if (idx === -1) return null;
+        return url.substring(idx + marker.length);
+      };
+
+      // Delete attachment files from 'documents' bucket
+      const attachmentPaths: string[] = Array.isArray(contentData?.metadata?.attachments)
+        ? (contentData!.metadata.attachments
+            .map((a: any) => typeof a?.url === 'string' ? extractStoragePath(a.url, 'documents') : null)
+            .filter((p: string | null) => !!p))
+        : [];
+      if (attachmentPaths.length > 0) {
+        const { error: removeAttachmentsError } = await supabaseAdmin.storage
+          .from('documents')
+          .remove(attachmentPaths as string[]);
+        if (removeAttachmentsError) {
+          console.error('API DELETE content: Error removing attachment files:', removeAttachmentsError);
+        }
+      }
+
+      // Delete thumbnail file from 'thumbnails' bucket if present
+      if (contentData?.thumbnail_url) {
+        const thumbPath = extractStoragePath(contentData.thumbnail_url as string, 'thumbnails');
+        if (thumbPath) {
+          const { error: removeThumbError } = await supabaseAdmin.storage
+            .from('thumbnails')
+            .remove([thumbPath]);
+          if (removeThumbError) {
+            console.error('API DELETE content: Error removing thumbnail file:', removeThumbError);
+          }
+        }
+      }
+    } catch (storageCleanupError) {
+      console.error('API DELETE content: Storage cleanup error:', storageCleanupError);
+    }
+
     try {
       const { error: ageGroupsError } = await supabaseAdmin
         .from('content_age_groups')
