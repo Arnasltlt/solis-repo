@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { UpdatePasswordForm } from '@/components/auth/update-password-form'
 
 export const metadata: Metadata = {
-  title: 'Update Password | Solis',
-  description: 'Update your password',
+  title: 'Atnaujinti slaptažodį | Solis',
+  description: 'Atnaujinkite savo slaptažodį',
 }
 
 export default function UpdatePasswordPage() {
@@ -12,7 +12,7 @@ export default function UpdatePasswordPage() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
         <div className="mx-auto w-full max-w-md">
           <h1 className="text-2xl font-bold text-center mb-6">
-            Update Your Password
+            Atnaujinkite savo slaptažodį
           </h1>
           <UpdatePasswordForm />
         </div>

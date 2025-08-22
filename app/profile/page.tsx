@@ -11,7 +11,7 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center justify-center">
           <div className="mx-auto w-full max-w-3xl">
             <h1 className="text-2xl font-bold mb-6">
-              Your Profile
+              Jūsų profilis
             </h1>
             <ProfileForm />
           </div>
