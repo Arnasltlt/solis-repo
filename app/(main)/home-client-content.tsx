@@ -65,9 +65,9 @@ export function HomeClientContent({
   if (!hasContent) {
     return (
       <div className="p-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">No content available</h2>
+        <h2 className="text-2xl font-bold mb-4">Turinio nėra</h2>
         <p className="text-gray-600">
-          There is currently no content available to display. Please check back later.
+          Šiuo metu nėra turinio. Prašome užsukti vėliau.
         </p>
       </div>
     )
@@ -176,11 +176,11 @@ export function HomeClientContent({
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="font-medium text-yellow-800">Admin Mode</h3>
-              <p className="text-sm text-yellow-600">You can edit content directly from this page.</p>
+              <h3 className="font-medium text-yellow-800">Administratoriaus režimas</h3>
+              <p className="text-sm text-yellow-600">Galite redaguoti turinį tiesiogiai šiame puslapyje.</p>
             </div>
             <Link href="/manage/content/new">
-              <Button>Create New Content</Button>
+              <Button>Kurti naują turinį</Button>
             </Link>
           </div>
         </div>

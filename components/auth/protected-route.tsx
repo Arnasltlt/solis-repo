@@ -44,8 +44,8 @@ export function ProtectedRoute({
       if (requiredRole !== UserRoles.FREE && !hasMinimumRole(requiredRole)) {
         console.log(`Role check failed: user does not have minimum required role: ${requiredRole}`);
         toast({
-          title: 'Access denied',
-          description: `You need ${requiredRole} access to view this page.`,
+          title: 'Prieiga uždrausta',
+          description: `Jums reikia ${requiredRole} prieigos, kad matytumėte šį puslapį.`,
           variant: 'destructive',
         });
         router.push('/');
@@ -59,8 +59,8 @@ export function ProtectedRoute({
         const returnUrl = forcedReturnUrl || pathname;
         const encodedReturnUrl = encodeURIComponent(returnUrl);
         toast({
-          title: 'Authentication required',
-          description: 'Please sign in to access this page',
+          title: 'Reikalingas autentifikavimas',
+          description: 'Prisijunkite, kad pasiektumėte šį puslapį',
           variant: 'destructive',
         });
         router.push(`/login?returnUrl=${encodedReturnUrl}`);
@@ -72,7 +72,7 @@ export function ProtectedRoute({
     return (
       <div className="flex items-center justify-center h-full w-full py-8">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Checking authentication...</span>
+        <span className="ml-2">Tikrinama autentifikacija...</span>
       </div>
     );
   }

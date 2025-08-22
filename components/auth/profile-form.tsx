@@ -59,13 +59,13 @@ export function ProfileForm() {
       router.push('/')
       router.refresh()
       toast({
-        title: 'Signed out',
-        description: 'You have been signed out successfully.',
+        title: 'Atsijungta',
+        description: 'Sėkmingai atsijungėte.',
       })
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Something went wrong',
+        title: 'Klaida',
+        description: error.message || 'Įvyko klaida',
         variant: 'destructive',
       })
     } finally {
@@ -103,15 +103,15 @@ export function ProfileForm() {
       }
       
       toast({
-        title: 'Subscription upgraded',
-        description: 'Your account has been upgraded to Premium.',
+        title: 'Prenumerata atnaujinta',
+        description: 'Jūsų paskyra atnaujinta į Premium.',
       })
       
       router.refresh()
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to upgrade subscription',
+        title: 'Klaida',
+        description: error.message || 'Nepavyko atnaujinti prenumeratos',
         variant: 'destructive',
       })
     } finally {
@@ -125,23 +125,23 @@ export function ProfileForm() {
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardHeader>
-        <CardTitle>My Profile</CardTitle>
+        <CardTitle>Mano profilis</CardTitle>
         <CardDescription>
-          Manage your account settings and subscription
+          Tvarkykite paskyros nustatymus ir prenumeratą
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="account">
           <TabsList className="mb-4">
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="subscription">Subscription</TabsTrigger>
+            <TabsTrigger value="account">Paskyra</TabsTrigger>
+            <TabsTrigger value="subscription">Prenumerata</TabsTrigger>
           </TabsList>
           
           <TabsContent value="account" className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium">Account Information</h3>
+              <h3 className="text-lg font-medium">Paskyros informacija</h3>
               <p className="text-sm text-muted-foreground">
-                Update your account details.
+                Atnaujinkite paskyros informaciją.
               </p>
             </div>
             
@@ -152,7 +152,7 @@ export function ProfileForm() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>El. paštas</FormLabel>
                       <FormControl>
                         <Input {...field} disabled />
                       </FormControl>
@@ -167,7 +167,7 @@ export function ProfileForm() {
                     variant="outline"
                     onClick={() => router.push('/reset-password')}
                   >
-                    Change Password
+                    Keisti slaptažodį
                   </Button>
                   
                   <Button
@@ -176,7 +176,7 @@ export function ProfileForm() {
                     onClick={handleSignOut}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Signing out...' : 'Sign Out'}
+                    {isLoading ? 'Atsijungiama...' : 'Atsijungti'}
                   </Button>
                 </div>
               </form>
@@ -185,51 +185,51 @@ export function ProfileForm() {
           
           <TabsContent value="subscription" className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium">Subscription Information</h3>
+              <h3 className="text-lg font-medium">Prenumeratos informacija</h3>
               <p className="text-sm text-muted-foreground">
-                Manage your subscription plan.
+                Tvarkykite prenumeratos planą.
               </p>
             </div>
             
             <div className="space-y-4">
               <div className="bg-muted p-4 rounded-md">
-                <h4 className="font-medium">Current Plan</h4>
+                <h4 className="font-medium">Dabartinis planas</h4>
                 <p className="text-sm">
-                  {isAdminUser && 'Administrator'}
+                  {isAdminUser && 'Administratorius'}
                   {isPremiumUser && !isAdminUser && 'Premium'}
-                  {!isPremiumUser && !isAdminUser && 'Free'}
+                  {!isPremiumUser && !isAdminUser && 'Nemokama'}
                 </p>
               </div>
               
               {!isPremiumUser && !isAdminUser && (
                 <div className="p-4 border rounded-md">
-                  <h4 className="font-medium">Upgrade to Premium</h4>
+                  <h4 className="font-medium">Aukštinkite į Premium</h4>
                   <p className="text-sm mt-1 mb-4">
-                    Get unlimited access to all premium content and features.
+                    Gaukite neribotą prieigą prie viso premium turinio ir funkcijų.
                   </p>
-                  <Button 
+                  <Button
                     onClick={upgradeToPremium}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Processing...' : 'Upgrade Now'}
+                    {isLoading ? 'Apdorojama...' : 'Aukštinti dabar'}
                   </Button>
                 </div>
               )}
               
               {isPremiumUser && !isAdminUser && (
                 <div className="p-4 border rounded-md">
-                  <h4 className="font-medium">Premium Plan</h4>
+                  <h4 className="font-medium">Premium planas</h4>
                   <p className="text-sm mt-1">
-                    You have access to all premium content and features.
+                    Turite prieigą prie viso premium turinio ir funkcijų.
                   </p>
                 </div>
               )}
               
               {isAdminUser && (
                 <div className="p-4 border rounded-md">
-                  <h4 className="font-medium">Administrator Plan</h4>
+                  <h4 className="font-medium">Administratoriaus planas</h4>
                   <p className="text-sm mt-1">
-                    You have full administrative access to the platform.
+                    Turite visą administratoriaus prieigą prie platformos.
                   </p>
                 </div>
               )}

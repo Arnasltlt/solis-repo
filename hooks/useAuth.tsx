@@ -151,8 +151,8 @@ export function AuthProvider({
     if (!supabase) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Authentication service unavailable.',
+        title: 'Klaida',
+        description: 'Autentifikavimo paslauga nepasiekiama.',
       })
       return
     }
@@ -173,16 +173,16 @@ export function AuthProvider({
 
       // Redirect the user to the confirmation page
       toast({
-        title: 'Success',
+        title: 'Sėkmingai',
         description:
-          'Registration successful! Please check your email for a confirmation link.',
+          'Registracija sėkminga! Patikrinkite el. paštą dėl patvirtinimo nuorodos.',
       })
       router.push('/auth/confirm')
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'An error occurred during sign up.',
+        title: 'Klaida',
+        description: error.message || 'Registruojantis įvyko klaida.',
       })
       console.error('Error signing up:', error)
     } finally {
@@ -195,8 +195,8 @@ export function AuthProvider({
     if (!supabase) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Authentication service unavailable.',
+        title: 'Klaida',
+        description: 'Autentifikavimo paslauga nepasiekiama.',
       })
       return
     }
@@ -219,8 +219,8 @@ export function AuthProvider({
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'An error occurred during sign in.',
+        title: 'Klaida',
+        description: error.message || 'Prisijungiant įvyko klaida.',
       })
       console.error('Error signing in:', error)
     } finally {
@@ -233,8 +233,8 @@ export function AuthProvider({
     if (!supabase) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Authentication service unavailable.',
+        title: 'Klaida',
+        description: 'Autentifikavimo paslauga nepasiekiama.',
       })
       return
     }
@@ -258,8 +258,8 @@ export function AuthProvider({
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'An error occurred during sign out.',
+        title: 'Klaida',
+        description: error.message || 'Atsijungiant įvyko klaida.',
       })
       console.error('Error signing out:', error)
     } finally {
@@ -272,8 +272,8 @@ export function AuthProvider({
     if (!supabase) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Authentication service unavailable.',
+        title: 'Klaida',
+        description: 'Autentifikavimo paslauga nepasiekiama.',
       })
       return
     }
@@ -291,16 +291,16 @@ export function AuthProvider({
       }
 
       toast({
-        title: 'Success',
+        title: 'Sėkmingai',
         description:
-          'Password reset email sent! Please check your email for further instructions.',
+          'Slaptažodžio atstatymo laiškas išsiųstas! Patikrinkite el. paštą dėl tolimesnių nurodymų.',
       })
       router.push('/auth/confirm')
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'An error occurred during password reset.',
+        title: 'Klaida',
+        description: error.message || 'Slaptažodžio atstatymo metu įvyko klaida.',
       })
       console.error('Error resetting password:', error)
     } finally {
@@ -313,8 +313,8 @@ export function AuthProvider({
     if (!supabase) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Authentication service unavailable.',
+        title: 'Klaida',
+        description: 'Autentifikavimo paslauga nepasiekiama.',
       })
       return
     }
@@ -330,15 +330,15 @@ export function AuthProvider({
       }
 
       toast({
-        title: 'Success',
-        description: 'Password updated successfully!',
+        title: 'Sėkmingai',
+        description: 'Slaptažodis sėkmingai atnaujintas!',
       })
       router.push('/')
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'An error occurred during password update.',
+        title: 'Klaida',
+        description: error.message || 'Slaptažodžio atnaujinimo metu įvyko klaida.',
       })
       console.error('Error updating password:', error)
     } finally {

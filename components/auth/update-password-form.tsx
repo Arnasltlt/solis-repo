@@ -1,11 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { toast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/useAuth'
 
 // UI components
@@ -23,11 +21,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 const formSchema = z.object({
   password: z.string()
-    .min(6, { message: 'Password must be at least 6 characters.' })
-    .max(72, { message: 'Password must be less than 72 characters.' }),
-  confirmPassword: z.string()
+    .min(6, { message: 'Slaptažodis turi būti bent 6 simbolių.' })
+    .max(72, { message: 'Slaptažodis turi būti trumpesnis nei 72 simboliai.' }),
+  confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match.',
+  message: 'Slaptažodžiai nesutampa.',
   path: ['confirmPassword'],
 })
 
@@ -35,9 +33,7 @@ type FormValues = z.infer<typeof formSchema>
 
 export function UpdatePasswordForm() {
   const { updatePassword } = useAuth()
-  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -51,13 +47,12 @@ export function UpdatePasswordForm() {
     if (values.password !== values.confirmPassword) {
       return
     }
-    
+
     setIsLoading(true)
     try {
       await updatePassword(values.password)
-      
+
       // Password update was successful, handled by the useAuth hook
-      setIsSubmitted(true)
     } catch (error) {
       // Error is handled by the useAuth hook, which shows a toast
       console.error('Error during password update:', error)
@@ -69,9 +64,9 @@ export function UpdatePasswordForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Update Password</CardTitle>
+        <CardTitle>Atnaujinti slaptažodį</CardTitle>
         <CardDescription>
-          Please enter a new password for your account.
+          Įveskite naują slaptažodį savo paskyrai.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -82,11 +77,11 @@ export function UpdatePasswordForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>New Password</FormLabel>
+                  <FormLabel>Naujas slaptažodis</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="••••••••" 
-                      type="password" 
+                    <Input
+                      placeholder="••••••••"
+                      type="password"
                       {...field}
                       disabled={isLoading}
                     />
@@ -100,11 +95,11 @@ export function UpdatePasswordForm() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm New Password</FormLabel>
+                  <FormLabel>Pakartokite naują slaptažodį</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="••••••••" 
-                      type="password" 
+                    <Input
+                      placeholder="••••••••"
+                      type="password"
                       {...field}
                       disabled={isLoading}
                     />
@@ -113,21 +108,22 @@ export function UpdatePasswordForm() {
                 </FormItem>
               )}
             />
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Updating password...' : 'Update Password'}
+              {isLoading ? 'Atnaujinama...' : 'Atnaujinti slaptažodį'}
             </Button>
           </form>
         </Form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          Make sure to choose a strong, unique password you don&apos;t use elsewhere.
+          Pasirinkite stiprų, unikalų slaptažodį, kurio nenaudojate kitur.
         </p>
       </CardFooter>
     </Card>
   )
-} 
+}
+
