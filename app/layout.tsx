@@ -62,7 +62,7 @@ export default async function RootLayout({
   
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
-      <body className={cn(inter.className, "flex flex-col h-full")}>
+      <body className={cn(inter.className, "flex flex-col min-h-screen overflow-x-hidden")}>
         <Providers session={serializedSession}>
           <Navigation />
           <main className="flex-1">
