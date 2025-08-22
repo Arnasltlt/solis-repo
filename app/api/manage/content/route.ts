@@ -18,6 +18,7 @@ type CreateContentRequestBody = {
   ageGroups: string[]; // Array of age group IDs
   categories: string[]; // Array of category IDs
   // thumbnail data might be handled separately later or passed as base64/formdata
+  metadata?: Record<string, any>; // optional metadata (e.g., attachments)
 }
 
 // Helper function to check admin auth (session + DB tier check)
@@ -148,7 +149,9 @@ async function processCreateContentRequest(request: NextRequest, authorId: strin
           published: requestBody.published,
           access_tier_id: requestBody.accessTierId,
           author_id: authorId,
-          thumbnail_url: ''
+          thumbnail_url: '',
+          // Persist metadata if provided (e.g., attachments)
+          metadata: requestBody.metadata ? requestBody.metadata : {}
         })
         .select('id')
         .single();

@@ -19,6 +19,7 @@ interface FileAttachmentsUploaderProps {
   label?: string;
   description?: string;
   maxFiles?: number;
+  onUploadingChange?: (isUploading: boolean) => void;
 }
 
 export function FileAttachmentsUploader({
@@ -27,7 +28,8 @@ export function FileAttachmentsUploader({
   className,
   label = 'Įkelti priedus',
   description = 'PDF, DOC, XLS, ZIP ir kiti formatai iki 50MB',
-  maxFiles = 10
+  maxFiles = 10,
+  onUploadingChange
 }: FileAttachmentsUploaderProps) {
   const [attachments, setAttachments] = useState<AttachmentFile[]>(initialAttachments)
   const [isDragging, setIsDragging] = useState(false)
@@ -61,6 +63,7 @@ export function FileAttachmentsUploader({
 
   const uploadFile = async (file: File) => {
     setIsUploading(true)
+    onUploadingChange?.(true)
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -97,6 +100,7 @@ export function FileAttachmentsUploader({
       return false
     } finally {
       setIsUploading(false)
+      onUploadingChange?.(false)
     }
   }
 
