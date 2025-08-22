@@ -6,6 +6,46 @@ import type { Database } from '@/lib/types/database'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
+// GET endpoint for fetching a content item with admin privileges
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const contentId = params.id
+  if (!contentId) {
+    return NextResponse.json({ error: 'Missing content ID' }, { status: 400 })
+  }
+
+  const { authorized, error: authError } = await checkAdminAuth()
+  if (!authorized) {
+    return NextResponse.json({ error: authError }, { status: authError === 'Authentication required' ? 401 : 403 })
+  }
+
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('content_items')
+    .select(`
+      *,
+      access_tier:access_tiers!content_items_access_tier_id_fkey(*),
+      age_groups:content_age_groups(
+        age_group:age_groups(*)
+      ),
+      categories:content_categories(
+        category:categories(*)
+      )
+    `)
+    .eq('id', contentId)
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  if (!data) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  return NextResponse.json({ content: data })
+}
 
 // Helper function to check admin auth (session + DB tier check)
 async function checkAdminAuth() {
@@ -120,14 +160,53 @@ export async function PATCH(
         // Continue with just the new metadata
         updatePayload.metadata = requestBody.metadata;
       } else {
-        // Merge existing metadata with new metadata
+        const existingAttachments: any[] = Array.isArray(existingData?.metadata?.attachments)
+          ? existingData!.metadata.attachments
+          : [];
+        const newAttachments: any[] = Array.isArray(requestBody.metadata.attachments)
+          ? requestBody.metadata.attachments
+          : existingAttachments;
+
+        // If caller provided attachments, compute which were removed and clean up storage
+        if (Array.isArray(requestBody.metadata.attachments)) {
+          const existingUrls = new Set(
+            existingAttachments
+              .map((a: any) => (typeof a?.url === 'string' ? a.url : ''))
+              .filter(Boolean)
+          );
+          const newUrls = new Set(
+            newAttachments
+              .map((a: any) => (typeof a?.url === 'string' ? a.url : ''))
+              .filter(Boolean)
+          );
+          const removedUrls = Array.from(existingUrls).filter((u) => !newUrls.has(u));
+
+          if (removedUrls.length > 0) {
+            const extractStoragePath = (url: string, bucket: string): string | null => {
+              const marker = `/storage/v1/object/public/${bucket}/`;
+              const idx = url.indexOf(marker);
+              if (idx === -1) return null;
+              return url.substring(idx + marker.length);
+            };
+            const pathsToRemove = removedUrls
+              .map(u => extractStoragePath(u, 'documents'))
+              .filter((p): p is string => !!p);
+            if (pathsToRemove.length > 0) {
+              const { error: removeError } = await supabaseAdmin.storage
+                .from('documents')
+                .remove(pathsToRemove);
+              if (removeError) {
+                console.error('API PATCH content: Error removing deleted attachment files:', removeError);
+              }
+            }
+          }
+        }
+
+        // Merge existing metadata with new metadata; set attachments to new list (if provided)
         updatePayload.metadata = {
           ...(existingData?.metadata || {}),
           ...requestBody.metadata,
-          // Ensure attachments array is preserved
-          attachments: Array.isArray(requestBody.metadata.attachments) 
-            ? requestBody.metadata.attachments 
-            : (existingData?.metadata?.attachments || [])
+          attachments: newAttachments
         };
       }
       

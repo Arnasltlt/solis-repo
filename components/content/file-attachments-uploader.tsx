@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { DocumentIcon, XMarkIcon, TrashIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/lib/utils'
 
@@ -36,6 +36,11 @@ export function FileAttachmentsUploader({
   const [error, setError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Keep internal state in sync when initialAttachments prop changes (e.g., in edit forms)
+  useEffect(() => {
+    setAttachments(initialAttachments)
+  }, [initialAttachments])
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
