@@ -276,11 +276,6 @@ export function ContentDetail({ content }: ContentDetailProps) {
             </div>
           )}
 
-          {/* Attachments Section */}
-          {content.metadata?.attachments && content.metadata.attachments.length > 0 && (
-            <SimpleContentDetailAttachments attachments={content.metadata.attachments} />
-          )}
-
           {/* Feedback Section */}
           <ContentDetailFeedback content={content} />
         </div>
@@ -308,8 +303,13 @@ export function ContentDetail({ content }: ContentDetailProps) {
           <div className="bg-gray-50 rounded-lg p-4 space-y-4">
             <ContentDetailMetadata content={content} />
           </div>
+
+          {/* Attachments */}
+          {content.metadata?.attachments && content.metadata.attachments.length > 0 && (
+            <SimpleContentDetailAttachments attachments={content.metadata.attachments} />
+          )}
         </aside>
       </div>
     </div>
   )
-} 
+}

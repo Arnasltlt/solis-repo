@@ -19,8 +19,8 @@ export function SimpleContentDetailAttachments({ attachments }: SimpleContentDet
   }
 
   return (
-    <div className="mt-6 border rounded-lg p-4">
-      <h3 className="font-medium mb-2">Pridėti failai</h3>
+    <div className="border rounded-lg p-4">
+      <h3 className="font-medium mb-2">Priedai</h3>
       <ul className="space-y-2">
         {attachments.map((file) => (
           <li key={file.id} className="flex items-center">
