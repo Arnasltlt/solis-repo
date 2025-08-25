@@ -74,7 +74,7 @@ export function ContentGrid({
 
   return (
     <ScrollArea className="h-[calc(100vh-12rem)] rounded-md">
-      <div className="p-4">
+      <div className="p-4 w-full overflow-x-hidden">
         {isLoading ? (
           <ContentSkeleton count={6} />
         ) : filteredForDisplay.length > 0 ? (

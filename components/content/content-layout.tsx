@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
 import type { ContentItem, AgeGroup, Category } from "@/lib/types/database"
 import { ContentFilterSidebar } from './content-filter-sidebar'
 import { ContentTypeTabs } from './content-type-tabs'
@@ -47,6 +49,15 @@ export function ContentLayout({
 }: ContentLayoutProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const filteredContent = useMemo(
+    () =>
+      content.filter(item =>
+        item.title.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [content, searchTerm]
+  )
 
   // Create the filter sidebar component that will be used in both desktop and mobile views
   const filterSidebar = (
@@ -64,7 +75,7 @@ export function ContentLayout({
   )
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full overflow-x-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-[300px] border-r border-gray-200">
         <ScrollArea className="h-[calc(100vh-8rem)] px-4 py-6">
@@ -73,7 +84,7 @@ export function ContentLayout({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <Tabs 
           defaultValue="all" 
           className="h-full"
@@ -85,12 +96,14 @@ export function ContentLayout({
               filterSidebar={filterSidebar}
               isFilterOpen={filterOpen}
               onFilterOpenChange={setFilterOpen}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
             />
 
             {/* All Content Tab */}
             <TabsContent value="all" className="m-0">
               <ContentGrid
-                content={content}
+                content={filteredContent}
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="all"
@@ -101,7 +114,7 @@ export function ContentLayout({
             {/* Video Content Tab */}
             <TabsContent value="video" className="m-0">
               <ContentGrid
-                content={content}
+                content={filteredContent}
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="video"
@@ -112,7 +125,7 @@ export function ContentLayout({
             {/* Audio Content Tab */}
             <TabsContent value="audio" className="m-0">
               <ContentGrid
-                content={content}
+                content={filteredContent}
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="audio"
@@ -123,7 +136,7 @@ export function ContentLayout({
             {/* Lesson Plan Content Tab */}
             <TabsContent value="lesson_plan" className="m-0">
               <ContentGrid
-                content={content}
+                content={filteredContent}
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="lesson_plan"
@@ -134,7 +147,7 @@ export function ContentLayout({
             {/* Game Content Tab */}
             <TabsContent value="game" className="m-0">
               <ContentGrid
-                content={content}
+                content={filteredContent}
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="game"
