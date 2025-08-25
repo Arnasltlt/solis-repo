@@ -12,6 +12,7 @@ import { ContentGrid } from './content-grid'
 
 interface ContentLayoutProps {
   content: ContentItem[]
+  allContent: ContentItem[]
   ageGroups: AgeGroup[]
   categories: Category[]
   selectedAgeGroups: string[]
@@ -35,6 +36,7 @@ interface ContentLayoutProps {
  */
 export function ContentLayout({
   content,
+  allContent,
   ageGroups,
   categories,
   selectedAgeGroups,
@@ -59,11 +61,45 @@ export function ContentLayout({
     [content, searchTerm]
   )
 
+  const CONTENT_TYPE_LABELS: Record<ContentItem['type'], string> = {
+    video: 'Video',
+    audio: 'Dainos',
+    lesson_plan: 'Pamokos',
+    game: 'Žaidimai'
+  }
+
+  const categoryMap = useMemo(() => {
+    const map: Record<string, Set<string>> = { all: new Set() }
+    for (const item of allContent) {
+      const ids = item.categories.map((c) => c.id)
+      ids.forEach((id) => map.all.add(id))
+      if (!map[item.type]) map[item.type] = new Set()
+      ids.forEach((id) => map[item.type].add(id))
+    }
+    return map
+  }, [allContent])
+
+  const contentTypes = useMemo(
+    () =>
+      Object.keys(categoryMap)
+        .filter((t) => t !== 'all')
+        .map((t) => ({
+          value: t as ContentItem['type'],
+          label: CONTENT_TYPE_LABELS[t as ContentItem['type']] || t
+        })),
+    [categoryMap]
+  )
+
+  const filteredCategories = useMemo(() => {
+    const ids = categoryMap[activeTab] || new Set<string>()
+    return categories.filter((cat) => ids.has(cat.id))
+  }, [categories, categoryMap, activeTab])
+
   // Create the filter sidebar component that will be used in both desktop and mobile views
   const filterSidebar = (
     <ContentFilterSidebar
       ageGroups={ageGroups}
-      categories={categories}
+      categories={filteredCategories}
       selectedAgeGroups={selectedAgeGroups}
       selectedCategories={selectedCategories}
       showPremiumOnly={showPremiumOnly}
@@ -96,6 +132,7 @@ export function ContentLayout({
               filterSidebar={filterSidebar}
               isFilterOpen={filterOpen}
               onFilterOpenChange={setFilterOpen}
+              contentTypes={contentTypes}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
             />
@@ -111,49 +148,17 @@ export function ContentLayout({
               />
             </TabsContent>
 
-            {/* Video Content Tab */}
-            <TabsContent value="video" className="m-0">
-              <ContentGrid
-                content={filteredContent}
-                isLoading={isLoading}
-                showPremiumOnly={showPremiumOnly}
-                contentType="video"
-                showEditButtons={showEditButtons}
-              />
-            </TabsContent>
-
-            {/* Audio Content Tab */}
-            <TabsContent value="audio" className="m-0">
-              <ContentGrid
-                content={filteredContent}
-                isLoading={isLoading}
-                showPremiumOnly={showPremiumOnly}
-                contentType="audio"
-                showEditButtons={showEditButtons}
-              />
-            </TabsContent>
-
-            {/* Lesson Plan Content Tab */}
-            <TabsContent value="lesson_plan" className="m-0">
-              <ContentGrid
-                content={filteredContent}
-                isLoading={isLoading}
-                showPremiumOnly={showPremiumOnly}
-                contentType="lesson_plan"
-                showEditButtons={showEditButtons}
-              />
-            </TabsContent>
-
-            {/* Game Content Tab */}
-            <TabsContent value="game" className="m-0">
-              <ContentGrid
-                content={filteredContent}
-                isLoading={isLoading}
-                showPremiumOnly={showPremiumOnly}
-                contentType="game"
-                showEditButtons={showEditButtons}
-              />
-            </TabsContent>
+            {contentTypes.map((type) => (
+              <TabsContent key={type.value} value={type.value} className="m-0">
+                <ContentGrid
+                  content={filteredContent}
+                  isLoading={isLoading}
+                  showPremiumOnly={showPremiumOnly}
+                  contentType={type.value}
+                  showEditButtons={showEditButtons}
+                />
+              </TabsContent>
+            ))}
           </div>
         </Tabs>
       </div>
