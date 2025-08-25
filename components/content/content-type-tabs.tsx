@@ -62,7 +62,7 @@ export function ContentTypeTabs({
             </ScrollArea>
           </SheetContent>
         </Sheet>
-        <TabsList className="bg-secondary-navy/10 w-full overflow-x-auto whitespace-nowrap justify-start pl-3 pr-3 gap-2 snap-x">
+        <TabsList className="bg-secondary-navy/10 max-w-full w-auto overflow-x-auto whitespace-nowrap justify-start pl-3 pr-3 gap-2 snap-x h-auto p-0">
           <TabsTrigger 
             value="all" 
             className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white shrink-0 snap-start"
