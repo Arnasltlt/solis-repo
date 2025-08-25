@@ -40,12 +40,6 @@ export function RichContentForm({
       return
     }
     
-    // Check if we're in a new content form (no initialData) and clear any existing content
-    if (typeof window !== 'undefined' && window.location.href.includes('/manage/content?tab=create') && !window.location.href.includes('edit=')) {
-      setProcessedContent('')
-      return
-    }
-    
     try {
       // Try to parse as JSON to validate
       JSON.parse(contentBody)

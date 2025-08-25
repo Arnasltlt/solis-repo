@@ -57,7 +57,7 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
         title: 'Authentication Error',
         description: 'You must be logged in to edit content. Please log in and try again.',
       })
-      router.push('/login?callbackUrl=/manage/content')
+        router.push('/login?callbackUrl=/')
     }
   }, [session, router])
   
@@ -133,9 +133,9 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
         description: 'Your content has been saved successfully',
       })
 
-      if (redirectToList) {
-        router.push('/manage/content?tab=list')
-      }
+        if (redirectToList) {
+          router.push('/')
+        }
     } catch (error) {
       const errorMsg = `Error saving content: ${error instanceof Error ? error.message : String(error)}`
       setError(errorMsg)
@@ -153,20 +153,11 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
   
   // Handle back navigation
   const handleBack = () => {
-    const target = '/manage/content/list'
-    if (hasChanges) {
-      if (window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
-        router.push(target)
-      }
-    } else {
-  const handleBack = () => {
-    const target = '/manage/content/list'
+    const target = '/'
     if (hasChanges && !window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
-      return;
+      return
     }
     router.push(target)
-  }
-    }
   }
   
   // Handle image selection

@@ -8,7 +8,6 @@ import { uploadThumbnail } from '@/lib/utils/storage-utils'
 import { createFileCopy } from '@/lib/utils/debug-utils'
 import { getSupabaseClient } from '@/lib/utils/supabase-client'
 import { uploadThumbnailAdmin } from '@/lib/services/admin-storage'
-import { createClient as createAdminClient } from '@/lib/supabase/admin'
 
 interface ContentFormData {
   title: string
@@ -137,36 +136,6 @@ interface GetContentItemsParams {
 }
 
 // Get all content items for management (admin view)
-export async function getAllContentForManagement(adminClient?: SupabaseClient) {
-  const client = adminClient || createAdminClient()
-  
-  try {
-    const { data, error } = await client
-      .from('content_items')
-      .select(`
-        *,
-        access_tier:access_tiers!content_items_access_tier_id_fkey(*),
-        age_groups:content_age_groups(
-          age_group:age_groups(*)
-        ),
-        categories:content_categories(
-          category:categories(*)
-        )
-      `)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching content for management:', error)
-      throw error
-    }
-
-    return data || []
-  } catch (error) {
-    console.error('Error in getAllContentForManagement:', error)
-    throw error
-  }
-}
-
 export async function getContentItems({
   ageGroups,
   categories,
