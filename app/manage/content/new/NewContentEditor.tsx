@@ -325,7 +325,7 @@ export function NewContentEditor({
       <div className="container py-8">
         <PageHeader
           title="Create New Content"
-          backUrl="/manage/content/list"
+          backUrl="/"
         />
         
         

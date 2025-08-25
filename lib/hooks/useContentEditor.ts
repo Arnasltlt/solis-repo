@@ -333,7 +333,7 @@ export function useContentEditor({
       
       // Clear draft and redirect
       clearContentDraft()
-      router.replace('/manage/content?tab=list')
+      router.replace('/')
     } catch (err) {
       console.error('Error submitting content:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to save content'

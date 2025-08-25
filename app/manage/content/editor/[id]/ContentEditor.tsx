@@ -271,9 +271,9 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     }
   }
   
-  // Handle going back to content management
+  // Handle going back to homepage
   const handleBack = () => {
-    router.push('/manage/content/list')
+    router.push('/')
   }
   
   // Add keyboard shortcut for saving

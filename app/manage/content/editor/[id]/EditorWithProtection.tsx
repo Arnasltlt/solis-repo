@@ -163,8 +163,8 @@ export function EditorWithProtection({
         description: "Your content has been updated successfully"
       });
       
-      // Redirect to content list
-      router.push('/manage/content?tab=list');
+      // Redirect to homepage
+      router.push('/');
       
     } catch (error) {
       console.error('Error submitting content:', error);

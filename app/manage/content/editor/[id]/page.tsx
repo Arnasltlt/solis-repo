@@ -36,16 +36,16 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
   try {
     const content = await getContentById(params.id, supabase)
     
-    if (!content) {
-      return redirect('/manage/content?error=Content+not+found')
-    }
+      if (!content) {
+        return redirect('/?error=Content+not+found')
+      }
     
     const serializedContent = serializeForClient(content.content_body || '')
     
     return (
       <div className="container py-8">
         <div className="mb-6">
-          <PageHeader title="Content Editor" backUrl="/manage/content/list" />
+          <PageHeader title="Content Editor" backUrl="/" />
           
           <div className="mt-4 flex justify-between items-center">
             <p className="text-gray-600">Edit your content body</p>
@@ -57,6 +57,6 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
     )
   } catch (error) {
     console.error('Error fetching content:', error)
-    return redirect('/manage/content?error=Error+fetching+content')
+      return redirect('/?error=Error+fetching+content')
   }
 } 
