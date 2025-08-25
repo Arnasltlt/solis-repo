@@ -53,6 +53,14 @@ export function ContentDetailMetadata({ content }: ContentDetailMetadataProps) {
         <h2 className="text-lg font-medium text-gray-900 mb-2">Turinio tipas:</h2>
         <ContentTypeBadge type={content.type} variant="pill" />
       </div>
+
+      {/* Description */}
+      {content.description && (
+        <div className="mb-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-2">Aprašymas:</h2>
+          <p className="text-gray-700 whitespace-pre-line">{content.description}</p>
+        </div>
+      )}
     </div>
   )
 } 
