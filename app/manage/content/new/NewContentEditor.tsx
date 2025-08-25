@@ -9,7 +9,6 @@ import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { PageHeader } from '@/components/ui/page-header'
 import {
   Form,
@@ -41,7 +40,6 @@ const formSchema = z.object({
     required_error: "Please select a content type",
   }),
   title: z.string().min(1, { message: "Title is required" }),
-  description: z.string().min(1, { message: "Description is required" }),
   thumbnail: z.any().optional(),
   ageGroups: z.array(z.string()).min(1, { message: "Please select at least one age group" }),
   categories: z.array(z.string()).min(1, { message: "Please select at least one category" }),
@@ -110,7 +108,6 @@ export function NewContentEditor({
     defaultValues: {
       type: undefined,
       title: "",
-      description: "",
       ageGroups: [],
       categories: [],
       accessTierId: accessTiers.find(tier => tier.name === 'free')?.id || '',
@@ -142,7 +139,6 @@ export function NewContentEditor({
       // Exclude the thumbnail File object, it needs separate handling
       const payload: Omit<z.infer<typeof formSchema>, 'thumbnail'> & { author_id?: string, metadata?: any } = {
         title: values.title,
-        description: values.description,
         type: values.type,
         published: values.published,
         accessTierId: values.accessTierId,
@@ -325,7 +321,7 @@ export function NewContentEditor({
       <div className="container py-8">
         <PageHeader
           title="Create New Content"
-          backUrl="/manage/content/list"
+          backUrl="/"
         />
         
         
@@ -398,27 +394,6 @@ export function NewContentEditor({
                       <Input placeholder="Enter content title" {...field} />
                     </FormControl>
                     <FormDescription>A clear, concise title for your content</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Description */}
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Enter content description" 
-                        className="resize-none" 
-                        rows={4}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>A brief description of your content</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

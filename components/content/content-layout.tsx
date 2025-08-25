@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
 import type { ContentItem, AgeGroup, Category } from "@/lib/types/database"
 import { ContentFilterSidebar } from './content-filter-sidebar'
 import { ContentTypeTabs } from './content-type-tabs'
@@ -49,6 +51,15 @@ export function ContentLayout({
 }: ContentLayoutProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const filteredContent = useMemo(
+    () =>
+      content.filter(item =>
+        item.title.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [content, searchTerm]
+  )
 
   const CONTENT_TYPE_LABELS: Record<ContentItem['type'], string> = {
     video: 'Video',
@@ -100,7 +111,7 @@ export function ContentLayout({
   )
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full overflow-x-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-[300px] border-r border-gray-200">
         <ScrollArea className="h-[calc(100vh-8rem)] px-4 py-6">
@@ -109,7 +120,7 @@ export function ContentLayout({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <Tabs 
           defaultValue="all" 
           className="h-full"
@@ -122,12 +133,14 @@ export function ContentLayout({
               isFilterOpen={filterOpen}
               onFilterOpenChange={setFilterOpen}
               contentTypes={contentTypes}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
             />
 
             {/* All Content Tab */}
             <TabsContent value="all" className="m-0">
               <ContentGrid
-                content={content}
+                content={filteredContent}
                 isLoading={isLoading}
                 showPremiumOnly={showPremiumOnly}
                 contentType="all"
@@ -138,7 +151,7 @@ export function ContentLayout({
             {contentTypes.map((type) => (
               <TabsContent key={type.value} value={type.value} className="m-0">
                 <ContentGrid
-                  content={content}
+                  content={filteredContent}
                   isLoading={isLoading}
                   showPremiumOnly={showPremiumOnly}
                   contentType={type.value}

@@ -59,7 +59,6 @@ async function testContentCreation() {
   // Create a test content item
   const contentData = {
     title: 'Test Content ' + new Date().toISOString(),
-    description: 'This is a test content item',
     type: 'video',
     access_tier_id: accessTierId,
     thumbnail_url: null,
@@ -78,6 +77,7 @@ async function testContentCreation() {
       version: "2.28.2"
     }),
     metadata: {
+      description: 'This is a test content item',
       content_images: [],
       embed_links: [],
       attachments: []

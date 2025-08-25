@@ -61,7 +61,7 @@ export function ProtectedRoute({
           description: `Jums reikia ${requiredRole} prieigos, kad matytumėte šį puslapį.`,
           variant: 'destructive',
         });
-        router.push('/manage/content?error=Insufficient+permissions');
+        router.push('/?error=Insufficient+permissions');
       } 
       return;
     }

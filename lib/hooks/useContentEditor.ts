@@ -67,7 +67,6 @@ export function useContentEditor({
         setFormData({
           type: 'video' as ContentType,
           title: '',
-          description: '',
           ageGroups: [],
           categories: [],
           accessTierId: '',
@@ -94,7 +93,6 @@ export function useContentEditor({
         setFormData({
           type: 'video' as ContentType,
           title: '',
-          description: '',
           ageGroups: [],
           categories: [],
           accessTierId: '',
@@ -139,7 +137,6 @@ export function useContentEditor({
         const mappedFormData: ContentFormData = {
           type: content.type,
           title: content.title,
-          description: content.description || '',
           ageGroups: content.age_groups.map((ag: any) => ag.id),
           categories: content.categories.map((c: any) => c.id),
           accessTierId: content.access_tier_id,
@@ -333,7 +330,7 @@ export function useContentEditor({
       
       // Clear draft and redirect
       clearContentDraft()
-      router.replace('/manage/content?tab=list')
+      router.replace('/')
     } catch (err) {
       console.error('Error submitting content:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to save content'

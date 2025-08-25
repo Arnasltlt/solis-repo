@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 // Define expected request body type
 type CreateContentRequestBody = {
   title: string;
-  description: string;
+  description?: string; // optional, stored in metadata only
   type: 'video' | 'audio' | 'lesson_plan' | 'game';
   published: boolean;
   accessTierId: string;
@@ -96,7 +96,7 @@ async function processCreateContentRequest(request: NextRequest, authorId: strin
   try {
     requestBody = await request.json();
     // Basic validation
-    if (!requestBody.title || !requestBody.description || !requestBody.type || !requestBody.accessTierId) {
+    if (!requestBody.title || !requestBody.type || !requestBody.accessTierId) {
       return NextResponse.json({ error: 'Missing required fields in request body' }, { status: 400 });
     }
     if (!Array.isArray(requestBody.ageGroups) || !Array.isArray(requestBody.categories)) {
@@ -142,7 +142,7 @@ async function processCreateContentRequest(request: NextRequest, authorId: strin
         .insert({
           id: contentId,
           title: title,
-          description: requestBody.description.trim(),
+          description: requestBody.description?.trim() || '',
           type: requestBody.type,
           slug: slug,
           content_body: '',
@@ -150,8 +150,11 @@ async function processCreateContentRequest(request: NextRequest, authorId: strin
           access_tier_id: requestBody.accessTierId,
           author_id: authorId,
           thumbnail_url: '',
-          // Persist metadata if provided (e.g., attachments)
-          metadata: requestBody.metadata ? requestBody.metadata : {}
+          // Persist metadata and include description if provided
+          metadata: {
+            ...(requestBody.metadata || {}),
+            ...(requestBody.description ? { description: requestBody.description } : {})
+          }
         })
         .select('id')
         .single();

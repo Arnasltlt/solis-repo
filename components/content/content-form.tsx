@@ -16,7 +16,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -41,7 +40,6 @@ const formSchema = z.object({
     required_error: "Pasirinkite turinio tipą",
   }),
   title: z.string().min(1, { message: "Įveskite pavadinimą" }),
-  description: z.string().optional(),
   thumbnail: z.any().optional(),
   contentBody: z.string()
     .transform((val) => {
@@ -143,7 +141,6 @@ export function ContentForm({
     defaultValues: {
       type: initialData?.type || undefined,
       title: initialData?.title || '',
-      description: initialData?.description || '',
       contentBody: initialData?.contentBody || '',
       ageGroups: initialData?.ageGroups || [],
       categories: initialData?.categories || [],
@@ -394,24 +391,6 @@ export function ContentForm({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Aprašymas</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Įveskite aprašymą"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>Trumpas turinio aprašymas</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
 
           {/* Media */}

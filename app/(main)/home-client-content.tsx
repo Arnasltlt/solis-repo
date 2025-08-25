@@ -173,14 +173,11 @@ export function HomeClientContent({
   return (
     <>
       {showEditButtons && (
-        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="font-medium text-yellow-800">Administratoriaus režimas</h3>
-              <p className="text-sm text-yellow-600">Galite redaguoti turinį tiesiogiai šiame puslapyje.</p>
-            </div>
+        <div className="mb-4 rounded-md border border-yellow-200 bg-yellow-50/60">
+          <div className="flex items-center justify-between gap-3 px-3 py-2">
+            <p className="text-xs text-yellow-700">Administratoriaus režimas · Galite redaguoti turinį šiuo puslapiu</p>
             <Link href="/manage/content/new">
-              <Button>Kurti naują turinį</Button>
+              <Button variant="outline" size="sm">Kurti naują turinį</Button>
             </Link>
           </div>
         </div>
@@ -188,6 +185,7 @@ export function HomeClientContent({
       
       
       
+      <div className="w-full overflow-x-hidden">
       <ContentLayout
         content={displayContent}
         allContent={initialContent}
@@ -203,6 +201,7 @@ export function HomeClientContent({
         onRefresh={refresh}
         showEditButtons={showEditButtons}
       />
+      </div>
     </>
   )
 }
