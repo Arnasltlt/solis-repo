@@ -379,7 +379,7 @@ export async function createContent(
     const timestamp = new Date().getTime();
     const uniqueSlug = `${slug}-${timestamp.toString().slice(-6)}`;
     
-    const payload = {
+    const payload: any = {
       title: data.title,
       description: data.description || '',
       type: data.type,
@@ -389,7 +389,13 @@ export async function createContent(
       thumbnail_url: '',
       author_id: session.session.user.id,
       // Use unique slug to avoid conflicts
-      slug: uniqueSlug
+      slug: uniqueSlug,
+      metadata: { ...(data.metadata || {}) }
+    }
+
+    // Store description in metadata for potential future use
+    if (data.description) {
+      payload.metadata.description = data.description
     }
 
     // Debug the content body
@@ -780,11 +786,14 @@ export async function updateContent(
     }
 
     // Prepare the update payload
-    const payload: any = {}
+    const payload: any = { metadata: { ...(data.metadata || {}) } }
     
     // Only include fields that are provided in the update
     if (data.title !== undefined) payload.title = data.title
-    if (data.description !== undefined) payload.description = data.description
+    if (data.description !== undefined) {
+      payload.description = data.description
+      payload.metadata.description = data.description
+    }
     if (data.type !== undefined) payload.type = data.type
     if (data.published !== undefined) payload.published = data.published
     if (data.accessTierId !== undefined && data.accessTierId) payload.access_tier_id = data.accessTierId

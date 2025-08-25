@@ -264,7 +264,6 @@ export function ContentEditorPage({ contentItem }: ContentEditorPageProps) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">{contentItem.title}</h1>
-          <p className="text-gray-500 mt-1">{contentItem.description}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleBack}>

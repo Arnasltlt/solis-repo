@@ -14,7 +14,6 @@ interface ContentFormBasicProps {
  * This component includes form fields for:
  * - Content type
  * - Title
- * - Description
  */
 export function ContentFormBasic({ form }: ContentFormBasicProps) {
   return (
@@ -45,14 +44,6 @@ export function ContentFormBasic({ form }: ContentFormBasicProps) {
         required
       />
 
-      <StandardFormField
-        form={form}
-        name="description"
-        label="Aprašymas"
-        type="textarea"
-        placeholder="Įveskite aprašymą"
-        rows={4}
-      />
     </FormSection>
   )
 } 

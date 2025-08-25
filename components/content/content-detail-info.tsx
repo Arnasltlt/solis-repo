@@ -16,7 +16,6 @@ interface ContentDetailInfoProps {
  * - Premium badge (if applicable)
  * - Content title
  * - Thumbnail image
- * - Content description
  */
 export function ContentDetailInfo({ content }: ContentDetailInfoProps) {
   const [thumbnailError, setThumbnailError] = useState(false)
@@ -76,8 +75,6 @@ export function ContentDetailInfo({ content }: ContentDetailInfoProps) {
           </div>
         ) : null}
 
-        {/* Description */}
-        <p className="text-gray-600 text-lg mb-6">{content.description}</p>
       </div>
     </div>
   )

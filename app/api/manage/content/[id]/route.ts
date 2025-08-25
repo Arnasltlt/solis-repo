@@ -141,7 +141,13 @@ export async function PATCH(
     if (requestBody.content_body !== undefined) updatePayload.content_body = requestBody.content_body;
     if (requestBody.thumbnail_url !== undefined) updatePayload.thumbnail_url = requestBody.thumbnail_url;
     if (requestBody.title !== undefined) updatePayload.title = requestBody.title;
-    if (requestBody.description !== undefined) updatePayload.description = requestBody.description;
+    if (requestBody.description !== undefined) {
+      updatePayload.description = requestBody.description;
+      updatePayload.metadata = {
+        ...(updatePayload.metadata || {}),
+        description: requestBody.description
+      };
+    }
     if (requestBody.type !== undefined) updatePayload.type = requestBody.type;
     if (requestBody.access_tier_id !== undefined) updatePayload.access_tier_id = requestBody.access_tier_id;
     if (requestBody.published !== undefined) updatePayload.published = requestBody.published;

@@ -115,12 +115,6 @@ export function ContentDetail({ content }: ContentDetailProps) {
                   </div>
                 )}
 
-                {/* Description - Blurred */}
-                {content.description && (
-                  <div className="prose max-w-none mt-4">
-                    <p className="text-gray-600">{content.description}</p>
-                  </div>
-                )}
 
                 {/* Dummy Content - Just for visual structure */}
                 <div className="space-y-4 mt-6">
@@ -262,12 +256,6 @@ export function ContentDetail({ content }: ContentDetailProps) {
             </div>
           )}
 
-          {/* Description */}
-          {content.description && (
-            <div className="prose max-w-none">
-              <p className="text-gray-600">{content.description}</p>
-            </div>
-          )}
 
           {/* Main Content Body */}
           {content.content_body && (
