@@ -190,6 +190,7 @@ export function HomeClientContent({
       
       <ContentLayout
         content={displayContent}
+        allContent={initialContent}
         ageGroups={ageGroups}
         categories={categories}
         selectedAgeGroups={selectedAgeGroups}

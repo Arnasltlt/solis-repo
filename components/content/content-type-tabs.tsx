@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ReactNode } from "react"
+import type { ContentItem } from "@/lib/types/database"
 
 interface ContentTypeTabsProps {
   onRefresh: () => void
   filterSidebar: ReactNode
   isFilterOpen: boolean
   onFilterOpenChange: (open: boolean) => void
+  contentTypes: { value: ContentItem['type']; label: string }[]
 }
 
 /**
@@ -32,7 +34,8 @@ export function ContentTypeTabs({
   onRefresh,
   filterSidebar,
   isFilterOpen,
-  onFilterOpenChange
+  onFilterOpenChange,
+  contentTypes
 }: ContentTypeTabsProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between mb-6">
@@ -54,36 +57,21 @@ export function ContentTypeTabs({
           </SheetContent>
         </Sheet>
         <TabsList className="bg-secondary-navy/10">
-          <TabsTrigger 
-            value="all" 
+          <TabsTrigger
+            value="all"
             className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white"
           >
             Visi
           </TabsTrigger>
-          <TabsTrigger 
-            value="video"
-            className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white"
-          >
-            Video
-          </TabsTrigger>
-          <TabsTrigger 
-            value="audio"
-            className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white"
-          >
-            Dainos
-          </TabsTrigger>
-          <TabsTrigger 
-            value="lesson_plan"
-            className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white"
-          >
-            Pamokos
-          </TabsTrigger>
-          <TabsTrigger 
-            value="game"
-            className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white"
-          >
-            Žaidimai
-          </TabsTrigger>
+          {contentTypes.map((type) => (
+            <TabsTrigger
+              key={type.value}
+              value={type.value}
+              className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white"
+            >
+              {type.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </div>
       <Button

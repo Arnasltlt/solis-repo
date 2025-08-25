@@ -39,6 +39,7 @@ export function AdminContentBrowser({
   return (
     <ContentLayout
       content={content}
+      allContent={content}
       ageGroups={ageGroups}
       categories={categories}
       selectedAgeGroups={[]}
