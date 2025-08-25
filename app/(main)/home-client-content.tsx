@@ -188,6 +188,7 @@ export function HomeClientContent({
       <div className="w-full overflow-x-hidden">
       <ContentLayout
         content={displayContent}
+        allContent={initialContent}
         ageGroups={ageGroups}
         categories={categories}
         selectedAgeGroups={selectedAgeGroups}

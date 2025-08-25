@@ -14,12 +14,14 @@ import {
 } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ReactNode } from "react"
+import type { ContentItem } from "@/lib/types/database"
 
 interface ContentTypeTabsProps {
   onRefresh: () => void
   filterSidebar: ReactNode
   isFilterOpen: boolean
   onFilterOpenChange: (open: boolean) => void
+  contentTypes: { value: ContentItem['type']; label: string }[]
   searchTerm: string
   onSearchChange: (value: string) => void
 }
@@ -37,6 +39,7 @@ export function ContentTypeTabs({
   filterSidebar,
   isFilterOpen,
   onFilterOpenChange,
+  contentTypes,
   searchTerm,
   onSearchChange
 }: ContentTypeTabsProps) {
@@ -66,30 +69,15 @@ export function ContentTypeTabs({
           >
             Visi
           </TabsTrigger>
-          <TabsTrigger 
-            value="video"
-            className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white shrink-0 snap-start"
-          >
-            Video
-          </TabsTrigger>
-          <TabsTrigger 
-            value="audio"
-            className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white shrink-0 snap-start"
-          >
-            Dainos
-          </TabsTrigger>
-          <TabsTrigger 
-            value="lesson_plan"
-            className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white shrink-0 snap-start"
-          >
-            Pamokos
-          </TabsTrigger>
-          <TabsTrigger 
-            value="game"
-            className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white shrink-0 snap-start"
-          >
-            Žaidimai
-          </TabsTrigger>
+          {contentTypes.map((type) => (
+            <TabsTrigger
+              key={type.value}
+              value={type.value}
+              className="data-[state=active]:bg-secondary-navy data-[state=active]:text-white shrink-0 snap-start"
+            >
+              {type.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </div>
       {/* Search - mobile full width below tabs; desktop right-aligned */}
