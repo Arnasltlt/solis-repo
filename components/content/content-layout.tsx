@@ -75,7 +75,7 @@ export function ContentLayout({
   )
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full overflow-x-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-[300px] border-r border-gray-200">
         <ScrollArea className="h-[calc(100vh-8rem)] px-4 py-6">
@@ -84,29 +84,20 @@ export function ContentLayout({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <Tabs 
           defaultValue="all" 
           className="h-full"
           onValueChange={(value) => setActiveTab(value)}
         >
           <div className="px-4 py-6">
-            <div className="mb-4">
-              <div className="relative max-w-md">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Ieškoti turinio..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
             <ContentTypeTabs
               onRefresh={onRefresh}
               filterSidebar={filterSidebar}
               isFilterOpen={filterOpen}
               onFilterOpenChange={setFilterOpen}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
             />
 
             {/* All Content Tab */}
