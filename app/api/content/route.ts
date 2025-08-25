@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
       thumbnail_url: thumbnailUrl,
       published: formData.published,
       author_id: userId,
-      access_tier_id: formData.accessTierId
+      access_tier_id: formData.accessTierId,
+      metadata: formData.description ? { description: formData.description } : {}
     }
     
     console.log('Creating content with data:', content)

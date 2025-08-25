@@ -14,7 +14,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import type { ContentFormData } from "@/lib/types/content"
 
@@ -23,7 +22,6 @@ const formSchema = z.object({
     required_error: "Pasirinkite turinio tipą",
   }),
   title: z.string().min(1, { message: "Įveskite pavadinimą" }),
-  description: z.string().optional(),
 })
 
 interface ContentFormStepBasicsProps {
@@ -42,7 +40,6 @@ export function ContentFormStepBasics({
     defaultValues: {
       type: initialData?.type || undefined,
       title: initialData?.title || '',
-      description: initialData?.description || '',
     },
   })
 
@@ -141,26 +138,6 @@ export function ContentFormStepBasics({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Aprašymas</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Įveskite aprašymą"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Trumpas turinio aprašymas
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </form>
     </Form>
   )
