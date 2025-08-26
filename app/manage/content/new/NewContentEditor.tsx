@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/form"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import { SparklesIcon, CheckIcon, ChevronRightIcon, ArrowLeft, Loader2 } from "lucide-react"
+import { SparklesIcon, CheckIcon, ChevronRightIcon, ArrowLeft, Loader2, PlayIcon, MicIcon, BookOpenIcon, GamepadIcon } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckboxCardGroup } from '@/components/ui/checkbox-card-group'
@@ -36,14 +36,23 @@ import type { AttachmentFile } from '@/components/content/file-attachments-uploa
 
 // Create a schema for content
 const formSchema = z.object({
-  type: z.enum(['video', 'audio', 'lesson_plan', 'game'], {
-    required_error: "Please select a content type",
+  // UI turinio tipai (unikalūs, lokalizuoti), žemiau žemėlapyje konvertuojami į backend tipus
+  type: z.enum([
+    'dainos',
+    'ritminiai_zaidimai',
+    'instrumentai',
+    'judesio_zaidimai',
+    'mankstos',
+    'choreografijos',
+    'pamoku_planai',
+  ], {
+    required_error: "Pasirinkite turinio tipą",
   }),
-  title: z.string().min(1, { message: "Title is required" }),
+  title: z.string().min(1, { message: "Pavadinimas privalomas" }),
   thumbnail: z.any().optional(),
-  ageGroups: z.array(z.string()).min(1, { message: "Please select at least one age group" }),
-  categories: z.array(z.string()).min(1, { message: "Please select at least one category" }),
-  accessTierId: z.string().min(1, { message: "Please select an access tier" }),
+  ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
+  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną kategoriją" }),
+  accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
   published: z.boolean().default(false),
   attachments: z.array(z.any()).optional(),
 })
@@ -68,6 +77,90 @@ export function NewContentEditor({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [attachments, setAttachments] = useState<AttachmentFile[]>([])
   const [attachmentsUploading, setAttachmentsUploading] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1)
+  
+  // UI turinio tipų konfigūracija (paprasta, nekeičianti kitų komponentų elgsenos)
+  const contentTypes = [
+    {
+      value: 'dainos',
+      label: 'Dainos',
+      description: 'Dainos ir dainavimo medžiaga',
+      icon: MicIcon,
+      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+    },
+    {
+      value: 'ritminiai_zaidimai',
+      label: 'Ritminiai žaidimai', 
+      description: 'Ritmo lavinimo žaidimai ir pratimai',
+      icon: GamepadIcon,
+      color: 'bg-green-50 border-green-200 hover:bg-green-100'
+    },
+    {
+      value: 'instrumentai',
+      label: 'Instrumentai',
+      description: 'Darbas su instrumentais ir metodika',
+      icon: BookOpenIcon,
+      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100'
+    },
+    {
+      value: 'judesio_zaidimai',
+      label: 'Judesio žaidimai',
+      description: 'Judėjimo ir koordinacijos veiklos',
+      icon: GamepadIcon,
+      color: 'bg-orange-50 border-orange-200 hover:bg-orange-100'
+    },
+    {
+      value: 'mankstos',
+      label: 'Mankštos',
+      description: 'Mankštos, apšilimai ir aktyvios veiklos',
+      icon: PlayIcon,
+      color: 'bg-teal-50 border-teal-200 hover:bg-teal-100'
+    },
+    {
+      value: 'choreografijos',
+      label: 'Choreografijos',
+      description: 'Šokių choreografijos ir mokymai',
+      icon: PlayIcon,
+      color: 'bg-rose-50 border-rose-200 hover:bg-rose-100'
+    },
+    {
+      value: 'pamoku_planai',
+      label: 'Pamokų planai',
+      description: 'Struktūruoti planai ir veiklos',
+      icon: BookOpenIcon,
+      color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100'
+    }
+  ]
+
+  // Žemėlapis iš UI tipų į backend tipų lauką
+  const uiTypeToBackendType: Record<
+    'dainos' | 'ritminiai_zaidimai' | 'instrumentai' | 'judesio_zaidimai' | 'mankstos' | 'choreografijos' | 'pamoku_planai',
+    'video' | 'audio' | 'lesson_plan' | 'game'
+  > = {
+    dainos: 'audio',
+    ritminiai_zaidimai: 'game',
+    instrumentai: 'lesson_plan',
+    judesio_zaidimai: 'game',
+    mankstos: 'video',
+    choreografijos: 'video',
+    pamoku_planai: 'lesson_plan',
+  }
+  
+  // (moved) watchers and progress are defined after form initialization
+  
+  // Real-time validation
+  const validateTitle = (value: string) => {
+    if (!value || !value.trim()) {
+      return "Pavadinimas privalomas"
+    }
+    if (value.trim().length < 3) {
+      return "Pavadinimas turi būti bent 3 simbolių"
+    }
+    if (value.trim().length > 100) {
+      return "Pavadinimas turi būti trumpesnis nei 100 simbolių"
+    }
+    return true
+  }
   
   // Check authentication directly
   useEffect(() => {
@@ -116,6 +209,28 @@ export function NewContentEditor({
     },
   })
   
+  // Watch for content type changes to determine when to show next steps
+  const watchedType = form.watch("type")
+  const watchedTitle = form.watch("title")
+  
+  // Calculate form completion progress
+  const calculateProgress = () => {
+    const fields = form.getValues()
+    let completed = 0
+    let total = 6 // type, title, ageGroups, categories, accessTierId, published
+    
+    if (fields.type) completed++
+    if (fields.title && fields.title.trim()) completed++
+    if (fields.ageGroups && fields.ageGroups.length > 0) completed++
+    if (fields.categories && fields.categories.length > 0) completed++
+    if (fields.accessTierId) completed++
+    completed++ // published always has a default value
+    
+    return Math.round((completed / total) * 100)
+  }
+  
+  const progress = calculateProgress()
+  
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (attachmentsUploading) {
@@ -137,15 +252,17 @@ export function NewContentEditor({
       
       // Prepare the data payload for the API route
       // Exclude the thumbnail File object, it needs separate handling
-      const payload: Omit<z.infer<typeof formSchema>, 'thumbnail'> & { author_id?: string, metadata?: any } = {
+      const payload: Omit<z.infer<typeof formSchema>, 'thumbnail' | 'type'> & { type: 'video' | 'audio' | 'lesson_plan' | 'game', author_id?: string, metadata?: any } = {
         title: values.title,
-        type: values.type,
+        type: uiTypeToBackendType[values.type],
         published: values.published,
         accessTierId: values.accessTierId,
         ageGroups: values.ageGroups,
         categories: values.categories,
         metadata: {
-          attachments: attachments
+          attachments: attachments,
+          ui_type: values.type,
+          ui_type_label: contentTypes.find(t => t.value === values.type)?.label || values.type
         }
       };
       
@@ -241,8 +358,8 @@ export function NewContentEditor({
       
       // Show success message
       toast({
-        title: "Content created successfully",
-        description: "Redirecting to content editor to add the content body",
+        title: "Turinys sėkmingai sukurtas",
+        description: "Nukreipiama į turinio redaktorių kūrimui tęsti",
       })
       
       // Navigate to content editor to edit the content body
@@ -260,12 +377,12 @@ export function NewContentEditor({
       // --- ADDED DEBUG LOG --- 
       console.log('%%% ERROR caught in onSubmit %%%', err);
       console.error("Error creating content:", err)
-      const errorMessage = err instanceof Error ? err.message : "Failed to create content";
+      const errorMessage = err instanceof Error ? err.message : "Nepavyko sukurti turinio";
       setError(errorMessage)
       
       toast({
-        title: "Error",
-        description: "Failed to create content. Please try again.",
+        title: "Klaida",
+        description: "Nepavyko sukurti turinio. Bandykite dar kartą.",
         variant: "destructive"
       })
     } finally {
@@ -276,22 +393,19 @@ export function NewContentEditor({
   }
   
   // Handle thumbnail file change
-  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    
-    // Validate file size (max 5MB)
+  const handleThumbnailFile = (file: File) => {
+    // Tikrinti failo dydį (maks. 5MB)
     if (file.size > 5 * 1024 * 1024) {
       form.setError('thumbnail', { 
-        message: "File size must be less than 5MB" 
+        message: "Failas turi būti mažesnis nei 5MB" 
       })
       return
     }
     
-    // Validate file type
+    // Tikrinti failo tipą
     if (!file.type.startsWith('image/')) {
       form.setError('thumbnail', { 
-        message: "Only image files are allowed" 
+        message: "Leidžiami tik paveikslėlių failai" 
       })
       return
     }
@@ -305,6 +419,40 @@ export function NewContentEditor({
       URL.revokeObjectURL(previewUrl)
     }
     setPreviewUrl(URL.createObjectURL(file))
+  }
+
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    handleThumbnailFile(file)
+  }
+
+  // Handle drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const files = Array.from(e.dataTransfer.files)
+    const imageFile = files.find(file => file.type.startsWith('image/'))
+    
+    if (imageFile) {
+      handleThumbnailFile(imageFile)
+    }
   }
   
   // Clear thumbnail
@@ -320,7 +468,7 @@ export function NewContentEditor({
     <ProtectedRoute requiredRole={UserRoles.ADMIN}>
       <div className="container py-8">
         <PageHeader
-          title="Create New Content"
+          title="Kurti naują turinį"
           backUrl="/"
         />
         
@@ -334,261 +482,350 @@ export function NewContentEditor({
         )}
         
         <Card className="p-6">
+          {/* Progreso indikatorius */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">Progresas</span>
+              <span className="text-sm text-muted-foreground">{progress}% užpildyta</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Content Type */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Basic Information</h2>
-              
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Content Type</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="video" />
-                          </FormControl>
-                          <FormLabel className="font-normal">Video</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="audio" />
-                          </FormControl>
-                          <FormLabel className="font-normal">Audio</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="lesson_plan" />
-                          </FormControl>
-                          <FormLabel className="font-normal">Lesson Plan</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="game" />
-                          </FormControl>
-                          <FormLabel className="font-normal">Game</FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Title */}
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter content title" {...field} />
-                    </FormControl>
-                    <FormDescription>A clear, concise title for your content</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Thumbnail */}
-              <FormField
-                control={form.control}
-                name="thumbnail"
-                render={({ field: { value, onChange, ...field } }) => (
-                  <FormItem>
-                    <FormLabel>Thumbnail</FormLabel>
-                    <FormControl>
-                      <div className="space-y-4">
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleThumbnailChange}
-                          className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-foreground hover:file:bg-primary/20"
-                          {...field}
-                        />
-                        
-                        {previewUrl && (
-                          <div className="relative h-40 w-full rounded-lg overflow-hidden border border-gray-200">
-                            <img
-                              src={previewUrl}
-                              alt="Preview"
-                              className="w-full h-full object-cover"
-                            />
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              className="absolute top-2 right-2"
-                              onClick={clearThumbnail}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      Visual representation of your content. Recommended size: 1280×720px.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            {/* Age Groups */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Audience & Categories</h2>
-              
-              <FormField
-                control={form.control}
-                name="ageGroups"
-                render={() => (
-                  <FormItem>
-                    <CheckboxCardGroup
-                      form={form}
-                      name="ageGroups"
-                      label="Age Groups"
-                      description="Select the age groups this content is suitable for"
-                      items={ageGroups.map(group => ({
-                        id: group.id,
-                        label: group.range,
-                        description: group.description || '',
-                      }))}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Categories */}
-              <FormField
-                control={form.control}
-                name="categories"
-                render={() => (
-                  <FormItem>
-                    <CheckboxCardGroup
-                      form={form}
-                      name="categories"
-                      label="Categories"
-                      description="Select the categories this content belongs to"
-                      items={categories.map(category => ({
-                        id: category.id,
-                        label: category.name,
-                        description: category.description || '',
-                      }))}
-                    />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Access Tier */}
-              <FormField
-                control={form.control}
-                name="accessTierId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Access Tier</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select access tier" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {accessTiers
-                          .filter(tier => ['free', 'premium'].includes(tier.name))
-                          .map((tier) => (
-                            <SelectItem 
-                              key={tier.id} 
-                              value={tier.id}
-                              className="flex items-center gap-2"
-                            >
-                              {tier.name === 'premium' ? (
-                                <div className="flex items-center gap-2">
-                                  <SparklesIcon className="w-4 h-4 text-yellow-500" />
-                                  Premium
-                                </div>
-                              ) : (
-                                'Free'
-                              )}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Set the access level for this content
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Published Status */}
-              <FormField
-                control={form.control}
-                name="published"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        id="published"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel htmlFor="published">
-                        Publish immediately
-                      </FormLabel>
-                      <FormDescription>
-                        Content will be visible to users based on the selected access tier
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              {/* Attachments */}
-              <div className="space-y-4 mt-8">
-                <h2 className="text-lg font-semibold">Attachments</h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add files that users can download
-                </p>
+              {/* 1 žingsnis: Turinio tipo pasirinkimas */}
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">Kokį turinio tipą kuriate?</h2>
+                  <p className="text-sm text-muted-foreground mb-4">Pasirinkite formatą, kuris geriausiai tinka jūsų turiniui</p>
+                </div>
                 
-                <FileAttachmentsUploader
-                  initialAttachments={attachments}
-                  onAttachmentsChange={setAttachments}
-                  onUploadingChange={setAttachmentsUploading}
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {contentTypes.map((type) => {
+                            const Icon = type.icon
+                            const isSelected = field.value === type.value
+                            return (
+                              <div
+                                key={type.value}
+                                className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                  isSelected 
+                                    ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                                    : `${type.color} border-2`
+                                }`}
+                                onClick={() => field.onChange(type.value)}
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <Icon className={`w-6 h-6 mt-1 ${isSelected ? 'text-primary' : 'text-gray-600'}`} />
+                                  <div className="flex-1">
+                                    <h3 className={`font-semibold ${isSelected ? 'text-primary' : 'text-gray-900'}`}>
+                                      {type.label}
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mt-1">{type.description}</p>
+                                  </div>
+                                  {isSelected && (
+                                    <CheckIcon className="w-5 h-5 text-primary" />
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-            </div>
+
+              {/* 2 žingsnis: Pavadinimas (rodyti pasirinkus tipą) */}
+              {watchedType && (
+                <div className="space-y-6 animate-in slide-in-from-top-4 duration-300">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    rules={{
+                      validate: validateTitle
+                    }}
+                    render={({ field, fieldState }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold">
+                          Koks bus jūsų {contentTypes.find(t => t.value === watchedType)?.label.toLowerCase()} pavadinimas?
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input 
+                              placeholder={`Įrašykite aiškų pavadinimą (${contentTypes.find(t => t.value === watchedType)?.label.toLowerCase()})`}
+                              className={`text-lg py-3 pr-12 ${
+                                fieldState.error 
+                                  ? 'border-red-300 focus:border-red-500' 
+                                  : field.value && field.value.trim() && !fieldState.error
+                                  ? 'border-green-300 focus:border-green-500'
+                                  : ''
+                              }`}
+                              {...field} 
+                            />
+                            {field.value && field.value.trim() && !fieldState.error && (
+                              <CheckIcon className="w-5 h-5 text-green-500 absolute right-3 top-1/2 transform -translate-y-1/2" />
+                            )}
+                          </div>
+                        </FormControl>
+                        <div className="flex justify-between items-center">
+                          <FormDescription>Padarykite pavadinimą aiškų ir patrauklų – tai matys vartotojai pirmiausia</FormDescription>
+                          <span className={`text-xs ${field.value && field.value.length > 80 ? 'text-orange-500' : 'text-gray-400'}`}>
+                            {field.value?.length || 0}/100
+                          </span>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+              {/* Step 3: Additional Details - Show after title is entered */}
+              {watchedType && watchedTitle && watchedTitle.trim() && (
+                <div className="space-y-8 animate-in slide-in-from-top-4 duration-300">
+                  {/* Miniatiūra */}
+                  <div className="space-y-4">
+                    <h3 className="text-base font-semibold">Pridėti miniatiūrą (neprivaloma)</h3>
+                    <FormField
+                      control={form.control}
+                      name="thumbnail"
+                      render={({ field: { value, onChange, ...field } }) => (
+                        <FormItem>
+                          <FormControl>
+                            <div className="space-y-4">
+                              <div 
+                                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer"
+                                onDragOver={handleDragOver}
+                                onDragEnter={handleDragEnter}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                onClick={() => (document.getElementById('thumbnail-upload') as HTMLInputElement)?.click()}
+                              >
+                                <div className="flex flex-col items-center justify-center space-y-4">
+                                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      Įtempkite paveikslėlį čia arba {" "}
+                                      <label htmlFor="thumbnail-upload" className="text-primary hover:text-primary/80 cursor-pointer">
+                                        pasirinkite
+                                      </label>
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      PNG, JPG iki 5MB (rekomenduojama 1280×720px)
+                                    </p>
+                                  </div>
+                                </div>
+                                <Input
+                                  id="thumbnail-upload"
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleThumbnailChange}
+                                  className="hidden"
+                                  {...field}
+                                />
+                              </div>
+                              
+                              {previewUrl && (
+                                <div className="relative h-40 w-full rounded-lg overflow-hidden border border-gray-200">
+                                  <img
+                                    src={previewUrl}
+                                    alt="Preview"
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    className="absolute top-2 right-2"
+                                    onClick={clearThumbnail}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  {/* Auditorija ir kategorijos */}
+                  <div className="space-y-6">
+                    <h3 className="text-base font-semibold">Kam skirtas šis turinys?</h3>
+              
+                    <FormField
+                      control={form.control}
+                      name="ageGroups"
+                      render={() => (
+                        <FormItem>
+                          <CheckboxCardGroup
+                            form={form}
+                            name="ageGroups"
+                            label="Amžiaus grupės"
+                            description="Pasirinkite amžiaus grupes, kurioms šis turinys tinkamas"
+                            items={ageGroups.map(group => ({
+                              id: group.id,
+                              label: group.range,
+                              description: group.description || '',
+                            }))}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="categories"
+                      render={() => (
+                        <FormItem>
+                          <CheckboxCardGroup
+                            form={form}
+                            name="categories"
+                            label="Kategorijos"
+                            description="Pasirinkite kategorijas, kurioms priklauso šis turinys"
+                            items={categories.map(category => ({
+                              id: category.id,
+                              label: category.name,
+                              description: category.description || '',
+                            }))}
+                          />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="accessTierId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Prieigos lygis</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pasirinkite prieigos lygį" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {accessTiers
+                                  .filter(tier => ['free', 'premium'].includes(tier.name))
+                                  .map((tier) => (
+                                    <SelectItem 
+                                      key={tier.id} 
+                                      value={tier.id}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {tier.name === 'premium' ? (
+                                        <div className="flex items-center gap-2">
+                                          <SparklesIcon className="w-4 h-4 text-yellow-500" />
+                                          Premium
+                                        </div>
+                                      ) : (
+                                        'Nemokama'
+                                      )}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              Kas galės matyti šį turinį?
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="published"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col justify-center">
+                            <div className="flex items-center space-x-3">
+                              <FormControl>
+                                <Checkbox
+                                  id="published"
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel htmlFor="published" className="font-semibold">
+                                  Publikuoti nedelsiant
+                                </FormLabel>
+                                <FormDescription>
+                                  Padaryti turinį matomą vartotojams iškart
+                                </FormDescription>
+                              </div>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {/* Priedai */}
+                    <div className="space-y-4">
+                      <h3 className="text-base font-semibold">Pridėti atsisiunčiamus failus (neprivaloma)</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Įkelkite papildomus išteklius, kuriuos vartotojai galės atsisiųsti
+                      </p>
+                      
+                      <FileAttachmentsUploader
+                        initialAttachments={attachments}
+                        onAttachmentsChange={setAttachments}
+                        onUploadingChange={setAttachmentsUploading}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting} size="lg">
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    Continue to Editor
-                    <ChevronRightIcon className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </div>
+              {/* Veiksmas - rodyti, kai esminiai laukai užpildyti */}
+              {watchedType && watchedTitle && watchedTitle.trim() && (
+                <div className="flex justify-end pt-6 border-t animate-in slide-in-from-bottom-4 duration-300">
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting || attachmentsUploading} 
+                    size="lg"
+                    className="px-8"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Kuriama...
+                      </>
+                    ) : attachmentsUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Įkeliami failai...
+                      </>
+                    ) : (
+                      <>
+                        Tęsti į redaktorių
+                        <ChevronRightIcon className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
           </form>
         </Form>
       </Card>

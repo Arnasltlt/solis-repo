@@ -154,6 +154,7 @@ export async function getContentItems({
     .select(`
       *,
       access_tier:access_tiers!content_items_access_tier_id_fkey(*),
+      ui_type:content_ui_types!content_items_ui_type_id_fkey(*),
       age_groups:content_age_groups(
         age_group:age_groups(*)
       ),
@@ -241,6 +242,7 @@ export async function getContentItems({
       level: item.access_tier?.level || 0,
       features: item.access_tier?.features || {}
     },
+    ui_type: item.ui_type || null,
     metadata: {
       content_images: Array.isArray(item.metadata?.content_images) ? item.metadata.content_images : [],
       embed_links: Array.isArray(item.metadata?.embed_links) ? item.metadata.embed_links : [],
@@ -817,6 +819,24 @@ export async function updateContent(
       console.log('content_body not provided in update data');
     }
 
+    // If a UI type slug is present in metadata, resolve and set ui_type_id; do not persist ui_type in metadata
+    try {
+      const uiTypeSlug = (data.metadata as any)?.ui_type
+      if (uiTypeSlug && typeof uiTypeSlug === 'string') {
+        const { data: uiTypeRow, error: uiTypeErr } = await supabase
+          .from('content_ui_types')
+          .select('id, name')
+          .eq('slug', uiTypeSlug)
+          .eq('is_active', true)
+          .single()
+        if (!uiTypeErr && uiTypeRow?.id) {
+          payload.ui_type_id = uiTypeRow.id
+        }
+      }
+    } catch (e) {
+      console.warn('updateContent: failed to resolve ui_type_id from slug', e)
+    }
+
     // Merge metadata if provided (supports attachments updates in editor Details)
     if (data.metadata) {
       try {
@@ -825,10 +845,16 @@ export async function updateContent(
           .select('metadata')
           .eq('id', id)
           .single()
-        const merged = { ...(existingMetaRow?.metadata || {}), ...data.metadata }
+        const copy = { ...(data.metadata || {}) }
+        delete (copy as any).ui_type
+        delete (copy as any).ui_type_label
+        const merged = { ...(existingMetaRow?.metadata || {}), ...copy }
         payload.metadata = merged
       } catch (e) {
-        payload.metadata = data.metadata
+        const copy = { ...(data.metadata || {}) }
+        delete (copy as any).ui_type
+        delete (copy as any).ui_type_label
+        payload.metadata = copy
       }
     }
 
@@ -910,6 +936,20 @@ export async function updateContent(
     console.error('Error updating content:', error)
     throw error
   }
+}
+// Fetch canonical UI content types
+export async function getContentUiTypes(client?: SupabaseClient) {
+  const supa = client || getSupabaseClient()
+  const { data, error } = await supa
+    .from('content_ui_types')
+    .select('id, slug, name, is_active')
+    .eq('is_active', true)
+    .order('name')
+  if (error) {
+    console.error('Error fetching content_ui_types:', error)
+    return []
+  }
+  return data || []
 }
 
 /**

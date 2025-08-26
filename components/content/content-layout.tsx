@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import type { ContentItem, AgeGroup, Category } from "@/lib/types/database"
 import { ContentFilterSidebar } from './content-filter-sidebar'
+import { getContentUiTypes } from '@/lib/services/content'
 import { ContentTypeTabs } from './content-type-tabs'
 import { ContentGrid } from './content-grid'
 
@@ -61,33 +62,47 @@ export function ContentLayout({
     [content, searchTerm]
   )
 
-  const CONTENT_TYPE_LABELS: Record<ContentItem['type'], string> = {
-    video: 'Video',
-    audio: 'Dainos',
-    lesson_plan: 'Pamokos',
-    game: 'Žaidimai'
-  }
+  // Load canonical UI content types from DB
+  const [uiTypes, setUiTypes] = useState<{id: string, slug: string, name: string}[]>([])
+  useEffect(() => {
+    getContentUiTypes().then((rows: any[]) => {
+      setUiTypes((rows || []).map((r: any) => ({ id: r.id, slug: r.slug, name: r.name })))
+    })
+  }, [])
 
   const categoryMap = useMemo(() => {
     const map: Record<string, Set<string>> = { all: new Set() }
     for (const item of allContent) {
       const ids = item.categories.map((c) => c.id)
       ids.forEach((id) => map.all.add(id))
-      if (!map[item.type]) map[item.type] = new Set()
-      ids.forEach((id) => map[item.type].add(id))
+      const key = (item as any)?.metadata?.ui_type || item.type
+      if (!map[key]) map[key] = new Set()
+      ids.forEach((id) => map[key].add(id))
     }
     return map
   }, [allContent])
 
+  // Determine which UI type slugs actually have content
+  const presentUiTypeSlugs = useMemo(() => {
+    const set = new Set<string>()
+    for (const item of allContent) {
+      const slug = (item as any)?.ui_type?.slug || (item as any)?.metadata?.ui_type
+      if (slug) set.add(slug)
+    }
+    return set
+  }, [allContent])
+
   const contentTypes = useMemo(
-    () =>
-      Object.keys(categoryMap)
-        .filter((t) => t !== 'all')
-        .map((t) => ({
-          value: t as ContentItem['type'],
-          label: CONTENT_TYPE_LABELS[t as ContentItem['type']] || t
-        })),
-    [categoryMap]
+    () => (
+      uiTypes.length > 0
+        ? uiTypes
+            .filter((t) => presentUiTypeSlugs.has(t.slug))
+            .map((t) => ({ value: t.slug, label: t.name }))
+        : Object.keys(categoryMap)
+            .filter((t) => t !== 'all')
+            .map((t) => ({ value: t, label: t }))
+    ),
+    [uiTypes, categoryMap, presentUiTypeSlugs]
   )
 
   const filteredCategories = useMemo(() => {

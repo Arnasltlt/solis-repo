@@ -97,7 +97,7 @@ export function ContentCard({
       
       <CardFooter className="px-3 py-2 sm:px-4 sm:py-3 bg-gray-50 flex justify-between" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2">
-          <ContentTypeBadge type={content.type} variant="outline" />
+          <ContentTypeBadge type={(content as any)?.ui_type?.slug || (content as any)?.metadata?.ui_type || content.type} variant="outline" />
         </div>
         
         {canEdit && showEditButton && (
