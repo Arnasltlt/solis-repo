@@ -2,6 +2,8 @@ import { getAgeGroups, getCategories, getAccessTiers } from '@/lib/services/cont
 import { serializeForClient } from '@/lib/utils/serialization'
 import { NewContentEditor } from './NewContentEditor'
 
+export const dynamic = 'force-dynamic'
+
 export default async function NewContentPage() {
   // Fetch reference data with the anon client to avoid session role issues
   

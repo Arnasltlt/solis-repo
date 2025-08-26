@@ -19,9 +19,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { getAgeGroups, getCategories, getAccessTiers, getContentById, updateContent } from '@/lib/services/content'
+import { getAgeGroups, getCategories, getAccessTiers, getContentById, updateContent, getContentUiTypes } from '@/lib/services/content'
 import { FileAttachmentsUploader } from '@/components/content/file-attachments-uploader'
 import type { AttachmentFile } from '@/components/content/file-attachments-uploader'
+import { ContentTypeBadge } from '@/components/ui/content-type-badge'
 
 // Dynamically import the editor to avoid SSR issues
 const Editor = dynamic(() => import('@/components/editor/editor-wrapper').then(mod => mod.Editor), {
@@ -299,6 +300,8 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   const [metaTitle, setMetaTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
   const [metaType, setMetaType] = useState<'video'|'audio'|'lesson_plan'|'game'>('video')
+  const [metaUiType, setMetaUiType] = useState<string>('')
+  const [refUiTypes, setRefUiTypes] = useState<{id:string, slug:string, name:string}[]>([])
   const [metaAgeGroups, setMetaAgeGroups] = useState<string[]>([])
   const [metaCategories, setMetaCategories] = useState<string[]>([])
   const [metaAccessTier, setMetaAccessTier] = useState<string>('')
@@ -314,14 +317,16 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
       setDetailsOpen(true)
       setDetailsLoading(true)
       // Load refs in parallel
-      const [ags, cats, tiers] = await Promise.all([
+      const [ags, cats, tiers, ui] = await Promise.all([
         getAgeGroups(),
         getCategories(),
-        getAccessTiers()
+        getAccessTiers(),
+        getContentUiTypes()
       ])
       setRefAgeGroups(ags || [])
       setRefCategories(cats || [])
       setRefAccessTiers(tiers || [])
+      setRefUiTypes((ui || []).map((r:any) => ({ id: r.id, slug: r.slug, name: r.name })))
       // Load current content snapshot
       const content = await getContentById(contentId, supabase as any)
       if (content) {
@@ -333,6 +338,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
         setMetaAccessTier(content.access_tier?.id || '')
         setMetaPublished(!!content.published)
         setMetaAttachments(Array.isArray(content.metadata?.attachments) ? content.metadata.attachments : [])
+        setMetaUiType((content as any)?.metadata?.ui_type || '')
       }
     } catch (e) {
       console.error('Failed to load details refs/content', e)
@@ -365,7 +371,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
           categories: metaCategories,
           accessTierId: metaAccessTier,
           published: metaPublished,
-          metadata: { attachments: metaAttachments }
+          metadata: { attachments: metaAttachments, ui_type: metaUiType }
         },
         supabase
       )
@@ -599,21 +605,20 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm">Type</Label>
-                  <Select value={metaType} onValueChange={v => setMetaType(v as any)}>
-                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <Label className="text-sm">Turinio tipas</Label>
+                  <Select value={metaUiType} onValueChange={setMetaUiType}>
+                    <SelectTrigger><SelectValue placeholder="Pasirinkite tipą" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="video">Video</SelectItem>
-                      <SelectItem value="audio">Audio</SelectItem>
-                      <SelectItem value="lesson_plan">Lesson Plan</SelectItem>
-                      <SelectItem value="game">Game</SelectItem>
+                      {refUiTypes.map(t => (
+                        <SelectItem key={t.slug} value={t.slug}>{t.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm">Access Tier</Label>
+                  <Label className="text-sm">Prieigos lygis</Label>
                   <Select value={metaAccessTier} onValueChange={setMetaAccessTier}>
-                    <SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Pasirinkite lygį" /></SelectTrigger>
                     <SelectContent>
                       {refAccessTiers.map(t => (
                         <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>

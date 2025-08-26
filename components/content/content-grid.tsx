@@ -41,7 +41,7 @@ export function ContentGrid({
   const router = useRouter()
   const { isDeleted } = useContentDelete()
   
-  // Filter content based on Premium toggle, ContentType, and Deletion status
+  // Filter content based on Premium toggle, UI Content Type (slug), and Deletion status
   const filteredForDisplay = content.filter(item => {
     // 1. Apply Premium Filter (if toggle is ON)
     //    This is now purely a visual filter based on the toggle state.
@@ -51,9 +51,11 @@ export function ContentGrid({
     }
     // If showPremiumOnly is OFF, all items pass this step.
 
-    // 2. Apply Content Type Filter (if applicable)
+    // 2. Apply Content Type Filter (if applicable) by canonical UI slug
     if (contentType && contentType !== 'all') {
-      if (item.type !== contentType) return false;
+      const uiSlug = (item as any)?.ui_type?.slug || (item as any)?.metadata?.ui_type
+      const matches = uiSlug ? uiSlug === contentType : false
+      if (!matches) return false
     }
 
     // 3. Apply Client-Side Deletion Filter

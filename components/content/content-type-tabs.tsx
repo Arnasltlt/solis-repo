@@ -21,7 +21,7 @@ interface ContentTypeTabsProps {
   filterSidebar: ReactNode
   isFilterOpen: boolean
   onFilterOpenChange: (open: boolean) => void
-  contentTypes: { value: ContentItem['type']; label: string }[]
+  contentTypes: { value: string; label: string }[]
   searchTerm: string
   onSearchChange: (value: string) => void
 }
