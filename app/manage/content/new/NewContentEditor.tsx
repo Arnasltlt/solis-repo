@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useSupabase } from '@/components/supabase-provider'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -78,7 +78,6 @@ export function NewContentEditor({
   const [attachments, setAttachments] = useState<AttachmentFile[]>([])
   const [attachmentsUploading, setAttachmentsUploading] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
-  const thumbnailInputRef = useRef<HTMLInputElement>(null)
   
   // UI turinio tipų konfigūracija (paprasta, nekeičianti kitų komponentų elgsenos)
   const contentTypes = [
@@ -612,7 +611,7 @@ export function NewContentEditor({
                                 onDragEnter={handleDragEnter}
                                 onDragLeave={handleDragLeave}
                                 onDrop={handleDrop}
-                                onClick={() => thumbnailInputRef.current?.click()}
+                                onClick={() => (document.getElementById('thumbnail-upload') as HTMLInputElement)?.click()}
                               >
                                 <div className="flex flex-col items-center justify-center space-y-4">
                                   <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -638,7 +637,6 @@ export function NewContentEditor({
                                   accept="image/*"
                                   onChange={handleThumbnailChange}
                                   className="hidden"
-                                  ref={thumbnailInputRef}
                                   {...field}
                                 />
                               </div>

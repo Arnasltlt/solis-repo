@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tag, Users, Edit } from 'lucide-react'
+import { Tag, Users, Edit, Shapes } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Administravimo skydelis | Solis',
@@ -49,6 +49,26 @@ export default async function AdminDashboardPage() {
             <Link href="/manage/content/new">
               <Button className="w-full" variant="default">
                 Kurti turinį
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* UI Content Types Management Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shapes className="h-5 w-5" />
+              Turinio tipų valdymas
+            </CardTitle>
+            <CardDescription>
+              Kurkite, pervadinkite, deaktyvuokite ir tvarkykite turinio tipus
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/manage/ui-types">
+              <Button className="w-full">
+                Valdyti turinio tipus
               </Button>
             </Link>
           </CardContent>
