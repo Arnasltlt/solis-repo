@@ -702,11 +702,14 @@ export function NewContentEditor({
                             name="categories"
                             label="Kategorijos"
                             description="Pasirinkite kategorijas, kurioms priklauso šis turinys"
-                            items={categories.map(category => ({
-                              id: category.id,
-                              label: category.name,
-                              description: category.description || '',
-                            }))}
+                            items={categories
+                              .slice()
+                              .sort((a: any, b: any) => String(a?.name || '').localeCompare(String(b?.name || ''), 'lt', { sensitivity: 'base' }))
+                              .map(category => ({
+                                id: category.id,
+                                label: category.name,
+                                description: category.description || '',
+                              }))}
                           />
                         </FormItem>
                       )}

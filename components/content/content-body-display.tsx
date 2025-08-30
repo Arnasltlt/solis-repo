@@ -3,6 +3,9 @@
 import { RichContentForm } from './rich-content-form'
 import { cn } from '@/lib/utils/index'
 import { LockClosedIcon } from '@heroicons/react/24/outline'
+import { useCallback } from 'react'
+
+// Remove getVideoEmbedUrl since it's now in the editor
 
 interface ContentBodyDisplayProps {
   contentBody: string | null
@@ -13,27 +16,18 @@ interface ContentBodyDisplayProps {
  * ContentBodyDisplay - Component for displaying rich text content
  */
 export function ContentBodyDisplay({ contentBody, isPremium = false }: ContentBodyDisplayProps) {
-  
-  // No need for useEffect or state here, pass contentBody directly
+  const handleChange = useCallback(() => {}, [])
 
-  const handleChange = () => {
-    // This is a no-op function since we're in read-only mode
-  };
+  console.log('[DEBUG] ContentBodyDisplay received:', {
+    contentBody,
+    isPremium,
+    contentLength: contentBody?.length,
+    contentType: typeof contentBody
+  })
 
-  // Handle the literal 'contentBody' string case or null/empty
   if (!contentBody || contentBody === 'contentBody') {
-    return null // Or render a placeholder if desired
-  }
-
-  // Basic check if content looks like JSON (might need refinement)
-  const seemsLikeJson = contentBody.trim().startsWith('{');
-
-  if (!seemsLikeJson) {
-    // If it doesn't seem like JSON, maybe render it as raw HTML (use cautiously)
-    // Or display an error/placeholder
-    console.warn("ContentBodyDisplay received non-JSON content:", contentBody.substring(0, 100))
-    // For safety, returning null. Adjust if HTML rendering is desired.
-    return null; 
+    console.log('[DEBUG] ContentBodyDisplay returning null - no content or placeholder')
+    return null
   }
 
   return (
@@ -45,15 +39,11 @@ export function ContentBodyDisplay({ contentBody, isPremium = false }: ContentBo
             <p className="text-center font-medium">This content is available for premium users only.</p>
           </div>
           <div className="blur-sm">
-            {/* Pass the JSON string directly */}
             <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
           </div>
         </div>
       ) : (
-        <div className="prose max-w-none">
-          {/* Pass the JSON string directly */}
-          <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
-        </div>
+        <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
       )}
     </div>
   )

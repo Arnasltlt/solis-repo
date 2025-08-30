@@ -36,16 +36,26 @@ export default function HomePage() {
     async function fetchData() {
       try {
         const response = await fetch('/api/content');
-        
+
         if (!response.ok) {
           throw new Error('Nepavyko gauti turinio duomenų');
         }
-        
-        const data = await response.json();
+
+        const rawData = await response.text();
+        let data;
+
+        try {
+          data = JSON.parse(rawData);
+        } catch (parseError) {
+          console.error('Failed to parse JSON response:', parseError);
+          console.log('Raw response:', rawData.substring(0, 500));
+          throw new Error('Serverio atsakymas nėra teisingo formato');
+        }
+
         setData({
-          content: data.content || [],
-          ageGroups: data.ageGroups || [],
-          categories: data.categories || [],
+          content: Array.isArray(data.content) ? data.content : [],
+          ageGroups: Array.isArray(data.ageGroups) ? data.ageGroups : [],
+          categories: Array.isArray(data.categories) ? data.categories : [],
           loading: false,
           error: null
         });
