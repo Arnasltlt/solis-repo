@@ -258,6 +258,12 @@ export function ContentDetail({ content }: ContentDetailProps) {
 
 
           {/* Main Content Body */}
+          {console.log('[DEBUG] ContentDetail - content object:', {
+            content_body: content.content_body,
+            content_body_length: content.content_body?.length,
+            content_body_type: typeof content.content_body,
+            contentKeys: Object.keys(content)
+          })}
           {content.content_body && (
             <div className="prose max-w-none">
               <ContentBodyDisplay contentBody={content.content_body} />

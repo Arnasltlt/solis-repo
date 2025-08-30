@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils/index'
 import { Button } from '@/components/ui/button'
 import { Minimize2, Maximize2 } from 'lucide-react'
 
-// Dynamically import Editor with no SSR
-const Editor = dynamic(() => import('../editor/editor-wrapper').then(mod => mod.Editor), {
+// Dynamically import the ultra-simple editor with no SSR
+const Editor = dynamic(() => import('../editor/ultra-simple-editor').then(mod => mod.UltraSimpleEditor), {
   ssr: false,
   loading: () => (
     <div className="min-h-[200px] rounded-md border flex items-center justify-center">
@@ -19,45 +19,20 @@ const Editor = dynamic(() => import('../editor/editor-wrapper').then(mod => mod.
 interface RichContentFormProps {
   contentBody: string | null
   onChange: (field: string, value: string) => void
+  onSave?: () => Promise<void>
   readOnly?: boolean
 }
 
 export function RichContentForm({ 
   contentBody,
   onChange,
+  onSave,
   readOnly = false
 }: RichContentFormProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [key, setKey] = useState<number>(Date.now())
   const [editorMounted, setEditorMounted] = useState(false)
   const [processedContent, setProcessedContent] = useState<string>('')
-
-  // Process content to ensure iframes are properly handled
-  useEffect(() => {
-    // Process the contentBody to ensure proper handling of iframes
-    if (!contentBody || contentBody === 'contentBody') {
-      setProcessedContent('')
-      return
-    }
-    
-    try {
-      // Try to parse as JSON to validate
-      JSON.parse(contentBody)
-      // If it parses, assume it's valid ProseMirror JSON
-      setProcessedContent(contentBody)
-    } catch (e) {
-      // If not valid JSON, check if it contains HTML (basic check)
-      if (typeof contentBody === 'string' && (contentBody.includes('<iframe') || contentBody.includes('<p>'))) {
-        setProcessedContent(contentBody)
-      } else {
-        // Otherwise, treat as plain text (or handle as error)
-        setProcessedContent(contentBody)
-      }
-    }
-    
-    // Reset the key to force re-render when contentBody changes
-    setKey(Date.now())
-  }, [contentBody])
 
   // Ensure editor is mounted
   useEffect(() => {
@@ -100,11 +75,11 @@ export function RichContentForm({
           <div className="rounded-md border">
             <Editor
               key={key}
-              initialData={processedContent}
-              onChange={adaptedOnChange}
+              initialContent={contentBody || ''}
+              onChange={(value) => onChange('contentBody', value)}
+              onSave={onSave}
               readOnly={readOnly}
-              fullscreen={isFullscreen}
-              setFullscreen={setIsFullscreen}
+              // Remove fullscreen and setFullscreen if not supported, or add if needed
             />
           </div>
         </div>

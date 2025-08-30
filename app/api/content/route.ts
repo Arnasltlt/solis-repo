@@ -233,16 +233,38 @@ export async function GET(request: NextRequest) {
     const safeContentItems = Array.isArray(contentItems) ? contentItems : [];
     
     // Serialize data before returning as JSON
-    const serializedContent = serializeForClient(safeContentItems)
-    const serializedAgeGroups = serializeForClient(safeAgeGroups)
-    const serializedCategories = serializeForClient(safeCategories)
-    
-    // Return the data
-    return NextResponse.json({
-      content: serializedContent,
-      ageGroups: serializedAgeGroups,
-      categories: serializedCategories
-    })
+    let serializedContent, serializedAgeGroups, serializedCategories;
+
+    try {
+      serializedContent = serializeForClient(safeContentItems);
+      serializedAgeGroups = serializeForClient(safeAgeGroups);
+      serializedCategories = serializeForClient(safeCategories);
+
+      // Ensure all serialized data is properly structured
+      const responseData = {
+        content: Array.isArray(serializedContent) ? serializedContent : [],
+        ageGroups: Array.isArray(serializedAgeGroups) ? serializedAgeGroups : [],
+        categories: Array.isArray(serializedCategories) ? serializedCategories : []
+      };
+
+      // Validate that the response can be JSON serialized
+      const testSerialization = JSON.stringify(responseData);
+
+      // Return the data
+      return NextResponse.json(responseData);
+    } catch (serializationError) {
+      console.error('Serialization error in content API:', serializationError);
+      console.error('Content items type:', typeof safeContentItems);
+      console.error('Age groups type:', typeof safeAgeGroups);
+      console.error('Categories type:', typeof safeCategories);
+
+      // Return empty arrays as fallback
+      return NextResponse.json({
+        content: [],
+        ageGroups: [],
+        categories: []
+      });
+    }
   } catch (error: any) {
     // Log detailed error information
     console.error('Error in content API route:', error);

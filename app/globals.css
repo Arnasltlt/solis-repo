@@ -150,12 +150,7 @@
   color: hsl(var(--foreground)) !important;
 }
 
-.ProseMirror [data-youtube-video] {
-  margin: 1.5em 0;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
+
 
 /* Add styles for rendered content */
 .prose p, 
