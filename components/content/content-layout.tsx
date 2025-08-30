@@ -75,7 +75,10 @@ export function ContentLayout({
     for (const item of allContent) {
       const ids = item.categories.map((c) => c.id)
       ids.forEach((id) => map.all.add(id))
-      const key = (item as any)?.metadata?.ui_type || item.type
+      const key =
+        (item as any)?.ui_type?.slug ||
+        (item as any)?.metadata?.ui_type ||
+        item.type
       if (!map[key]) map[key] = new Set()
       ids.forEach((id) => map[key].add(id))
     }
