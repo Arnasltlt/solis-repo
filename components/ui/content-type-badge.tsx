@@ -39,21 +39,20 @@ export function ContentTypeBadge({
     pamoku_planai: 'Pamokų planai',
   }
 
+  // Unified tag styling: brand red background with white text, bold
   const colorMap: Record<string, string> = {
-    // backend
-    video: 'bg-blue-50 text-blue-700 border-blue-200',
-    audio: 'bg-purple-50 text-purple-700 border-purple-200',
-    lesson_plan: 'bg-green-50 text-green-700 border-green-200',
-    game: 'bg-orange-50 text-orange-700 border-orange-200',
-    // UI slugs
-    dainos: 'bg-purple-50 text-purple-700 border-purple-200',
-    ritminiai_zaidimai: 'bg-orange-50 text-orange-700 border-orange-200',
-    instrumentai: 'bg-green-50 text-green-700 border-green-200',
-    judesio_zaidimai: 'bg-orange-50 text-orange-700 border-orange-200',
-    mankstos: 'bg-blue-50 text-blue-700 border-blue-200',
-    choreografijos: 'bg-rose-50 text-rose-700 border-rose-200',
-    pamoku_planai: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    default: 'bg-yellow-50 text-black border-yellow-200'
+    video: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    audio: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    lesson_plan: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    game: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    dainos: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    ritminiai_zaidimai: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    instrumentai: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    judesio_zaidimai: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    mankstos: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    choreografijos: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    pamoku_planai: 'bg-secondary-mint text-white border-secondary-mint font-semibold',
+    default: 'bg-secondary-mint text-white border-secondary-mint font-semibold'
   }
 
   const key = String(type)
@@ -62,8 +61,8 @@ export function ContentTypeBadge({
 
   // Variant styling
   const variantClass = {
-    'default': '',
-    'outline': 'bg-transparent border',
+    'default': 'rounded-full px-3',
+    'outline': 'border rounded-full px-3',
     'pill': 'rounded-full px-3'
   }[variant]
   

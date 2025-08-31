@@ -73,7 +73,7 @@ export function ContentFilterSidebar({
               }}
               className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
                 selectedAgeGroups.includes(group.id)
-                  ? 'bg-yellow-500 text-black'
+                  ? 'bg-yellow-500 text-white'
                   : 'hover:bg-yellow-100'
               }`}
             >

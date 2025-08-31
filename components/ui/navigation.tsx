@@ -41,19 +41,19 @@ export function Navigation() {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="relative flex justify-between items-center py-4">
           {/* Logo and main navigation */}
           <div className="flex items-center">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 pr-4 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:left-auto md:-ml-6 lg:-ml-8">
               <Logo size="medium" />
             </div>
-            <nav className="hidden md:ml-6 md:flex md:space-x-4">
+            <nav className="hidden md:ml-8 lg:ml-10 md:flex md:space-x-4 font-heading">
               <Link 
                 href="/" 
-                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                className={`px-3 py-2 rounded-md text-xl font-medium ${
                   pathname === '/' 
-                    ? 'text-secondary-navy font-semibold' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'text-black font-semibold' 
+                    : 'text-black hover:text-black'
                 }`}
               >
                 Pradžia
@@ -61,10 +61,10 @@ export function Navigation() {
               {isAuthenticated && (
                 <Link 
                   href="/profile" 
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  className={`px-3 py-2 rounded-md text-xl font-medium ${
                     pathname === '/profile' 
-                      ? 'text-secondary-navy font-semibold' 
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'text-black font-semibold' 
+                      : 'text-black hover:text-black'
                   }`}
                 >
                   Profilis
@@ -73,10 +73,10 @@ export function Navigation() {
               {isAdmin() && (
                 <Link 
                   href="/manage" 
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  className={`px-3 py-2 rounded-md text-xl font-medium ${
                     pathname.startsWith('/manage') 
-                      ? 'text-secondary-navy font-semibold' 
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'text-black font-semibold' 
+                      : 'text-black hover:text-black'
                   }`}
                 >
                   Valdymas
