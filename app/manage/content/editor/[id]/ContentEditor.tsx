@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/components/supabase-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/components/ui/use-toast'
-import { Save, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
@@ -15,11 +14,9 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { getAgeGroups, getCategories, getAccessTiers, getContentById, updateContent, getContentUiTypes } from '@/lib/services/content'
 import { FileAttachmentsUploader } from '@/components/content/file-attachments-uploader'
 import type { AttachmentFile } from '@/components/content/file-attachments-uploader'
-import { ContentTypeBadge } from '@/components/ui/content-type-badge'
 import { StreamlinedEditor } from '@/components/editor/streamlined-editor'
 
 interface ContentEditorProps {
@@ -29,7 +26,6 @@ interface ContentEditorProps {
 
 export function ContentEditor({ contentId, initialContent }: ContentEditorProps) {
   const { supabase } = useSupabase()
-  const router = useRouter()
   const { userRole, loading: authLoading } = useAuth()
   const { isAdmin, canManageContent } = useAuthorization()
   const [editorContent, setEditorContent] = useState<string>('')
@@ -109,14 +105,6 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   
 
   
-  // Handle going back to homepage
-  const handleBack = () => {
-    router.push('/')
-  }
-  
-
-
-  const [detailsOpen, setDetailsOpen] = useState(false)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [metaTitle, setMetaTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
@@ -133,9 +121,8 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   const [metaAttachments, setMetaAttachments] = useState<AttachmentFile[]>([])
   const [attachmentsUploading, setAttachmentsUploading] = useState(false)
 
-  const openDetails = async () => {
+  const loadDetails = useCallback(async () => {
     try {
-      setDetailsOpen(true)
       setDetailsLoading(true)
       // Load refs in parallel
       const [ags, cats, tiers, ui] = await Promise.all([
@@ -170,7 +157,11 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     } finally {
       setDetailsLoading(false)
     }
-  }
+  }, [contentId, supabase])
+
+  useEffect(() => {
+    loadDetails()
+  }, [loadDetails])
 
   const toggleIdIn = (list: string[], id: string) => (
     list.includes(id) ? list.filter(x => x !== id) : [...list, id]
@@ -199,8 +190,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
         },
         supabase
       )
-      toast({ title: 'Details saved', description: 'Metadata updated successfully' })
-      setDetailsOpen(false)
+        toast({ title: 'Details saved', description: 'Metadata updated successfully' })
     } catch (e: any) {
       console.error('Failed to save details', e)
       toast({ title: 'Error', description: e?.message || 'Failed to save details', variant: 'destructive' })
@@ -228,16 +218,6 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <Label className="text-lg">Content Editor</Label>
-            <div className="space-x-2 flex items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={openDetails}
-                className="text-xs hover:bg-gray-100"
-              >
-                Details
-              </Button>
-            </div>
           </div>
           
           <StreamlinedEditor
@@ -245,18 +225,6 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
             onChange={setEditorContent}
             onSave={handleSave}
           />
-          
-
-        </div>
-      </Card>
-
-      {/* Details Modal */}
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Details</DialogTitle>
-            <DialogDescription>Update metadata for this content item.</DialogDescription>
-          </DialogHeader>
 
           {detailsLoading ? (
             <div className="py-12 text-center">
@@ -264,7 +232,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
               <p className="text-sm text-gray-600">Loading…</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 border-t pt-6">
               <div className="space-y-2">
                 <Label className="text-sm">Title</Label>
                 <Input value={metaTitle} onChange={e => setMetaTitle(e.target.value)} />
@@ -324,7 +292,6 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
                 <Label htmlFor="published-toggle" className="text-sm">Published</Label>
               </div>
 
-              {/* Attachments editor */}
               <div className="space-y-2">
                 <Label className="text-sm">Priedai</Label>
                 <FileAttachmentsUploader
@@ -333,15 +300,15 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
                   onUploadingChange={setAttachmentsUploading}
                 />
               </div>
+
+              <div className="flex justify-end">
+                <Button onClick={saveDetails} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save details'}</Button>
+              </div>
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Cancel</Button>
-            <Button onClick={saveDetails} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </Card>
     </ProtectedRoute>
   )
 }
