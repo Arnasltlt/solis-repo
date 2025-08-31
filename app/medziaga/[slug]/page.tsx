@@ -93,7 +93,7 @@ export default async function ContentPage({ params }: Props) {
     // Access control (showing full content vs. upsell) will happen CLIENT-SIDE within ContentDetail.
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <ContentDetail content={content} />
+        <ContentDetail content={content} hideThumbnail />
       </div>
     );
 

@@ -34,6 +34,7 @@ import Image from 'next/image'
 
 interface ContentDetailProps {
   content: ContentItem
+  hideThumbnail?: boolean
 }
 
 interface FeedbackItem {
@@ -52,7 +53,7 @@ interface FeedbackItem {
  * - Body (rich text content)
  * - Feedback (likes/dislikes, premium CTA)
  */
-export function ContentDetail({ content }: ContentDetailProps) {
+export function ContentDetail({ content, hideThumbnail = false }: ContentDetailProps) {
   const { user, session } = useAuth();
   const isAuthenticated = !!user && !!session;
   const { canAccessPremiumContent, isAdmin } = useAuthorization();
@@ -170,7 +171,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
           {/* Sidebar - Visible */}
           <aside className="lg:col-span-3 space-y-6">
             {/* Thumbnail - Visible but with premium badge overlay */}
-            {content.thumbnail_url && (
+            {!hideThumbnail && content.thumbnail_url && (
               <div className="rounded-lg overflow-hidden relative aspect-video">
                 <Image
                   src={content.thumbnail_url}
@@ -240,7 +241,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
 
           {/* Video Content */}
           {content.type === 'video' && videoUrl && (
-            <div className="aspect-w-16 aspect-h-9">
+            <div className="aspect-w-16 aspect-h-9 my-6">
               {!videoLoaded && (
                 <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
                   <p className="text-gray-500">Video content will be displayed here</p>
@@ -277,7 +278,7 @@ export function ContentDetail({ content }: ContentDetailProps) {
         {/* Sidebar */}
         <aside className="lg:col-span-3 space-y-6">
           {/* Thumbnail */}
-          {content.thumbnail_url && (
+          {!hideThumbnail && content.thumbnail_url && (
             <div className="rounded-lg overflow-hidden relative aspect-video">
               <Image
                 src={content.thumbnail_url}

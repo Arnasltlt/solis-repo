@@ -21,7 +21,7 @@ export function ContentDetailMedia({ content }: ContentDetailMediaProps) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       {content.type === 'video' && videoUrl && (
-        <div className="aspect-w-16 aspect-h-9 mb-4">
+        <div className="aspect-w-16 aspect-h-9 my-6">
           {!videoLoaded && (
             <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
               <p className="text-gray-500">Video content will be displayed here</p>
