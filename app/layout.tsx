@@ -1,6 +1,6 @@
 import './globals.css'
 import { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Amatic_SC, Roboto } from 'next/font/google'
 import { cookies } from 'next/headers'
 import { Providers } from './providers'
 import { Toaster } from '@/components/ui/toaster'
@@ -13,7 +13,17 @@ import { Footer } from '@/components/ui/footer'
 import { Navigation } from '@/components/ui/navigation'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 
-const inter = Inter({ subsets: ['latin'] })
+const amatic = Amatic_SC({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-amatic'
+})
+
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['300'],
+  variable: '--font-roboto'
+})
 
 export const metadata: Metadata = {
   title: 'Solis',
@@ -61,8 +71,8 @@ export default async function RootLayout({
   }
   
   return (
-    <html lang="en" suppressHydrationWarning className="h-full">
-      <body className={cn(inter.className, "flex flex-col min-h-screen overflow-x-hidden")}>
+    <html lang="en" suppressHydrationWarning className={`${amatic.variable} ${roboto.variable} h-full`}>
+      <body className={cn("font-sans", "flex flex-col min-h-screen overflow-x-hidden")}>
         <Providers session={serializedSession}>
           <Navigation />
           <main className="flex-1">

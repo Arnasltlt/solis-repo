@@ -68,7 +68,7 @@ export function ContentImage({
   }
   
   return fill ? (
-    <div className={`relative overflow-hidden ${aspectRatioClass} ${className}`}>
+    <div className={`relative overflow-hidden rounded-xl shadow-sm ${aspectRatioClass} ${className}`}>
       <Image
         src={validatedSrc}
         alt={alt}
@@ -87,7 +87,7 @@ export function ContentImage({
       alt={alt}
       width={width || 400}
       height={height || 225}
-      className={`object-cover ${className}`}
+      className={`object-cover rounded-xl shadow-sm ${className}`}
       onError={handleError}
       priority={priority}
       loading={priority ? "eager" : "lazy"}

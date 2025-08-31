@@ -21,6 +21,8 @@ const config: Config = {
   			]
   		},
   		colors: {
+  			white: '#F5F5F5',
+  			black: '#1C1C1C',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
@@ -32,12 +34,12 @@ const config: Config = {
   			},
   			secondary: {
   				navy: {
-  					DEFAULT: '#002D62',
+  					DEFAULT: '#2F5053',
   					foreground: '#FFFFFF'
   				},
   				mint: {
-  					DEFAULT: '#AEE4D4',
-  					foreground: '#002D62'
+  					DEFAULT: '#C3473C',
+  					foreground: '#FFFFFF'
   				},
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'
@@ -138,9 +140,9 @@ const config: Config = {
   						fontSize: '2rem'
   					},
   					a: {
-  						color: '#002D62',
+  						color: '#2F5053',
   						'&:hover': {
-  							color: '#001b48'
+  							color: '#1C1C1C'
   						}
   					},
   					p: {

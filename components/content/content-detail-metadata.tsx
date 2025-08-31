@@ -51,7 +51,10 @@ export function ContentDetailMetadata({ content }: ContentDetailMetadataProps) {
       {/* Content Type */}
       <div className="mb-8">
         <h2 className="text-lg font-medium text-gray-900 mb-2">Turinio tipas:</h2>
-        <ContentTypeBadge type={content.type} variant="pill" />
+        <ContentTypeBadge 
+          type={(content as any)?.ui_type?.slug || (content as any)?.metadata?.ui_type || content.type} 
+          variant="pill" 
+        />
       </div>
 
       {/* Description */}

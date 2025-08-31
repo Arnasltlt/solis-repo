@@ -81,7 +81,7 @@ export function ContentCard({
           )}
         </div>
         <CardContent className="p-3 sm:p-4 flex-grow">
-          <h3 className="text-base sm:text-lg font-semibold mb-2">{content.title}</h3>
+          <h3 className="text-base sm:text-lg font-semibold mb-2 font-sans">{content.title}</h3>
           {showDescription && content.description && (
             <p className="text-gray-600 text-xs sm:text-sm line-clamp-2">
               {content.description}
@@ -95,7 +95,7 @@ export function ContentCard({
         </CardContent>
       </div>
       
-      <CardFooter className="px-3 py-2 sm:px-4 sm:py-3 bg-gray-50 flex justify-between" onClick={e => e.stopPropagation()}>
+      <CardFooter className="px-3 py-2 sm:px-4 sm:py-3 bg-background flex justify-between" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2">
           <ContentTypeBadge type={(content as any)?.ui_type?.slug || (content as any)?.metadata?.ui_type || content.type} variant="outline" />
         </div>

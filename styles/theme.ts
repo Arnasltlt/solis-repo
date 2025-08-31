@@ -1,13 +1,14 @@
 export const theme = {
   colors: {
-    primary: '#FFD300', // Brand yellow
-    secondary: {
-      navy: '#002D62',
-      mint: '#AEE4D4',
-      white: '#F5F5F5'
+    primary: '#FFD300',
+    secondary: '#F5F5F5',
+    accents: {
+      teal: '#2F5053',
+      red: '#C3473C',
+      black: '#1C1C1C'
     },
-    black: '#000000',
-    white: '#FFFFFF',
+    black: '#1C1C1C',
+    white: '#F5F5F5',
     yellow: {
       50: '#fffdf0',
       100: '#fff9cc',
@@ -20,30 +21,8 @@ export const theme = {
       800: '#806900',
       900: '#4d4000',
     },
-    navy: {
-      50: '#e6edf4',
-      100: '#ccdbe9',
-      200: '#99b7d3',
-      300: '#6693bd',
-      400: '#336fa7',
-      500: '#002D62', // Brand navy
-      600: '#002455',
-      700: '#001b48',
-      800: '#00123b',
-      900: '#00092e',
-    },
-    mint: {
-      50: '#f4fbf9',
-      100: '#e9f7f3',
-      200: '#d3efe7',
-      300: '#AEE4D4', // Brand mint
-      400: '#8ed9c1',
-      500: '#6ecfae',
-      600: '#4ec49b',
-      700: '#3da981',
-      800: '#2c8e67',
-      900: '#1b734d',
-    },
+    teal: '#2F5053',
+    red: '#C3473C',
     gray: {
       50: '#F5F5F5', // Brand white/off-white
       100: '#F3F4F6',

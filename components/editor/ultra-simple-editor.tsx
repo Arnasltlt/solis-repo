@@ -154,7 +154,7 @@ const convertYouTubeUrls = (content: string): string => {
   return cleanContent.replace(youtubeRegex, (match, videoId, offset, string) => {
     // Only replace if we have a valid 11-character video ID
     if (videoId && videoId.length === 11) {
-      return `<div style="margin: 1rem 0; text-align: center; position: relative;">
+      return `<div style="margin: 1.25rem 0; text-align: center; position: relative;">
         <iframe 
           width="640" 
           height="360" 
@@ -163,9 +163,8 @@ const convertYouTubeUrls = (content: string): string => {
           frameborder="0" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
           allowfullscreen
-          style="max-width: 100%; border-radius: 8px; pointer-events: none;"
+          style="max-width: 100%; border-radius: 8px;"
         ></iframe>
-        <div style="position: absolute; inset: 0; pointer-events: none;"></div>
       </div>`
     }
     return match // Return original if something's wrong
