@@ -93,18 +93,32 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
           {/* Main Content with clear header and blurred content */}
           <div className="lg:col-span-9 space-y-6">
             {/* Title and Date - Visible */}
-            <div className="border-b pb-4">
-              <div className="flex items-center">
-                <h1 className="text-2xl font-semibold mb-2 mr-2">{content.title}</h1>
-                <span className="bg-amber-100 text-amber-600 px-2 py-1 rounded-full text-xs font-semibold flex items-center">
-                  <SparklesIcon className="h-3 w-3 mr-1" />
-                  Narystė
-                </span>
+            <div className="border-b pb-4 flex justify-between items-start">
+              <div>
+                <div className="flex items-center">
+                  <h1 className="text-2xl font-semibold mb-2 mr-2">{content.title}</h1>
+                  <span className="bg-amber-100 text-amber-600 px-2 py-1 rounded-full text-xs font-semibold flex items-center">
+                    <SparklesIcon className="h-3 w-3 mr-1" />
+                    Narystė
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <time dateTime={content.created_at}>
+                    {new Date(content.created_at).toLocaleDateString('lt-LT')}
+                  </time>
+                </div>
               </div>
-              <div className="text-sm text-gray-500">
-                <time dateTime={content.created_at}>
-                  {new Date(content.created_at).toLocaleDateString('lt-LT')}
-                </time>
+              <div className="flex gap-2 items-center">
+                {prevSlug && (
+                  <Button asChild variant="outline">
+                    <Link href={`/medziaga/${prevSlug}`}>Back</Link>
+                  </Button>
+                )}
+                {nextSlug && (
+                  <Button asChild>
+                    <Link href={`/medziaga/${nextSlug}`}>Next</Link>
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -221,24 +235,35 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
                 </time>
               </div>
             </div>
-            
-            {canEdit && (
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex items-center gap-1"
-                  onClick={() => router.push(`/manage/content/editor/${content.id}`)}
-                >
-                  <PencilIcon className="h-3 w-3" />
-                  Edit
+            <div className="flex gap-2 items-center">
+              {prevSlug && (
+                <Button asChild variant="outline">
+                  <Link href={`/medziaga/${prevSlug}`}>Back</Link>
                 </Button>
-                <DeleteContentDialog 
-                  contentId={content.id} 
-                  contentTitle={content.title} 
-                />
-              </div>
-            )}
+              )}
+              {nextSlug && (
+                <Button asChild>
+                  <Link href={`/medziaga/${nextSlug}`}>Next</Link>
+                </Button>
+              )}
+              {canEdit && (
+                <>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex items-center gap-1"
+                    onClick={() => router.push(`/manage/content/editor/${content.id}`)}
+                  >
+                    <PencilIcon className="h-3 w-3" />
+                    Edit
+                  </Button>
+                  <DeleteContentDialog 
+                    contentId={content.id} 
+                    contentTitle={content.title} 
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           {/* Video Content */}
@@ -307,24 +332,7 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
           )}
         </aside>
       </div>
-      {(prevSlug || nextSlug) && (
-        <div className="flex justify-between mt-8">
-          {prevSlug ? (
-            <Button asChild variant="outline">
-              <Link href={`/medziaga/${prevSlug}`}>Back</Link>
-            </Button>
-          ) : (
-            <div />
-          )}
-          {nextSlug ? (
-            <Button asChild>
-              <Link href={`/medziaga/${nextSlug}`}>Next</Link>
-            </Button>
-          ) : (
-            <div />
-          )}
-        </div>
-      )}
+      {/* Navigation moved to header */}
     </div>
   )
 }
