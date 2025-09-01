@@ -19,38 +19,38 @@ interface ContentDetailMetadataProps {
  */
 export function ContentDetailMetadata({ content }: ContentDetailMetadataProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 text-sm md:text-base">
       {/* Age Groups */}
-      <div className="mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">Amžiaus grupės:</h2>
+      <div className="mb-4 md:mb-6">
+        <h2 className="text-base md:text-lg font-medium text-gray-900 mb-2">Amžiaus grupės:</h2>
         <div className="flex flex-wrap gap-2">
           {content.age_groups.map((group) => (
-            <AgeGroupBadge 
-              key={group.id} 
-              ageGroup={group} 
-              variant="pill" 
+            <AgeGroupBadge
+              key={group.id}
+              ageGroup={group}
+              variant="pill"
             />
           ))}
         </div>
       </div>
 
       {/* Categories */}
-      <div className="mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">Temos:</h2>
+      <div className="mb-4 md:mb-6">
+        <h2 className="text-base md:text-lg font-medium text-gray-900 mb-2">Temos:</h2>
         <div className="flex flex-wrap gap-2">
           {content.categories.map((category) => (
-            <CategoryBadge 
-              key={category.id} 
-              category={category} 
-              variant="pill" 
+            <CategoryBadge
+              key={category.id}
+              category={category}
+              variant="pill"
             />
           ))}
         </div>
       </div>
 
       {/* Content Type */}
-      <div className="mb-8">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">Turinio tipas:</h2>
+      <div className="mb-6 md:mb-8">
+        <h2 className="text-base md:text-lg font-medium text-gray-900 mb-2">Turinio tipas:</h2>
         <ContentTypeBadge 
           type={(content as any)?.ui_type?.slug || (content as any)?.metadata?.ui_type || content.type} 
           variant="pill" 
@@ -59,11 +59,11 @@ export function ContentDetailMetadata({ content }: ContentDetailMetadataProps) {
 
       {/* Description */}
       {content.description && (
-        <div className="mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-2">Aprašymas:</h2>
+        <div className="mb-4 md:mb-6">
+          <h2 className="text-base md:text-lg font-medium text-gray-900 mb-2">Aprašymas:</h2>
           <p className="text-gray-700 whitespace-pre-line">{content.description}</p>
         </div>
       )}
     </div>
   )
-} 
+}

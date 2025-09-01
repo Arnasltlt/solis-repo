@@ -295,7 +295,12 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
               />
             </div>
           )}
-
+          {/* Attachments (mobile) */}
+          {content.metadata?.attachments && content.metadata.attachments.length > 0 && (
+            <div className="lg:hidden">
+              <SimpleContentDetailAttachments attachments={content.metadata.attachments} />
+            </div>
+          )}
 
           {/* Main Content Body */}
           {/* Minimal debug only during development */}
@@ -316,7 +321,7 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
         <aside className="lg:col-span-3 space-y-6">
           {/* Thumbnail */}
           {!hideThumbnail && content.thumbnail_url && (
-            <div className="rounded-lg overflow-hidden relative aspect-video">
+            <div className="hidden lg:block rounded-lg overflow-hidden relative aspect-video">
               <Image
                 src={content.thumbnail_url}
                 alt={content.title}
@@ -338,7 +343,9 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
 
           {/* Attachments */}
           {content.metadata?.attachments && content.metadata.attachments.length > 0 && (
-            <SimpleContentDetailAttachments attachments={content.metadata.attachments} />
+            <div className="hidden lg:block">
+              <SimpleContentDetailAttachments attachments={content.metadata.attachments} />
+            </div>
           )}
         </aside>
       </div>
