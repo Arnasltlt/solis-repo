@@ -124,6 +124,9 @@
   border-bottom: 1px solid #e5e7eb;
   background-color: #f9fafb;
   border-radius: 8px 8px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .toolbar button {
