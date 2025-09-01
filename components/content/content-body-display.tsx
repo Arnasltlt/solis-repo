@@ -9,27 +9,54 @@ import { useCallback } from 'react'
 
 interface ContentBodyDisplayProps {
   contentBody: string | null
+  contentBodyHtml?: string | null
   isPremium?: boolean
 }
 
 /**
  * ContentBodyDisplay - Component for displaying rich text content
  */
-export function ContentBodyDisplay({ contentBody, isPremium = false }: ContentBodyDisplayProps) {
+export function ContentBodyDisplay({ contentBody, contentBodyHtml, isPremium = false }: ContentBodyDisplayProps) {
   const handleChange = useCallback(() => {}, [])
 
-  console.log('[DEBUG] ContentBodyDisplay received:', {
-    contentBody,
-    isPremium,
-    contentLength: contentBody?.length,
-    contentType: typeof contentBody
-  })
+  // Reduce noisy logs
+  // console.debug('[ContentBodyDisplay]', { hasHtml: !!contentBodyHtml, len: contentBody?.length })
 
   if (!contentBody || contentBody === 'contentBody') {
     console.log('[DEBUG] ContentBodyDisplay returning null - no content or placeholder')
     return null
   }
 
+  // Use HTML version if available, otherwise fall back to editor rendering
+  if (contentBodyHtml && contentBodyHtml.trim() !== '') {
+    // Using HTML snapshot for display
+    return (
+      <div className="rich-content-display">
+        {isPremium ? (
+          <div className="relative">
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-4">
+              <LockClosedIcon className="h-8 w-8 text-primary mb-2" />
+              <p className="text-center font-medium">This content is available for premium users only.</p>
+            </div>
+            <div className="blur-sm">
+              <div 
+                className="prose max-w-none p-4"
+                dangerouslySetInnerHTML={{ __html: contentBodyHtml }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div 
+            className="prose max-w-none p-4"
+            dangerouslySetInnerHTML={{ __html: contentBodyHtml }}
+          />
+        )}
+      </div>
+    )
+  }
+
+  // Fallback to editor rendering for content without HTML version
+  // Fallback to editor rendering if no HTML snapshot is available
   return (
     <div className="rich-content-display">
       {isPremium ? (

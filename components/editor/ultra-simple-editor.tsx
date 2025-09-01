@@ -229,13 +229,25 @@ const ContentDisplay = ({ content }: { content: string }) => {
     
     // Check for headings first (most specific)
     if (line.match(/^### /)) {
-      return `<h3 class="text-lg font-semibold mb-2 mt-4">${line.replace(/^### /, '')}</h3>`
+      const headingContent = line.replace(/^### /, '')
+      const headingInline = headingContent
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      return `<h3 class="text-lg font-semibold mb-2 mt-4">${headingInline}</h3>`
     }
     if (line.match(/^## /)) {
-      return `<h2 class="text-xl font-bold mb-3 mt-6">${line.replace(/^## /, '')}</h2>`
+      const headingContent = line.replace(/^## /, '')
+      const headingInline = headingContent
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      return `<h2 class="text-xl font-bold mb-3 mt-6">${headingInline}</h2>`
     }
     if (line.match(/^# /)) {
-      return `<h1 class="text-2xl font-bold mb-4 mt-8">${line.replace(/^# /, '')}</h1>`
+      const headingContent = line.replace(/^# /, '')
+      const headingInline = headingContent
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      return `<h1 class="text-2xl font-bold mb-4 mt-8">${headingInline}</h1>`
     }
     
     // Check for ordered list items
@@ -277,7 +289,7 @@ const ContentDisplay = ({ content }: { content: string }) => {
   
   // Group consecutive list items and detect their type (split by our separators)
   let listCounter = 0
-  processedContent = processedContent.replace(/((?:<li class="ml-4 mb-1">.*?<\/li>\n?)+)(?=\n?<!--\s*LIST_BREAK\s*-->|\n?<|\n?$)/g, (match) => {
+  processedContent = processedContent.replace(/((?:<li class=\"ml-4 mb-1\">.*?<\/li>\n?)+)(?=\n?<!--\s*LIST_BREAK\s*-->|\n?<|\n?$)/g, (match) => {
     // Simple approach: track which list this is and check the original content pattern
     const lines = cleanContent.split('\n')
     
@@ -307,6 +319,9 @@ const ContentDisplay = ({ content }: { content: string }) => {
       listClass
     })
     
+    if (isOrdered) {
+      return `<ol class="${listClass} ml-6 mb-4">\n${match}</ol>\n`
+    }
     return `<ul class="${listClass} ml-6 mb-4">\n${match}</ul>\n`
   })
   

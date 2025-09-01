@@ -5,6 +5,7 @@ import { useSupabase } from '@/components/supabase-provider'
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
+import { prepareContentForStorage } from '@/lib/utils/content-conversion'
 
 // Client component with its own update handler
 export function EditorWithProtection({ 
@@ -47,6 +48,9 @@ export function EditorWithProtection({
         ? `${data.title.toLowerCase().replace(/[^\w-]+/g, '-')}-${timestamp.toString().slice(-6)}`
         : `content-${timestamp.toString().slice(-6)}`;
       
+      // Prepare content for dual storage (JSON + HTML)
+      const { json, html } = prepareContentForStorage(data.contentBody);
+      
       // Update the content record
       const { error } = await supabase
         .from('content_items')
@@ -54,7 +58,8 @@ export function EditorWithProtection({
           title: data.title,
           description: data.description,
           type: data.type,
-          content_body: data.contentBody,
+          content_body: json,
+          content_body_html: html,
           published: data.published,
           access_tier_id: data.accessTierId,
           updated_at: new Date().toISOString(),
