@@ -19,16 +19,16 @@ export default async function AdminDashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Tag className="h-5 w-5" />
-              Kategorijų valdymas
+              Temų valdymas
             </CardTitle>
             <CardDescription>
-              Kurkite, redaguokite ir trinkite turinio kategorijas
+              Kurkite, redaguokite ir trinkite turinio temas
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/manage/categories">
               <Button className="w-full">
-                Valdyti kategorijas
+                Valdyti temas
               </Button>
             </Link>
           </CardContent>

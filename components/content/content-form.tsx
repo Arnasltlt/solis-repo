@@ -70,7 +70,7 @@ const formSchema = z.object({
       z.string().min(1, { message: "Įveskite turinio turinį" })
     ),
   ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
-  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną kategoriją" }),
+  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną temą" }),
   accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
   published: z.boolean().default(false),
 })
@@ -509,8 +509,8 @@ export function ContentForm({
                   <CheckboxCardGroup
                     form={form}
                     name="categories"
-                    label="Kategorijos"
-                    description="Pasirinkite kategorijas, kurioms priklauso turinys"
+                    label="Temos"
+                    description="Pasirinkite temas, kurioms priklauso turinys"
                     items={categories.map(category => ({
                       id: category.id,
                       label: category.name,

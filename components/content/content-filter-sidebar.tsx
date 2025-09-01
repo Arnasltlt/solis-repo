@@ -84,7 +84,7 @@ export function ContentFilterSidebar({
       </div>
       <Separator />
       <div>
-        <h3 className="mb-2 text-lg font-semibold">Kategorijos</h3>
+        <h3 className="mb-2 text-lg font-semibold">Temos</h3>
         <div className="space-y-1">
           {categories.map((category) => (
             <button
