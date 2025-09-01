@@ -40,6 +40,7 @@ export interface ContentItem {
   age_groups: AgeGroup[]
   categories: Category[]
   content_body?: string
+  content_body_html?: string
   feedback_count?: number
 }
 

@@ -259,15 +259,13 @@ export function ContentDetail({ content, hideThumbnail = false }: ContentDetailP
 
 
           {/* Main Content Body */}
-          {console.log('[DEBUG] ContentDetail - content object:', {
-            content_body: content.content_body,
-            content_body_length: content.content_body?.length,
-            content_body_type: typeof content.content_body,
-            contentKeys: Object.keys(content)
-          })}
+          {/* Minimal debug only during development */}
           {content.content_body && (
             <div className="prose max-w-none">
-              <ContentBodyDisplay contentBody={content.content_body} />
+              <ContentBodyDisplay 
+                contentBody={content.content_body} 
+                contentBodyHtml={content.content_body_html}
+              />
             </div>
           )}
 

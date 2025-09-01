@@ -52,7 +52,15 @@ export const YoutubeBlock = Node.create<YoutubeBlockOptions>({
   },
   
   renderHTML({ HTMLAttributes }) {
-    const videoId = HTMLAttributes.videoId
+    let videoId = HTMLAttributes.videoId
+    
+    // Fallback: derive ID from src if needed
+    if (!videoId && typeof HTMLAttributes.src === 'string') {
+      const match = HTMLAttributes.src.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|watch\?v=|watch\?.+&v=|shorts\/))([a-zA-Z0-9_-]{11})/)
+      if (match && match[1]) {
+        videoId = match[1]
+      }
+    }
     
     if (!videoId) {
       return ['div', { class: 'youtube-error' }, 'Invalid YouTube video ID']

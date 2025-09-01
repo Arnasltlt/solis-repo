@@ -138,7 +138,13 @@ export async function PATCH(
     let updatePayload: any = {};
     
     // Add all valid fields to the update payload
-    if (requestBody.content_body !== undefined) updatePayload.content_body = requestBody.content_body;
+    if (requestBody.content_body !== undefined) {
+      updatePayload.content_body = requestBody.content_body;
+      // If content_body_html is also provided, store it
+      if (requestBody.content_body_html !== undefined) {
+        updatePayload.content_body_html = requestBody.content_body_html;
+      }
+    }
     if (requestBody.thumbnail_url !== undefined) updatePayload.thumbnail_url = requestBody.thumbnail_url;
     if (requestBody.title !== undefined) updatePayload.title = requestBody.title;
     if (requestBody.description !== undefined) {

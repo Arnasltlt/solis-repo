@@ -57,7 +57,15 @@ export const Youtube = Node.create<YoutubeOptions>({
   },
   
   renderHTML({ HTMLAttributes }) {
-    const videoId = HTMLAttributes.videoId
+    let videoId = HTMLAttributes.videoId
+    
+    // Fallback: try to extract from src if videoId not present
+    if (!videoId && typeof HTMLAttributes.src === 'string') {
+      const match = HTMLAttributes.src.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|watch\?v=|watch\?.+&v=|shorts\/))([a-zA-Z0-9_-]{11})/)
+      if (match && match[1]) {
+        videoId = match[1]
+      }
+    }
     
     if (!videoId) {
       return ['div', { class: 'youtube-error' }, 'Invalid YouTube video ID']
@@ -67,7 +75,19 @@ export const Youtube = Node.create<YoutubeOptions>({
     // Some environments may block youtube-nocookie.com
     // Safe for SSR
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const embedUrl = `https://www.youtube.com/embed/${videoId}?showinfo=0&controls=1&modestbranding=1&origin=${encodeURIComponent(origin)}`
+    const originParam = origin ? `&origin=${encodeURIComponent(origin)}` : ''
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?showinfo=0&controls=1&modestbranding=1${originParam}`
+    
+    // Build final iframe attributes ensuring our embed URL cannot be overridden by incoming HTMLAttributes
+    const iframeAttrs = {
+      width: (HTMLAttributes && HTMLAttributes.width) || this.options.width,
+      height: (HTMLAttributes && HTMLAttributes.height) || this.options.height,
+      src: embedUrl,
+      class: 'w-full aspect-video rounded-md',
+      frameborder: '0',
+      allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+      allowfullscreen: 'true',
+    }
     
     return [
       'div', 
@@ -75,18 +95,7 @@ export const Youtube = Node.create<YoutubeOptions>({
         'data-youtube-video': '',
         class: 'youtube-embed-wrapper my-4 w-full' 
       }, 
-      ['iframe', mergeAttributes(
-        {
-          width: this.options.width,
-          height: this.options.height,
-          src: embedUrl,
-          class: 'w-full aspect-video rounded-md',
-          frameborder: '0',
-          allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
-          allowfullscreen: 'true',
-        },
-        HTMLAttributes
-      )],
+      ['iframe', iframeAttrs],
     ]
   },
   

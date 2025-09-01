@@ -321,11 +321,11 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         const jsonOutput = editor.getJSON()
         const stringOutput = JSON.stringify(jsonOutput)
         
-        // Log the update
-        console.log('Editor onUpdate:', {
-          contentLength: stringOutput.length,
-          hasContent: jsonOutput.content && jsonOutput.content.length > 0
-        })
+        // Also extract HTML for display purposes
+        const htmlOutput = editor.getHTML()
+        
+        // Minimal debug (reduce noise)
+        // console.debug('Editor onUpdate', { len: stringOutput.length, html: htmlOutput.length })
         
         // Increment interaction counter to track editor usage
         editorInteractionsRef.current += 1
@@ -343,7 +343,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
           return;
         }
         
-        // Pass the JSON stringified content
+        // For now, pass the JSON stringified content (we'll update the save flow to handle HTML separately)
         onChange(stringOutput)
       }, 300); // Debounce for 300ms to avoid excessive updates
     },
