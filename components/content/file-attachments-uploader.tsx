@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from 'react'
 import { DocumentIcon, XMarkIcon, TrashIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/lib/utils'
 
+// Allow common document formats plus audio files
+const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.zip,audio/*'
+
 export type AttachmentFile = {
   id: string;
   url: string;
@@ -27,7 +30,7 @@ export function FileAttachmentsUploader({
   initialAttachments = [],
   className,
   label = 'Įkelti priedus',
-  description = 'PDF, DOC, XLS, ZIP ir kiti formatai iki 50MB',
+  description = 'PDF, DOC, XLS, ZIP, MP3, WAV ir kiti formatai iki 50MB',
   maxFiles = 10,
   onUploadingChange
 }: FileAttachmentsUploaderProps) {
@@ -192,6 +195,7 @@ export function FileAttachmentsUploader({
                   name="file-upload"
                   type="file"
                   className="sr-only"
+                  accept={ACCEPTED_FILE_TYPES}
                   multiple
                   onChange={handleFileChange}
                   disabled={isUploading}

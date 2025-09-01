@@ -3,6 +3,9 @@
 import React, { useState } from 'react'
 import { DocumentIcon } from '@heroicons/react/24/solid'
 
+// Allow common document formats plus audio files
+const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.zip,audio/*'
+
 export type SimpleAttachment = {
   id: string;
   url: string;
@@ -62,12 +65,13 @@ export function SimpleAttachmentUploader({
             <input
               type="file"
               className="sr-only"
+              accept={ACCEPTED_FILE_TYPES}
               multiple
               onChange={handleFileChange}
               disabled={isUploading}
             />
           </label>
-          <p className="text-sm text-gray-500 mt-1">PDF, DOC, XLS, ZIP ir kiti formatai</p>
+          <p className="text-sm text-gray-500 mt-1">PDF, DOC, XLS, ZIP, MP3, WAV ir kiti formatai</p>
         </div>
         
         {isUploading && <p className="mt-2">Įkeliama...</p>}
