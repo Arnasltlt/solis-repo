@@ -93,7 +93,7 @@ export function ContentFormStepPreview({
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-medium mb-2">Kategorijos</h4>
+            <h4 className="text-sm font-medium mb-2">Temos</h4>
             <div className="flex flex-wrap gap-2">
               {selectedCategories.map(category => (
                 <Badge key={category.id} variant="outline">

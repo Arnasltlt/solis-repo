@@ -36,7 +36,7 @@ export function ContentDetailMetadata({ content }: ContentDetailMetadataProps) {
 
       {/* Categories */}
       <div className="mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">Kategorijos:</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-2">Temos:</h2>
         <div className="flex flex-wrap gap-2">
           {content.categories.map((category) => (
             <CategoryBadge 

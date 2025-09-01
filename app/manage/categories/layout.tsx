@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Kategorijų valdymas | Solis Admin',
-  description: 'Kategorijų valdymo puslapis administratoriams',
+  title: 'Temų valdymas | Solis Admin',
+  description: 'Temų valdymo puslapis administratoriams',
 }
 
 export default function CategoriesLayout({

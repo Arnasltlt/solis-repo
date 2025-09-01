@@ -96,7 +96,7 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
 
   const handleCreateCategory = useCallback(async () => {
     if (!newCategoryName.trim()) {
-      setError('Kategorijos pavadinimas negali būti tuščias')
+      setError('Temos pavadinimas negali būti tuščias')
       return
     }
     setError(null)
@@ -119,16 +119,16 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
 
       if (!response.ok) {
         setError(data.error || `HTTP error! status: ${response.status}`);
-        toast.error(data.error || 'Nepavyko sukurti kategorijos');
+        toast.error(data.error || 'Nepavyko sukurti temos');
       } else {
         setCategories(prev => [...prev, { ...data, usageCount: 0, isLoadingUsage: false }]);
         setNewCategoryName('');
         setNewCategoryDescription('');
-        toast.success('Kategorija sėkmingai sukurta');
+        toast.success('Tema sėkmingai sukurta');
       }
     } catch (err) {
       console.error('Error creating category:', err);
-      const message = err instanceof Error ? err.message : 'Įvyko tinklo klaida kuriant kategoriją';
+      const message = err instanceof Error ? err.message : 'Įvyko tinklo klaida kuriant temą';
       setError(message);
       toast.error(message);
     } finally {
@@ -164,11 +164,11 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
         setCategories(prev => prev.filter(c => c.id !== selectedCategory.id));
         setIsDeleteDialogOpen(false);
         setSelectedCategory(null);
-        toast.success(data.message || 'Kategorija sėkmingai ištrinta');
+        toast.success(data.message || 'Tema sėkmingai ištrinta');
       }
     } catch (err) {
       console.error('Error deleting category:', err);
-      const message = err instanceof Error ? err.message : 'Įvyko tinklo klaida trinant kategoriją';
+      const message = err instanceof Error ? err.message : 'Įvyko tinklo klaida trinant temą';
       toast.error(message);
     } finally {
       setIsDeleting(false);
@@ -185,7 +185,7 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
 
       <Card>
         <CardHeader>
-          <CardTitle>Sukurti naują kategoriją</CardTitle>
+          <CardTitle>Sukurti naują temą</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -194,7 +194,7 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
                 Pavadinimas <span className="text-red-500">*</span>
               </label>
               <Input
-                placeholder="Kategorijos pavadinimas"
+                placeholder="Temos pavadinimas"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 className="w-full"
@@ -205,7 +205,7 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
                 Aprašymas (nebūtinas)
               </label>
               <Input
-                placeholder="Kategorijos aprašymas"
+                placeholder="Temos aprašymas"
                 value={newCategoryDescription}
                 onChange={(e) => setNewCategoryDescription(e.target.value)}
                 className="w-full"
@@ -224,7 +224,7 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
               ) : (
                 <>
                   <Plus className="mr-2 h-4 w-4" />
-                  Sukurti kategoriją
+                  Sukurti temą
                 </>
               )}
             </Button>
@@ -235,11 +235,11 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
 
       <Card>
         <CardHeader>
-          <CardTitle>Esamos kategorijos</CardTitle>
+          <CardTitle>Esamos temos</CardTitle>
         </CardHeader>
         <CardContent>
           {categories.length === 0 ? (
-            <p className="text-muted-foreground">Nėra sukurtų kategorijų</p>
+            <p className="text-muted-foreground">Nėra sukurtų temų</p>
           ) : (
             <ul className="divide-y">
               {categories.map((category) => (
@@ -281,12 +281,12 @@ export default function CategoryManager({ initialCategories }: CategoryManagerPr
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ištrinti kategoriją</DialogTitle>
+            <DialogTitle>Ištrinti temą</DialogTitle>
             <DialogDescription>
               {selectedCategory?.usageCount !== undefined && selectedCategory.usageCount > 0 ? (
-                `Ši kategorija naudojama ${selectedCategory.usageCount} turinio elementuose. Ištrynus kategoriją, ji bus pašalinta iš visų turinio elementų.`
+                `Ši tema naudojama ${selectedCategory.usageCount} turinio elementuose. Ištrynus temą, ji bus pašalinta iš visų turinio elementų.`
               ) : (
-                'Ar tikrai norite ištrinti šią kategoriją?'
+                'Ar tikrai norite ištrinti šią temą?'
               )}
             </DialogDescription>
           </DialogHeader>

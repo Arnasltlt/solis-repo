@@ -51,7 +51,7 @@ const formSchema = z.object({
   title: z.string().min(1, { message: "Pavadinimas privalomas" }),
   thumbnail: z.any().optional(),
   ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
-  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną kategoriją" }),
+  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną temą" }),
   accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
   published: z.boolean().default(false),
   attachments: z.array(z.any()).optional(),
@@ -667,7 +667,7 @@ export function NewContentEditor({
                     />
                   </div>
                   
-                  {/* Auditorija ir kategorijos */}
+                  {/* Auditorija ir temos */}
                   <div className="space-y-6">
                     <h3 className="text-base font-semibold">Kam skirtas šis turinys?</h3>
               
@@ -700,8 +700,8 @@ export function NewContentEditor({
                           <CheckboxCardGroup
                             form={form}
                             name="categories"
-                            label="Kategorijos"
-                            description="Pasirinkite kategorijas, kurioms priklauso šis turinys"
+                            label="Temos"
+                            description="Pasirinkite temas, kurioms priklauso šis turinys"
                             items={categories
                               .slice()
                               .sort((a: any, b: any) => String(a?.name || '').localeCompare(String(b?.name || ''), 'lt', { sensitivity: 'base' }))

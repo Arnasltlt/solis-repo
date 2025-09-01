@@ -59,7 +59,7 @@ export function PremiumPlans() {
                   </li>
                   <li className="flex">
                     <CheckIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                    <span>Turinio filtravimas pagal kategorijas</span>
+                    <span>Turinio filtravimas pagal temas</span>
                   </li>
                   <li className="flex opacity-50">
                     <span className="h-5 w-5 border border-gray-300 rounded-full mr-2 flex-shrink-0"></span>

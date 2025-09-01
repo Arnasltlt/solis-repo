@@ -4,8 +4,8 @@ import CategoryManager from './category-manager'
 import type { Category } from '@/lib/types/database'
 
 export const metadata: Metadata = {
-  title: 'Kategorijų valdymas | Solis',
-  description: 'Solis platformos kategorijų valdymo skydelis',
+  title: 'Temų valdymas | Solis',
+  description: 'Solis platformos temų valdymo skydelis',
 }
 
 export default async function CategoriesPage() {
@@ -21,7 +21,7 @@ export default async function CategoriesPage() {
 
   return (
     <div className="container py-8">
-      <h1 className="text-3xl font-bold mb-6">Kategorijų valdymas</h1>
+      <h1 className="text-3xl font-bold mb-6">Temų valdymas</h1>
       <CategoryManager initialCategories={categories} />
     </div>
   )

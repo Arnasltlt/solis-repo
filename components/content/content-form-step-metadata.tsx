@@ -22,7 +22,7 @@ import type { AgeGroup, Category, AccessTier } from "@/lib/types/database"
 
 const formSchema = z.object({
   ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
-  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną kategoriją" }),
+  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną temą" }),
   accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
   published: z.boolean().default(false),
 })
@@ -103,8 +103,8 @@ export function ContentFormStepMetadata({
               <CheckboxCardGroup
                 form={form}
                 name="categories"
-                label="Kategorijos"
-                description="Pasirinkite kategorijas, kurioms priklauso turinys"
+                label="Temos"
+                description="Pasirinkite temas, kurioms priklauso turinys"
                 items={categories.map(category => ({
                   id: category.id,
                   label: category.name,
