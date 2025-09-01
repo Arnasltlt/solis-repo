@@ -35,6 +35,8 @@ import Image from 'next/image'
 interface ContentDetailProps {
   content: ContentItem
   hideThumbnail?: boolean
+  nextSlug?: string | null
+  prevSlug?: string | null
 }
 
 interface FeedbackItem {
@@ -53,7 +55,7 @@ interface FeedbackItem {
  * - Body (rich text content)
  * - Feedback (likes/dislikes, premium CTA)
  */
-export function ContentDetail({ content, hideThumbnail = false }: ContentDetailProps) {
+export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSlug }: ContentDetailProps) {
   const { user, session } = useAuth();
   const isAuthenticated = !!user && !!session;
   const { canAccessPremiumContent, isAdmin } = useAuthorization();
@@ -305,6 +307,24 @@ export function ContentDetail({ content, hideThumbnail = false }: ContentDetailP
           )}
         </aside>
       </div>
+      {(prevSlug || nextSlug) && (
+        <div className="flex justify-between mt-8">
+          {prevSlug ? (
+            <Button asChild variant="outline">
+              <Link href={`/medziaga/${prevSlug}`}>Back</Link>
+            </Button>
+          ) : (
+            <div />
+          )}
+          {nextSlug ? (
+            <Button asChild>
+              <Link href={`/medziaga/${nextSlug}`}>Next</Link>
+            </Button>
+          ) : (
+            <div />
+          )}
+        </div>
+      )}
     </div>
   )
 }

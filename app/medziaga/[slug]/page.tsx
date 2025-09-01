@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { getContentBySlug } from '@/lib/services/content'
+import { getContentBySlug, getAdjacentContentSlugs } from '@/lib/services/content'
 import { ContentDetail } from '@/components/content/content-detail'
 import { notFound } from 'next/navigation'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
@@ -82,6 +82,7 @@ export default async function ContentPage({ params }: Props) {
     // Step 1: Fetch content (RLS check happens here via authenticated client)
     // RLS SELECT policies are now permissive for published content for non-admins
     const content = await getContentBySlug(slug, supabase);
+    const { next, prev } = await getAdjacentContentSlugs(slug, supabase);
 
     // If RLS blocked (e.g., unpublished and not admin) or slug invalid, getContentBySlug throws
     // The catch block below will handle this and call notFound()
@@ -93,7 +94,7 @@ export default async function ContentPage({ params }: Props) {
     // Access control (showing full content vs. upsell) will happen CLIENT-SIDE within ContentDetail.
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <ContentDetail content={content} hideThumbnail />
+        <ContentDetail content={content} hideThumbnail nextSlug={next} prevSlug={prev} />
       </div>
     );
 
