@@ -9,7 +9,7 @@ import { Logo } from '@/components/ui/logo'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/react/24/solid'
 import { HandThumbUpIcon } from '@heroicons/react/24/solid'
 import { HandThumbUpIcon as HandThumbUpOutlineIcon } from '@heroicons/react/24/outline'
-import { PencilIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { DeleteContentDialog } from './DeleteContentDialog'
 import { RichContentForm } from './rich-content-form'
@@ -35,6 +35,8 @@ import Image from 'next/image'
 interface ContentDetailProps {
   content: ContentItem
   hideThumbnail?: boolean
+  nextSlug?: string | null
+  prevSlug?: string | null
 }
 
 interface FeedbackItem {
@@ -53,7 +55,7 @@ interface FeedbackItem {
  * - Body (rich text content)
  * - Feedback (likes/dislikes, premium CTA)
  */
-export function ContentDetail({ content, hideThumbnail = false }: ContentDetailProps) {
+export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSlug }: ContentDetailProps) {
   const { user, session } = useAuth();
   const isAuthenticated = !!user && !!session;
   const { canAccessPremiumContent, isAdmin } = useAuthorization();
@@ -91,18 +93,38 @@ export function ContentDetail({ content, hideThumbnail = false }: ContentDetailP
           {/* Main Content with clear header and blurred content */}
           <div className="lg:col-span-9 space-y-6">
             {/* Title and Date - Visible */}
-            <div className="border-b pb-4">
-              <div className="flex items-center">
-                <h1 className="text-2xl font-semibold mb-2 mr-2">{content.title}</h1>
-                <span className="bg-amber-100 text-amber-600 px-2 py-1 rounded-full text-xs font-semibold flex items-center">
-                  <SparklesIcon className="h-3 w-3 mr-1" />
-                  Narystė
-                </span>
+            <div className="border-b pb-4 flex justify-between items-start">
+              <div>
+                <div className="flex items-center">
+                  <h1 className="text-2xl font-semibold mb-2 mr-2">{content.title}</h1>
+                  <span className="bg-amber-100 text-amber-600 px-2 py-1 rounded-full text-xs font-semibold flex items-center">
+                    <SparklesIcon className="h-3 w-3 mr-1" />
+                    Narystė
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <time dateTime={content.created_at}>
+                    {new Date(content.created_at).toLocaleDateString('lt-LT')}
+                  </time>
+                </div>
               </div>
-              <div className="text-sm text-gray-500">
-                <time dateTime={content.created_at}>
-                  {new Date(content.created_at).toLocaleDateString('lt-LT')}
-                </time>
+              <div className="flex gap-2 items-center">
+                {prevSlug && (
+                  <Button asChild variant="outline">
+                    <Link href={`/medziaga/${prevSlug}`} className="flex items-center">
+                      <ArrowLeftIcon className="h-4 w-4" />
+                      <span className="sr-only">Back</span>
+                    </Link>
+                  </Button>
+                )}
+                {nextSlug && (
+                  <Button asChild variant="outline">
+                    <Link href={`/medziaga/${nextSlug}`} className="flex items-center">
+                      <ArrowRightIcon className="h-4 w-4" />
+                      <span className="sr-only">Next</span>
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -219,24 +241,41 @@ export function ContentDetail({ content, hideThumbnail = false }: ContentDetailP
                 </time>
               </div>
             </div>
-            
-            {canEdit && (
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex items-center gap-1"
-                  onClick={() => router.push(`/manage/content/editor/${content.id}`)}
-                >
-                  <PencilIcon className="h-3 w-3" />
-                  Edit
+            <div className="flex gap-2 items-center">
+              {prevSlug && (
+                <Button asChild variant="outline">
+                  <Link href={`/medziaga/${prevSlug}`} className="flex items-center">
+                    <ArrowLeftIcon className="h-4 w-4" />
+                    <span className="sr-only">Back</span>
+                  </Link>
                 </Button>
-                <DeleteContentDialog 
-                  contentId={content.id} 
-                  contentTitle={content.title} 
-                />
-              </div>
-            )}
+              )}
+              {nextSlug && (
+                <Button asChild variant="outline">
+                  <Link href={`/medziaga/${nextSlug}`} className="flex items-center">
+                    <ArrowRightIcon className="h-4 w-4" />
+                    <span className="sr-only">Next</span>
+                  </Link>
+                </Button>
+              )}
+              {canEdit && (
+                <>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex items-center gap-1"
+                    onClick={() => router.push(`/manage/content/editor/${content.id}`)}
+                  >
+                    <PencilIcon className="h-3 w-3" />
+                    Edit
+                  </Button>
+                  <DeleteContentDialog 
+                    contentId={content.id} 
+                    contentTitle={content.title} 
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           {/* Video Content */}
@@ -303,6 +342,7 @@ export function ContentDetail({ content, hideThumbnail = false }: ContentDetailP
           )}
         </aside>
       </div>
+      {/* Navigation moved to header */}
     </div>
   )
 }

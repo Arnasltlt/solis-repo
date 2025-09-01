@@ -658,6 +658,44 @@ export async function getContentBySlug(
   }
 }
 
+export async function getAdjacentContentSlugs(
+  slug: string,
+  client: SupabaseClient<Database>
+) {
+  if (!client) {
+    throw new Error('Supabase client is required for getAdjacentContentSlugs');
+  }
+
+  const { data: current, error: currentError } = await client
+    .from('content_items')
+    .select('created_at')
+    .eq('slug', slug)
+    .single();
+
+  if (currentError || !current) {
+    throw currentError || new Error('Current content not found');
+  }
+
+  const { data: nextData } = await client
+    .from('content_items')
+    .select('slug')
+    .gt('created_at', current.created_at)
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  const { data: prevData } = await client
+    .from('content_items')
+    .select('slug')
+    .lt('created_at', current.created_at)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  return {
+    next: nextData?.[0]?.slug ?? null,
+    prev: prevData?.[0]?.slug ?? null,
+  };
+}
+
 export async function getFeedback(contentId: string) {
   try {
     const { data, error } = await supabase
