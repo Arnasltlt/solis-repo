@@ -9,7 +9,7 @@ import { Logo } from '@/components/ui/logo'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/react/24/solid'
 import { HandThumbUpIcon } from '@heroicons/react/24/solid'
 import { HandThumbUpIcon as HandThumbUpOutlineIcon } from '@heroicons/react/24/outline'
-import { PencilIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { DeleteContentDialog } from './DeleteContentDialog'
 import { RichContentForm } from './rich-content-form'
@@ -111,12 +111,18 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
               <div className="flex gap-2 items-center">
                 {prevSlug && (
                   <Button asChild variant="outline">
-                    <Link href={`/medziaga/${prevSlug}`}>Back</Link>
+                    <Link href={`/medziaga/${prevSlug}`} className="flex items-center">
+                      <ArrowLeftIcon className="h-4 w-4" />
+                      <span className="sr-only">Back</span>
+                    </Link>
                   </Button>
                 )}
                 {nextSlug && (
-                  <Button asChild>
-                    <Link href={`/medziaga/${nextSlug}`}>Next</Link>
+                  <Button asChild variant="outline">
+                    <Link href={`/medziaga/${nextSlug}`} className="flex items-center">
+                      <ArrowRightIcon className="h-4 w-4" />
+                      <span className="sr-only">Next</span>
+                    </Link>
                   </Button>
                 )}
               </div>
@@ -238,12 +244,18 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
             <div className="flex gap-2 items-center">
               {prevSlug && (
                 <Button asChild variant="outline">
-                  <Link href={`/medziaga/${prevSlug}`}>Back</Link>
+                  <Link href={`/medziaga/${prevSlug}`} className="flex items-center">
+                    <ArrowLeftIcon className="h-4 w-4" />
+                    <span className="sr-only">Back</span>
+                  </Link>
                 </Button>
               )}
               {nextSlug && (
-                <Button asChild>
-                  <Link href={`/medziaga/${nextSlug}`}>Next</Link>
+                <Button asChild variant="outline">
+                  <Link href={`/medziaga/${nextSlug}`} className="flex items-center">
+                    <ArrowRightIcon className="h-4 w-4" />
+                    <span className="sr-only">Next</span>
+                  </Link>
                 </Button>
               )}
               {canEdit && (
