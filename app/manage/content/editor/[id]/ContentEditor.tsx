@@ -68,40 +68,42 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   
 
   
-  // Save function for the streamlined editor
+  // Unified save function for content body and metadata
   const handleSave = useCallback(async () => {
     if (!supabase || isSaving) return
 
     try {
-      setIsSaving(true)
-
-      // Get auth token for the API request header
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token || ''
-
-      const response = await fetch(`/api/manage/content/${contentId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          content_body: editorContent
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to save content')
+      if (attachmentsUploading) {
+        toast({ title: 'Failai dar įkeliami', description: 'Palaukite kol įkėlimas bus užbaigtas.', variant: 'destructive' })
+        return
       }
 
-    } catch (error) {
+      setIsSaving(true)
+
+      await updateContent(
+        contentId,
+        {
+          title: metaTitle,
+          description: metaDescription,
+          type: metaType,
+          ageGroups: metaAgeGroups,
+          categories: metaCategories,
+          accessTierId: metaAccessTier,
+          published: metaPublished,
+          metadata: { attachments: metaAttachments, ui_type: metaUiType },
+          contentBody: editorContent
+        },
+        supabase
+      )
+
+      toast({ title: 'Saved', description: 'Content and metadata updated successfully' })
+    } catch (error: any) {
       console.error('Error saving content:', error)
-      throw error
+      toast({ title: 'Error', description: error?.message || 'Failed to save content', variant: 'destructive' })
     } finally {
       setIsSaving(false)
     }
-  }, [supabase, contentId, editorContent, isSaving])
+  }, [supabase, isSaving, attachmentsUploading, contentId, metaTitle, metaDescription, metaType, metaAgeGroups, metaCategories, metaAccessTier, metaPublished, metaAttachments, metaUiType, editorContent])
   
 
   
@@ -167,37 +169,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     list.includes(id) ? list.filter(x => x !== id) : [...list, id]
   )
 
-  const saveDetails = async () => {
-    try {
-      if (!supabase) return
-      setIsSaving(true)
-      if (attachmentsUploading) {
-        toast({ title: 'Failai dar įkeliami', description: 'Palaukite kol įkėlimas bus užbaigtas.', variant: 'destructive' })
-        setIsSaving(false)
-        return
-      }
-      await updateContent(
-        contentId,
-        {
-          title: metaTitle,
-          description: metaDescription,
-          type: metaType,
-          ageGroups: metaAgeGroups,
-          categories: metaCategories,
-          accessTierId: metaAccessTier,
-          published: metaPublished,
-          metadata: { attachments: metaAttachments, ui_type: metaUiType }
-        },
-        supabase
-      )
-        toast({ title: 'Details saved', description: 'Metadata updated successfully' })
-    } catch (e: any) {
-      console.error('Failed to save details', e)
-      toast({ title: 'Error', description: e?.message || 'Failed to save details', variant: 'destructive' })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  // `saveDetails` function removed – saving is handled by handleSave
 
   if (authLoading) {
     return (
@@ -302,7 +274,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={saveDetails} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save details'}</Button>
+                <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</Button>
               </div>
             </div>
           )}
