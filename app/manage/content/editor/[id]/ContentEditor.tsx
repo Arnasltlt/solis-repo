@@ -30,6 +30,22 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   const { isAdmin, canManageContent } = useAuthorization()
   const [editorContent, setEditorContent] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
+  // State for metadata/details and attachments – declared before callbacks that use them
+  const [detailsLoading, setDetailsLoading] = useState(false)
+  const [metaTitle, setMetaTitle] = useState('')
+  const [metaDescription, setMetaDescription] = useState('')
+  const [metaType, setMetaType] = useState<'video'|'audio'|'lesson_plan'|'game'>('video')
+  const [metaUiType, setMetaUiType] = useState<string>('')
+  const [refUiTypes, setRefUiTypes] = useState<{id:string, slug:string, name:string}[]>([])
+  const [metaAgeGroups, setMetaAgeGroups] = useState<string[]>([])
+  const [metaCategories, setMetaCategories] = useState<string[]>([])
+  const [metaAccessTier, setMetaAccessTier] = useState<string>('')
+  const [metaPublished, setMetaPublished] = useState<boolean>(false)
+  const [refAgeGroups, setRefAgeGroups] = useState<any[]>([])
+  const [refCategories, setRefCategories] = useState<any[]>([])
+  const [refAccessTiers, setRefAccessTiers] = useState<any[]>([])
+  const [metaAttachments, setMetaAttachments] = useState<AttachmentFile[]>([])
+  const [attachmentsUploading, setAttachmentsUploading] = useState(false)
   
 
   
@@ -107,21 +123,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   
 
   
-  const [detailsLoading, setDetailsLoading] = useState(false)
-  const [metaTitle, setMetaTitle] = useState('')
-  const [metaDescription, setMetaDescription] = useState('')
-  const [metaType, setMetaType] = useState<'video'|'audio'|'lesson_plan'|'game'>('video')
-  const [metaUiType, setMetaUiType] = useState<string>('')
-  const [refUiTypes, setRefUiTypes] = useState<{id:string, slug:string, name:string}[]>([])
-  const [metaAgeGroups, setMetaAgeGroups] = useState<string[]>([])
-  const [metaCategories, setMetaCategories] = useState<string[]>([])
-  const [metaAccessTier, setMetaAccessTier] = useState<string>('')
-  const [metaPublished, setMetaPublished] = useState<boolean>(false)
-  const [refAgeGroups, setRefAgeGroups] = useState<any[]>([])
-  const [refCategories, setRefCategories] = useState<any[]>([])
-  const [refAccessTiers, setRefAccessTiers] = useState<any[]>([])
-  const [metaAttachments, setMetaAttachments] = useState<AttachmentFile[]>([])
-  const [attachmentsUploading, setAttachmentsUploading] = useState(false)
+  
 
   const loadDetails = useCallback(async () => {
     try {
