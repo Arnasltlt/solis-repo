@@ -394,7 +394,7 @@ export function StreamlinedEditor({
     <div className={cn("border rounded-lg bg-white", className)}>
       {/* Toolbar */}
       {!readOnly && (
-        <div className="sticky top-0 z-50 flex items-center gap-1 p-3 border-b bg-white/75 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <div className="sticky top-16 z-50 flex items-center gap-1 p-3 border-b bg-white/75 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
