@@ -287,7 +287,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         class: 'prose-lg focus:outline-none max-w-full',
         spellcheck: 'true',
       },
-      handlePaste: (view, event: ClipboardEvent, slice) => {
+      handlePaste: (_view: any, event: ClipboardEvent, _slice: any) => {
         if (event.clipboardData?.items) {
           for (let i = 0; i < event.clipboardData.items.length; i++) {
             if (event.clipboardData.items[i].type.startsWith('image/')) {
@@ -301,7 +301,7 @@ export function Editor({ onChange, initialData = '', readOnly = false, onFocus, 
         }
         return false; // Allow default paste handling otherwise
       },
-      handleDrop: (view, event: DragEvent, slice, moved) => {
+      handleDrop: (_view: any, event: DragEvent, _slice: any, moved?: boolean) => {
         if (moved) return false; // Ignore internal editor drag/drop
         
         const files = event.dataTransfer?.files;
