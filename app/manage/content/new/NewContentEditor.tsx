@@ -162,38 +162,7 @@ export function NewContentEditor({
     return true
   }
   
-  // Check authentication directly
-  useEffect(() => {
-    if (loading) return
-    
-    // If not authenticated, redirect to login
-    if (!isAuthenticated) {
-      toast({
-        title: 'Authentication required',
-        description: 'Please sign in to access content creation',
-        variant: 'destructive'
-      })
-      router.push('/login?callbackUrl=/manage/content/new')
-      return
-    }
-    
-    // If authenticated but not admin, redirect home
-    if (isAuthenticated && !isAdmin()) {
-      toast({
-        title: 'Access denied',
-        description: 'You need administrator access to create content',
-        variant: 'destructive'
-      })
-      router.push('/')
-      return
-    }
-    
-    console.log('Authentication verified:', { 
-      email: user?.email,
-      isAuthenticated,
-      isAdmin: isAdmin()
-    })
-  }, [isAuthenticated, loading, user, isAdmin, router])
+  // Auth gating is handled by <ProtectedRoute> wrapper to avoid duplicate redirects
   
   // Define form
   const form = useForm<z.infer<typeof formSchema>>({
