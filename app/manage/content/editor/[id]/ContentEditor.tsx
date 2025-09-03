@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, ChangeEvent } from 'react'
 import { useSupabase } from '@/components/supabase-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/components/ui/use-toast'
-import { Loader2 } from 'lucide-react'
+import { Loader2, X } from 'lucide-react'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth, UserRoles } from '@/hooks/useAuth'
 import { useAuthorization } from '@/hooks/useAuthorization'
@@ -46,6 +46,9 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   const [refAccessTiers, setRefAccessTiers] = useState<any[]>([])
   const [metaAttachments, setMetaAttachments] = useState<AttachmentFile[]>([])
   const [attachmentsUploading, setAttachmentsUploading] = useState(false)
+  const [metaThumbnail, setMetaThumbnail] = useState<File | string | null>(null)
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const [originalThumbnailUrl, setOriginalThumbnailUrl] = useState<string | null>(null)
   
 
   
@@ -81,9 +84,34 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
   const handleContentChange = useCallback((content: string) => {
     setEditorContent(content)
   }, [])
-  
 
-  
+  const handleThumbnailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (thumbnailPreview && metaThumbnail instanceof File) {
+        URL.revokeObjectURL(thumbnailPreview)
+      }
+      setMetaThumbnail(file)
+      setThumbnailPreview(URL.createObjectURL(file))
+    }
+  }
+
+  const clearThumbnail = () => {
+    if (thumbnailPreview && metaThumbnail instanceof File) {
+      URL.revokeObjectURL(thumbnailPreview)
+    }
+    setMetaThumbnail(null)
+    setThumbnailPreview(null)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreview && metaThumbnail instanceof File) {
+        URL.revokeObjectURL(thumbnailPreview)
+      }
+    }
+  }, [thumbnailPreview, metaThumbnail])
+
   // Unified save function for content body and metadata
   const handleSave = useCallback(async () => {
     if (!supabase || isSaving) return
@@ -96,6 +124,30 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
 
       setIsSaving(true)
 
+      let thumbnailUrl: string | null | undefined
+      if (metaThumbnail instanceof File) {
+        const formData = new FormData()
+        formData.append('file', metaThumbnail)
+        formData.append('type', 'thumbnail')
+        const token = localStorage.getItem('supabase_access_token')
+        const uploadResponse = await fetch('/api/manage/upload-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: formData
+        })
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json()
+          thumbnailUrl = uploadResult.url
+        } else {
+          const errorData = await uploadResponse.json().catch(() => ({}))
+          console.error('Error uploading thumbnail:', errorData)
+        }
+      } else if (metaThumbnail === null && originalThumbnailUrl) {
+        thumbnailUrl = null
+      }
+
       await updateContent(
         contentId,
         {
@@ -107,10 +159,17 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
           accessTierId: metaAccessTier,
           published: metaPublished,
           metadata: { attachments: metaAttachments, ui_type: metaUiType },
-          contentBody: editorContent
+          contentBody: editorContent,
+          ...(thumbnailUrl !== undefined ? { thumbnail: thumbnailUrl } : {})
         },
         supabase
       )
+
+      if (thumbnailUrl && typeof thumbnailUrl === 'string') {
+        setMetaThumbnail(thumbnailUrl)
+        setThumbnailPreview(thumbnailUrl)
+        setOriginalThumbnailUrl(thumbnailUrl)
+      }
 
       toast({ title: 'Saved', description: 'Content and metadata updated successfully' })
     } catch (error: any) {
@@ -119,7 +178,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
     } finally {
       setIsSaving(false)
     }
-  }, [supabase, isSaving, attachmentsUploading, contentId, metaTitle, metaDescription, metaType, metaAgeGroups, metaCategories, metaAccessTier, metaPublished, metaAttachments, metaUiType, editorContent])
+  }, [supabase, isSaving, attachmentsUploading, contentId, metaTitle, metaDescription, metaType, metaAgeGroups, metaCategories, metaAccessTier, metaPublished, metaAttachments, metaUiType, editorContent, metaThumbnail, originalThumbnailUrl])
   
 
   
@@ -154,6 +213,9 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
         setMetaPublished(!!content.published)
         setMetaAttachments(Array.isArray(content.metadata?.attachments) ? content.metadata.attachments : [])
         setMetaUiType((content as any)?.metadata?.ui_type || '')
+        setMetaThumbnail(content.thumbnail_url || null)
+        setThumbnailPreview(content.thumbnail_url || null)
+        setOriginalThumbnailUrl(content.thumbnail_url || null)
       }
     } catch (e) {
       console.error('Failed to load details refs/content', e)
@@ -260,6 +322,18 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
                     </label>
                   ))}
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Miniatiūra</Label>
+                <Input type="file" accept="image/*" onChange={handleThumbnailChange} />
+                {thumbnailPreview && (
+                  <div className="relative h-40 w-full rounded-lg overflow-hidden border border-gray-200 mt-2">
+                    <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                    <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={clearThumbnail}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox id="published-toggle" checked={metaPublished} onCheckedChange={(c) => setMetaPublished(!!c)} />
