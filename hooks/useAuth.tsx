@@ -75,40 +75,44 @@ export function AuthProvider({
     setLoading(false); // Initial check complete
   }, [initialSession]);
 
-  // Listen for changes to auth state
+  // Listen for changes to auth state, ensuring the session is loaded before
+  // subscribing to avoid cross-tab sign-out issues
   useEffect(() => {
     if (!supabase) return
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
-        console.log('AuthProvider: Auth state changed, event:', _event);
+    let mounted = true
+    let subscription: { unsubscribe: () => void } | undefined
+
+    const initAuth = async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
+
+      if (mounted) {
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
         setUserRole(getUserRole(currentSession?.user?.role))
-         setAuthToken(currentSession);
-        setLoading(false) // Ensure loading is false after state change
+        setAuthToken(currentSession)
+        setLoading(false)
       }
-    )
 
-    // Also get the initial session in case the listener misses the first state
-    // Although initialSession prop should handle this, this is a fallback
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-       // Check if the session state *truly* needs updating compared to the current state
-       // This prevents unnecessary updates if the fallback provides the same session
-       if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
-          console.log('AuthProvider: Setting session from getSession fallback.');
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-          setUserRole(getUserRole(currentSession?.user?.role));
-           setAuthToken(currentSession);
-       }
-       // Ensure loading is set to false even if session hasn't changed
-       setLoading(false);
-    });
+      const { data } = supabase.auth.onAuthStateChange(
+        (_event, newSession) => {
+          console.log('AuthProvider: Auth state changed, event:', _event)
+          setSession(newSession)
+          setUser(newSession?.user ?? null)
+          setUserRole(getUserRole(newSession?.user?.role))
+          setAuthToken(newSession)
+          setLoading(false)
+        }
+      )
 
+      subscription = data.subscription
+    }
+
+    initAuth()
 
     return () => {
-      subscription.unsubscribe()
+      mounted = false
+      subscription?.unsubscribe()
     }
   }, [supabase])
 
