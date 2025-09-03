@@ -22,7 +22,7 @@ import type { AgeGroup, Category, AccessTier } from "@/lib/types/database"
 
 const formSchema = z.object({
   ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
-  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną temą" }),
+  categories: z.array(z.string()).default([]),
   accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
   published: z.boolean().default(false),
 })
