@@ -11,13 +11,9 @@ export function Footer() {
         </div>
         <div className="flex gap-4">
           <Link
-            href="/terms"
-            className="text-sm text-muted-foreground underline underline-offset-4"
-          >
-            Terms
-          </Link>
-          <Link
-            href="/privacy"
+            href="https://www.soliopamoka.lt/store-policy"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-sm text-muted-foreground underline underline-offset-4"
           >
             Privacy
