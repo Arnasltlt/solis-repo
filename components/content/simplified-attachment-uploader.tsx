@@ -4,7 +4,8 @@ import React, { useState } from 'react'
 import { DocumentIcon } from '@heroicons/react/24/solid'
 
 // Allow common document formats plus audio files
-const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.zip,audio/*'
+// Explicitly include common audio extensions to ensure browser support
+const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.zip,.mp3,.wav,audio/*'
 
 export type SimpleAttachment = {
   id: string;

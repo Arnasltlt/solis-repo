@@ -5,7 +5,8 @@ import { DocumentIcon, XMarkIcon, TrashIcon, ArrowDownTrayIcon } from '@heroicon
 import { cn } from '@/lib/utils'
 
 // Allow common document formats plus audio files
-const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.zip,audio/*'
+// Explicitly include common audio extensions to ensure browser support
+const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.zip,.mp3,.wav,audio/*'
 
 export type AttachmentFile = {
   id: string;
