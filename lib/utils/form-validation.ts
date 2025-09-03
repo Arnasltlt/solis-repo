@@ -72,6 +72,6 @@ export const requiredMultipleSelection = (errorMessage?: string) =>
  *   description: descriptionSchema,
  *   slug: slugSchema,
  *   type: requiredSelection("Pasirinkite turinio tipą"),
- *   categories: requiredMultipleSelection("Pasirinkite bent vieną temą"),
+ *   categories: z.array(z.string()).optional(),
  * })
- */ 
+ */

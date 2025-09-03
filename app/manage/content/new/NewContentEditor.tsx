@@ -51,7 +51,7 @@ const formSchema = z.object({
   title: z.string().min(1, { message: "Pavadinimas privalomas" }),
   thumbnail: z.any().optional(),
   ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
-  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną temą" }),
+  categories: z.array(z.string()).default([]),
   accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
   published: z.boolean().default(false),
   attachments: z.array(z.any()).optional(),
@@ -217,12 +217,11 @@ export function NewContentEditor({
   const calculateProgress = () => {
     const fields = form.getValues()
     let completed = 0
-    let total = 6 // type, title, ageGroups, categories, accessTierId, published
+    let total = 5 // type, title, ageGroups, accessTierId, published
     
     if (fields.type) completed++
     if (fields.title && fields.title.trim()) completed++
     if (fields.ageGroups && fields.ageGroups.length > 0) completed++
-    if (fields.categories && fields.categories.length > 0) completed++
     if (fields.accessTierId) completed++
     completed++ // published always has a default value
     

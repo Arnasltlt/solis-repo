@@ -70,7 +70,7 @@ const formSchema = z.object({
       z.string().min(1, { message: "Įveskite turinio turinį" })
     ),
   ageGroups: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną amžiaus grupę" }),
-  categories: z.array(z.string()).min(1, { message: "Pasirinkite bent vieną temą" }),
+  categories: z.array(z.string()).default([]),
   accessTierId: z.string().min(1, { message: "Pasirinkite prieigos lygį" }),
   published: z.boolean().default(false),
 })

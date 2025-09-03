@@ -16,7 +16,7 @@ type CreateContentRequestBody = {
   published: boolean;
   accessTierId: string;
   ageGroups: string[]; // Array of age group IDs
-  categories: string[]; // Array of category IDs
+  categories?: string[]; // Array of category IDs
   // thumbnail data might be handled separately later or passed as base64/formdata
   metadata?: Record<string, any>; // optional metadata (e.g., attachments)
 }
@@ -99,10 +99,11 @@ async function processCreateContentRequest(request: NextRequest, authorId: strin
     if (!requestBody.title || !requestBody.type || !requestBody.accessTierId) {
       return NextResponse.json({ error: 'Missing required fields in request body' }, { status: 400 });
     }
-    // Only validate categories format; ageGroups are optional for now
-    if (!Array.isArray(requestBody.categories)) {
+    // Validate categories format if provided; ageGroups are optional for now
+    if (requestBody.categories && !Array.isArray(requestBody.categories)) {
        return NextResponse.json({ error: 'Invalid format for categories' }, { status: 400 });
     }
+    requestBody.categories = requestBody.categories || [];
   } catch (error) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }

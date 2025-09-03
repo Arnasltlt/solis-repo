@@ -51,9 +51,8 @@ export function ContentFormMetadata({
     id: category.id,
     label: category.name
   }))
-  
+
   // Get form values for validation highlighting
-  const selectedCategories = form.watch('categories') || []
   const selectedAgeGroups = form.watch('ageGroups') || []
   
   return (
@@ -96,23 +95,16 @@ export function ContentFormMetadata({
         <h3 className="text-lg font-medium mb-1">Temos</h3>
         <p className="text-sm text-muted-foreground mb-4">
           Pasirinkite, kokioms temoms priklauso šis turinys
-          <span className="text-destructive ml-1 font-medium">*</span>
         </p>
-        
-        <div className={`${selectedCategories.length === 0 && form.formState.isSubmitted ? 'border-2 border-destructive p-4 rounded-lg' : ''}`}>
-          <CheckboxCardGroup
-            form={form}
-            name="categories"
-            label="Temos"
-            items={categoryItems}
-            accentColor="secondary-mint"
-            columns={3}
-          />
-          
-          {selectedCategories.length === 0 && form.formState.isSubmitted && (
-            <p className="text-destructive text-sm mt-2">Pasirinkite bent vieną temą</p>
-          )}
-        </div>
+
+        <CheckboxCardGroup
+          form={form}
+          name="categories"
+          label="Temos"
+          items={categoryItems}
+          accentColor="secondary-mint"
+          columns={3}
+        />
       </div>
 
       <div className="mb-4">
