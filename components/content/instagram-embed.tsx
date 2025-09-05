@@ -105,6 +105,7 @@ export const InstagramEmbed = ({ src }: { src: string }) => {
           margin: '1rem auto',
           padding: '0',
           width: '100%',
+          maxWidth: '540px', // Constrain the max width for larger screens
         }}
       >
         <div style={{ padding: '16px' }}>
