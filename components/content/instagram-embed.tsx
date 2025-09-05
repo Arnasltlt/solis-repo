@@ -104,6 +104,7 @@ export const InstagramEmbed = ({ src }: { src: string }) => {
           display: 'block',
           margin: '1rem auto',
           padding: '0',
+          width: '100%',
         }}
       >
         <div style={{ padding: '16px' }}>
