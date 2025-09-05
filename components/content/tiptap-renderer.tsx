@@ -57,10 +57,15 @@ const renderNode = (node: any, index: number): JSX.Element | string | null => {
     
     // Custom node for YouTube iframes
     case 'youtube':
+      // Construct the YouTube embed URL, supporting both `videoId` and legacy `src` attributes.
+      const videoSrc = node.attrs.videoId
+        ? `https://www.youtube.com/embed/${node.attrs.videoId}`
+        : node.attrs.src;
+
       return (
         <div key={index} className="aspect-w-16 aspect-h-9 my-6">
           <iframe
-            src={node.attrs.src}
+            src={videoSrc}
             className="w-full h-full rounded-lg"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

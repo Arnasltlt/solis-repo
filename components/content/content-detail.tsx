@@ -24,7 +24,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ContentDetailHeader } from './content-detail-header'
 import { ContentDetailMetadata } from './content-detail-metadata'
 import { ContentDetailBody } from './content-detail-body'
 import { ContentDetailFeedback } from './content-detail-feedback'
