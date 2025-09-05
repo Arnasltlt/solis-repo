@@ -1,3 +1,33 @@
+/**
+ * @fileoverview StreamlinedEditor - Central Configuration for TipTap Editor
+ *
+ * @description
+ * This file serves as the primary integration point for the TipTap rich text editor. It
+ * configures all extensions, toolbar interactions, and content handling logic.
+ *
+ * @architectural_challenge
+ * A significant challenge in this implementation is the embedding of third-party content
+ * that relies on external, asynchronous JavaScript for rendering (e.g., Instagram).
+ * Standard TipTap nodes for simple iframes (like YouTube) are straightforward, but script-dependent
+ * embeds introduce major complexity within a Next.js (SSR) environment.
+ *
+ * @failed_approaches
+ * 1. Raw HTML Injection: Injecting `<blockquote>` or `<iframe>` strings directly via `insertContent`
+ *    is blocked by TipTap's default sanitization, which prevents arbitrary HTML for security.
+ * 2. Client-Side NodeView Script Loading: Using a React NodeView (`InstagramNodeView`) to
+ *    dynamically load the external script via a `useEffect` hook is architecturally flawed.
+ *    This creates a race condition with TipTap's SSR and hydration, causing the script-loading
+ *    logic to execute unreliably or not at all within the editor's lifecycle.
+ *
+ * @chosen_solution
+ * The durable solution is a two-part system:
+ * 1. Editor Node (`InstagramBlock`): A simple, declarative node that stores the embed URL and renders
+ *    a basic, non-functional placeholder in the editor. It does not attempt to load scripts.
+ * 2. Frontend Renderer (`ContentBodyDisplay`): A separate React component, used on the public-facing
+ *    pages, that recursively renders the TipTap JSON. When it encounters an `instagramBlock` node,
+ *    it mounts a dedicated component that handles the script loading and embed rendering. This
+ *    decouples the editor's concerns from the final display concerns, ensuring reliability.
+ */
 'use client'
 
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -30,6 +60,7 @@ import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { Node, mergeAttributes } from '@tiptap/core'
 import Youtube from '@tiptap/extension-youtube'
+import { InstagramBlock } from '@/lib/extensions/instagram-block'
 
 // Simple video URL validation
 const validateVideoUrl = (url: string): string | null => {
@@ -39,14 +70,61 @@ const validateVideoUrl = (url: string): string | null => {
 
   // Check if it's a valid URL format
   try {
-    new URL(url.startsWith('http') ? url : `https://${url}`);
+    const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+
+    // Check if it's a supported platform
+    if (!urlObj.hostname.includes('youtube.com') &&
+        !urlObj.hostname.includes('youtu.be') &&
+        !urlObj.hostname.includes('instagram.com')) {
+      return 'Please enter a YouTube or Instagram URL';
+    }
+
+    // Basic validation for Instagram
+    if (urlObj.hostname.includes('instagram.com')) {
+      const segments = urlObj.pathname.split('/').filter(Boolean);
+      if (segments.length < 2 || !['p', 'reel', 'tv'].includes(segments[0])) {
+        return 'Please enter a valid Instagram post or reel URL';
+      }
+    }
+
   } catch {
     return 'Please enter a valid URL format';
   }
 
-  // Basic validation - accept any URL that looks like it could be a video
   return null; // URL is valid
 };
+
+// Helper to extract YouTube video ID from various URL formats
+const getYouTubeVideoId = (url: string): string | null => {
+  try {
+    const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+    let videoId = null;
+
+    if (urlObj.hostname.includes('youtu.be')) {
+      // For youtu.be/VIDEO_ID
+      videoId = urlObj.pathname.slice(1);
+    } else if (urlObj.pathname.includes('/watch')) {
+      // For youtube.com/watch?v=VIDEO_ID
+      videoId = urlObj.searchParams.get('v');
+    } else if (urlObj.pathname.includes('/embed/')) {
+      // For youtube.com/embed/VIDEO_ID
+      videoId = urlObj.pathname.split('/embed/')[1];
+    } else if (urlObj.pathname.includes('/shorts/')) {
+      // For youtube.com/shorts/VIDEO_ID
+      videoId = urlObj.pathname.split('/shorts/')[1];
+    }
+
+    if (videoId) {
+      // Remove any extra query parameters from the video ID
+      return videoId.split('?')[0];
+    }
+  } catch (error) {
+    console.error('Error parsing YouTube URL:', error);
+    return null;
+  }
+  return null;
+};
+
 
 // Simple video embed URL generator
 const getVideoEmbedUrl = (url: string): string | null => {
@@ -82,7 +160,7 @@ const getVideoEmbedUrl = (url: string): string | null => {
 
     // For other video URLs (direct video files), return as-is
     // The iframe will handle it, or we can use a video element
-    return url;
+    return null;
   } catch (error) {
     console.error('Error generating video embed URL:', error);
     return null;
@@ -145,6 +223,25 @@ const VideoNode = Node.create({
           return commands.insertContent({ type: this.name, attrs })
         }
     } as any
+  },
+
+  addPasteRules() {
+    return [
+      {
+        // Regex for YouTube and Instagram URLs
+        find: /(?:https?:\/\/)?(?:www\.)?(?:(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})|(?:instagram\.com\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)))/g,
+        handler: ({ match, chain }: any) => {
+          const url = match[0]
+          const embedUrl = getVideoEmbedUrl(url)
+          if (embedUrl) {
+            chain().focus().insertContent({
+              type: this.name,
+              attrs: { src: embedUrl },
+            }).run()
+          }
+        },
+      },
+    ]
   },
 
   addNodeView() {
@@ -220,13 +317,12 @@ export function StreamlinedEditor({
         types: ['heading', 'paragraph'],
         alignments: ['left', 'center', 'right']
       }),
+      // Enable generic iframe-based video node for non-YouTube embeds (e.g., Instagram)
       Youtube.configure({
-        inline: false,
         modestBranding: true,
-        width: 640,
-        height: 400,
-        allowFullscreen: true
-      })
+        rel: 0,
+      }),
+      InstagramBlock,
     ],
     content: (() => {
       if (!initialContent) return '';
@@ -342,8 +438,24 @@ export function StreamlinedEditor({
       return
     }
 
-    // Use official YouTube extension command with src (runtime expects src)
-    editor?.chain().focus().setYoutubeVideo({ src: videoUrl, width: 640, height: 400 } as any).run()
+    // Handle Instagram URLs
+    if (videoUrl.includes('instagram.com')) {
+      console.log('[StreamlinedEditor] handleVideoInsert called for Instagram with URL:', videoUrl);
+      editor?.chain().focus().setInstagramPost({ src: videoUrl }).run()
+    } else {
+      // Handle YouTube and other video URLs
+      const videoId = getYouTubeVideoId(videoUrl);
+      if (videoId) {
+        editor?.chain().focus().setYoutubeVideo({ videoId }).run();
+      } else {
+        toast({
+          title: 'Unsupported URL',
+          description: 'Could not process the provided video URL. Please use a valid YouTube or Instagram link.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
 
     // Add empty paragraph after
     editor?.chain().insertContent({ type: 'paragraph' }).run()
@@ -506,7 +618,7 @@ export function StreamlinedEditor({
               size="sm"
               onClick={() => setVideoDialogOpen(true)}
               className="h-8 w-8 p-0"
-              title="Add YouTube Video"
+              title="Add Video (YouTube or Instagram)"
             >
               <Video className="h-4 w-4" />
             </Button>
@@ -672,14 +784,14 @@ export function StreamlinedEditor({
           </DialogHeader>
           <div className="space-y-4">
             <Input
-              placeholder="Paste video URL here (YouTube, Vimeo, etc.)"
+              placeholder="Paste video URL here (YouTube or Instagram)"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleVideoInsert()}
               autoFocus
             />
             <div className="text-sm text-gray-500">
-              Supports YouTube, Vimeo, and other video platforms
+              Supports YouTube and Instagram posts/reels
             </div>
           </div>
           <DialogFooter>
@@ -697,25 +809,4 @@ export function StreamlinedEditor({
       </Dialog>
     </div>
   )
-}
-
-// Extract YouTube video ID from various URL formats
-const extractYouTubeId = (url: string): string | null => {
-  try {
-    const u = new URL(url.startsWith('http') ? url : `https://${url}`)
-    if (u.hostname.includes('youtu.be')) {
-      return u.pathname.slice(1) || null
-    }
-    if (u.hostname.includes('youtube.com')) {
-      if (u.pathname === '/watch') return u.searchParams.get('v')
-      if (u.pathname.startsWith('/embed/')) return u.pathname.split('/embed/')[1]
-      if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1]
-    }
-    // As a last resort, try regex
-    const match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})|youtu\.be\/([a-zA-Z0-9_-]{11})|embed\/([a-zA-Z0-9_-]{11})/)
-    const id = match?.[1] || match?.[2] || match?.[3]
-    return id || null
-  } catch {
-    return null
-  }
 }

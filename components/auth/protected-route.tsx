@@ -50,19 +50,6 @@ export function ProtectedRoute({
 
       const isSessionValid = !!user || !!activeSession
 
-      console.log('ProtectedRoute auth check:', {
-        isClient,
-        loading,
-        authCheckComplete,
-        hasUser: !!user,
-        hasSession: !!session,
-        fetchedSession: !!data.session,
-        isSessionValid,
-        requiredRole,
-        userRole: user?.role,
-        hasMinimumRole: requiredRole !== UserRoles.FREE ? hasMinimumRole(requiredRole) : true
-      })
-
       if (cancelled) return
 
       if (isSessionValid) {
@@ -140,7 +127,7 @@ export function ProtectedRoute({
       setVerifying(false)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [user, session, loading, router, pathname, hasMinimumRole, requiredRole, forcedReturnUrl, isClient, authCheckComplete, redirecting, supabase, granted])
+  }, [user, session, loading, router, pathname, hasMinimumRole, requiredRole, forcedReturnUrl, isClient, supabase])
 
   if (!granted && (!isClient || loading || !authCheckComplete || verifying)) {
     return (

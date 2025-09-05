@@ -1,77 +1,70 @@
 'use client'
 
-import { RichContentForm } from './rich-content-form'
-import { cn } from '@/lib/utils/index'
-import { LockClosedIcon } from '@heroicons/react/24/outline'
-import { useCallback } from 'react'
+/**
+ * @fileoverview This component is responsible for intelligently rendering the main body of content.
+ * It supports both the new TipTap JSON format and a legacy raw HTML format, ensuring
+ * backwards compatibility with older content.
+ */
 
-// Remove getVideoEmbedUrl since it's now in the editor
+import React from 'react';
+import { TipTapRenderer } from './tiptap-renderer';
 
+/**
+ * Defines the props for the ContentBodyDisplay component.
+ */
 interface ContentBodyDisplayProps {
-  contentBody: string | null
-  contentBodyHtml?: string | null
-  isPremium?: boolean
+  /** The TipTap content, which can be a JSON string or a pre-parsed object. This is the preferred format. */
+  contentBody: string | object | null | undefined;
+  /** Optional raw HTML content for backwards compatibility with legacy data. */
+  contentBodyHtml?: string | null | undefined;
 }
 
 /**
- * ContentBodyDisplay - Component for displaying rich text content
+ * Renders content by prioritizing the modern TipTap JSON format and falling back to a
+ * legacy raw HTML format if necessary.
+ *
+ * @rendering_priority
+ * 1. It first attempts to parse and render `contentBody` as TipTap JSON.
+ * 2. If `contentBody` is absent or invalid, it falls back to rendering `contentBodyHtml`.
+ * 3. If neither is available, it renders nothing.
+ *
+ * The use of `dangerouslySetInnerHTML` is intentional and scoped only to the legacy
+ * `contentBodyHtml` field to maintain compatibility with old data.
  */
-export function ContentBodyDisplay({ contentBody, contentBodyHtml, isPremium = false }: ContentBodyDisplayProps) {
-  const handleChange = useCallback(() => {}, [])
+export function ContentBodyDisplay({ contentBody, contentBodyHtml }: ContentBodyDisplayProps) {
+  // Priority 1: Attempt to render modern TipTap JSON content.
+  if (contentBody) {
+    let parsedContent;
+    try {
+      if (typeof contentBody === 'string') {
+        // Attempt to parse if it's a non-empty string that looks like JSON.
+        if (contentBody.trim().startsWith('{')) {
+          parsedContent = JSON.parse(contentBody);
+        }
+      } else if (typeof contentBody === 'object') {
+        parsedContent = contentBody;
+      }
 
-  // Reduce noisy logs
-  // console.debug('[ContentBodyDisplay]', { hasHtml: !!contentBodyHtml, len: contentBody?.length })
-
-  if (!contentBody || contentBody === 'contentBody') {
-    console.log('[DEBUG] ContentBodyDisplay returning null - no content or placeholder')
-    return null
+      // If parsing was successful and we have a valid object, render it.
+      if (parsedContent && typeof parsedContent === 'object') {
+        return <TipTapRenderer jsonContent={parsedContent} />;
+      }
+    } catch (error) {
+      // If JSON parsing fails, we'll fall through to the legacy HTML check.
+      console.warn("Failed to parse content_body as JSON, will check for legacy HTML.", error);
+    }
   }
 
-  // Use HTML version if available, otherwise fall back to editor rendering
-  if (contentBodyHtml && contentBodyHtml.trim() !== '') {
-    // Using HTML snapshot for display
+  // Priority 2: Fallback to legacy raw HTML content.
+  if (contentBodyHtml && typeof contentBodyHtml === 'string' && contentBodyHtml.trim() !== '') {
     return (
-      <div className="rich-content-display">
-        {isPremium ? (
-          <div className="relative">
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-4">
-              <LockClosedIcon className="h-8 w-8 text-primary mb-2" />
-              <p className="text-center font-medium">This content is available for premium users only.</p>
-            </div>
-            <div className="blur-sm">
-              <div 
-                className="prose max-w-none p-4"
-                dangerouslySetInnerHTML={{ __html: contentBodyHtml }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div 
-            className="prose max-w-none p-4"
-            dangerouslySetInnerHTML={{ __html: contentBodyHtml }}
-          />
-        )}
-      </div>
-    )
+      <div
+        className="prose max-w-none"
+        dangerouslySetInnerHTML={{ __html: contentBodyHtml }}
+      />
+    );
   }
 
-  // Fallback to editor rendering for content without HTML version
-  // Fallback to editor rendering if no HTML snapshot is available
-  return (
-    <div className="rich-content-display">
-      {isPremium ? (
-        <div className="relative">
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-4">
-            <LockClosedIcon className="h-8 w-8 text-primary mb-2" />
-            <p className="text-center font-medium">This content is available for premium users only.</p>
-          </div>
-          <div className="blur-sm">
-            <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
-          </div>
-        </div>
-      ) : (
-        <RichContentForm contentBody={contentBody} readOnly onChange={handleChange} />
-      )}
-    </div>
-  )
+  // Fallback: If no valid content is available, render nothing.
+  return null;
 } 
