@@ -24,9 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ContentDetailHeader } from './content-detail-header'
 import { ContentDetailMetadata } from './content-detail-metadata'
-import { ContentDetailBody } from './content-detail-body'
 import { ContentDetailFeedback } from './content-detail-feedback'
 import { SimpleContentDetailAttachments } from './simple-content-detail-attachments'
 import Image from 'next/image'
@@ -282,8 +280,8 @@ export function ContentDetail({ content, hideThumbnail = false, nextSlug, prevSl
           )}
 
           {/* Main Content Body */}
-          {/* Minimal debug only during development */}
-          {content.content_body && (
+          {/* Use ContentBodyDisplay directly to consolidate rendering logic */}
+          {(content.content_body || content.content_body_html) && (
             <div className="prose max-w-none">
               <ContentBodyDisplay
                 contentBody={content.content_body}

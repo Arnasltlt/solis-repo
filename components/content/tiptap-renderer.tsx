@@ -9,6 +9,19 @@ import React from 'react';
 import { InstagramEmbed } from './instagram-embed';
 
 /**
+ * Extracts a YouTube video ID from various URL formats.
+ * @param {string} url - The YouTube URL.
+ * @returns {string | null} The video ID or null if not found.
+ */
+const getYouTubeId = (url: string): string | null => {
+  if (!url) return null;
+  // This regex handles youtube.com/watch, youtu.be/, youtube.com/embed/, and youtube.com/shorts/
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
+/**
  * Recursively renders a TipTap node and its children.
  * @param {any} node - The TipTap node object to render.
  * @param {number} index - The key for the React element.
@@ -57,10 +70,21 @@ const renderNode = (node: any, index: number): JSX.Element | string | null => {
     
     // Custom node for YouTube iframes
     case 'youtube':
+      // Robustly get the video ID from either `videoId` or `src` attribute.
+      const videoId = node.attrs.videoId || getYouTubeId(node.attrs.src);
+      
+      if (!videoId) {
+        // If no valid ID can be found, render nothing to avoid a broken iframe.
+        console.warn('Could not extract YouTube video ID from node:', node.attrs);
+        return null;
+      }
+      
+      const videoSrc = `https://www.youtube.com/embed/${videoId}`;
+
       return (
-        <div key={index} className="aspect-w-16 aspect-h-9 my-6">
+        <div key={index} className="aspect-video my-6">
           <iframe
-            src={node.attrs.src}
+            src={videoSrc}
             className="w-full h-full rounded-lg"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -70,7 +94,11 @@ const renderNode = (node: any, index: number): JSX.Element | string | null => {
 
     // Custom node for Instagram embeds, using the dedicated component
     case 'instagramBlock':
-      return <InstagramEmbed key={index} src={node.attrs.src} />;
+      return (
+        <div key={index} className="not-prose">
+          <InstagramEmbed src={node.attrs.src} />
+        </div>
+      );
     
     // Default case for unknown node types
     default:
