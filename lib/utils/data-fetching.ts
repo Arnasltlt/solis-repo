@@ -41,39 +41,13 @@ export const getCachedContentItems = cache(async ({
       }
     )
 
-    // Determine if current user is an administrator
-    let isAdmin = false
-    try {
-      const { data: { session } } = await supabaseServerClient.auth.getSession()
-      const userId = session?.user?.id
-      if (userId) {
-        const { data: userRow } = await supabaseServerClient
-          .from('users')
-          .select('subscription_tier_id')
-          .eq('id', userId)
-          .single()
-        if (userRow?.subscription_tier_id) {
-          const { data: tierRow } = await supabaseServerClient
-            .from('access_tiers')
-            .select('name')
-            .eq('id', userRow.subscription_tier_id)
-            .single()
-          isAdmin = tierRow?.name === 'administrator'
-        }
-      }
-    } catch (e) {
-      // If role detection fails, default to non-admin
-      isAdmin = false
-    }
-
     // Call the service function, passing the authenticated client and other params
     const items = await getContentItems({
       ageGroups,
       categories,
       searchQuery,
       client: supabaseServerClient,
-      showPremiumOnly,
-      includeUnpublished: isAdmin
+      showPremiumOnly
     })
 
     return items
@@ -102,32 +76,8 @@ export const getCachedContentBySlug = cache(async (slug: string) => {
         },
       }
     )
-
-    // Determine if current user is an administrator
-    let isAdmin = false
-    try {
-      const { data: { session } } = await supabaseServerClient.auth.getSession()
-      const userId = session?.user?.id
-      if (userId) {
-        const { data: userRow } = await supabaseServerClient
-          .from('users')
-          .select('subscription_tier_id')
-          .eq('id', userId)
-          .single()
-        if (userRow?.subscription_tier_id) {
-          const { data: tierRow } = await supabaseServerClient
-            .from('access_tiers')
-            .select('name')
-            .eq('id', userRow.subscription_tier_id)
-            .single()
-          isAdmin = tierRow?.name === 'administrator'
-        }
-      }
-    } catch (e) {
-      isAdmin = false
-    }
-
-    const content = await getContentBySlug(slug, supabaseServerClient, isAdmin)
+    
+    const content = await getContentBySlug(slug, supabaseServerClient)
     if (!content) {
       throw new Error('Content not found or access denied')
     }

@@ -3,7 +3,6 @@ import { getContentBySlug, getAdjacentContentSlugs } from '@/lib/services/conten
 import { ContentDetail } from '@/components/content/content-detail'
 import { notFound } from 'next/navigation'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/lib/types/database'
 
@@ -34,36 +33,12 @@ const createClient = () => {
   )
 }
 
-// Helper to check if the current user is an administrator (server-side)
-async function isAdminServer(client: SupabaseClient<Database>) {
-  try {
-    const { data: { session } } = await client.auth.getSession()
-    const userId = session?.user?.id
-    if (!userId) return false
-    const { data: userRow } = await client
-      .from('users')
-      .select('subscription_tier_id')
-      .eq('id', userId)
-      .single()
-    if (!userRow?.subscription_tier_id) return false
-    const { data: tierRow } = await client
-      .from('access_tiers')
-      .select('name')
-      .eq('id', userRow.subscription_tier_id)
-      .single()
-    return tierRow?.name === 'administrator'
-  } catch {
-    return false
-  }
-}
-
 export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
   try {
     const supabaseServerClient = createClient()
-    const admin = await isAdminServer(supabaseServerClient)
-    const content = await getContentBySlug(params.slug, supabaseServerClient, admin);
+    const content = await getContentBySlug(params.slug, supabaseServerClient);
 
     const description = content?.description || 'Default description if none provided.';
     const title = content?.title || 'Default Title';
@@ -106,9 +81,8 @@ export default async function ContentPage({ params }: Props) {
   try {
     // Step 1: Fetch content (RLS check happens here via authenticated client)
     // RLS SELECT policies are now permissive for published content for non-admins
-    const admin = await isAdminServer(supabase)
-    const content = await getContentBySlug(slug, supabase, admin);
-    const { next, prev } = await getAdjacentContentSlugs(slug, supabase, admin);
+    const content = await getContentBySlug(slug, supabase);
+    const { next, prev } = await getAdjacentContentSlugs(slug, supabase);
 
     // If RLS blocked (e.g., unpublished and not admin) or slug invalid, getContentBySlug throws
     // The catch block below will handle this and call notFound()
