@@ -69,10 +69,10 @@ export async function uploadEditorImageAdmin(file: File): Promise<UploadResult> 
     
     console.log(`${logPrefix}: Generated filename: ${fileName}`);
     
-    // 4. Upload the file to the thumbnails bucket using admin client
-    console.log(`${logPrefix}: Attempting upload to thumbnails bucket...`);
+    // 4. Upload the file to the images bucket using admin client
+    console.log(`${logPrefix}: Attempting upload to images bucket...`);
     const { data: uploadData, error: uploadError } = await adminClient.storage
-      .from('thumbnails')
+      .from('images')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: true,
@@ -88,7 +88,7 @@ export async function uploadEditorImageAdmin(file: File): Promise<UploadResult> 
     
     // 5. Get the public URL
     const { data: urlData } = adminClient.storage
-      .from('thumbnails')
+      .from('images')
       .getPublicUrl(uploadData.path);
     
     if (!urlData || !urlData.publicUrl) {

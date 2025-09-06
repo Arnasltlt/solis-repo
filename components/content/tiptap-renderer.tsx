@@ -99,6 +99,29 @@ const renderNode = (node: any, index: number): JSX.Element | string | null => {
           <InstagramEmbed src={node.attrs.src} />
         </div>
       );
+
+    // Image node rendering
+    case 'image': {
+      const { src, alt, title } = node.attrs || {};
+      let { width } = node.attrs || {};
+      if (!src) return null;
+      const style: React.CSSProperties = {};
+      // Default to 320px if width is missing
+      width = width || '320px';
+      style.width = width as any;
+      style.height = 'auto';
+      return (
+        <img
+          key={index}
+          src={src}
+          alt={alt || ''}
+          title={title || undefined}
+          style={style}
+          className="max-w-full h-auto rounded-md my-4"
+          loading="lazy"
+        />
+      );
+    }
     
     // Default case for unknown node types
     default:

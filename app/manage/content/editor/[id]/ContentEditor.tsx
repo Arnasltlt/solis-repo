@@ -252,9 +252,7 @@ export function ContentEditor({ contentId, initialContent }: ContentEditorProps)
       
       <Card className="p-6">
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <Label className="text-lg">Content Editor</Label>
-          </div>
+          {/* Removed duplicate page title banner for a cleaner editor */}
           
           <StreamlinedEditor
             initialContent={editorContent}

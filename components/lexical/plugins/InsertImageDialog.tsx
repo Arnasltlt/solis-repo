@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { LexicalEditor } from 'lexical';
 import { INSERT_IMAGE_COMMAND } from './ToolbarPlugin';
 
@@ -11,25 +11,18 @@ export function InsertImageDialog({
   onClose: () => void;
   editor: LexicalEditor;
 }): JSX.Element {
-  const [src, setSrc] = useState('');
   const [altText, setAltText] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleUrlInsert = () => {
-    if (!src) {
-      setError('Please enter an image URL');
-      return;
-    }
-    
-    editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-      src,
-      altText,
-    });
-    
-    onClose();
-  };
+  // Focus file chooser by default for faster upload workflow
+  useEffect(() => {
+    // slight delay to ensure dialog is mounted
+    const id = setTimeout(() => fileInputRef.current?.focus(), 50);
+    return () => clearTimeout(id);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -105,43 +98,9 @@ export function InsertImageDialog({
     <div className="insert-image-dialog">
       <div className="dialog-overlay" onClick={onClose}></div>
       <div className="dialog-content">
-        <h3>Insert Image</h3>
-        
+        <h3>Upload Image</h3>
+
         <div className="dialog-section">
-          <h4>Option 1: Insert from URL</h4>
-          <div className="dialog-form">
-            <div className="form-field">
-              <label htmlFor="imageUrl">Image URL</label>
-              <input
-                id="imageUrl"
-                type="text"
-                value={src}
-                onChange={(e) => setSrc(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-            
-            <div className="form-field">
-              <label htmlFor="altText">Alt Text</label>
-              <input
-                id="altText"
-                type="text"
-                value={altText}
-                onChange={(e) => setAltText(e.target.value)}
-                placeholder="Descriptive text for the image"
-              />
-            </div>
-            
-            <button onClick={handleUrlInsert} disabled={!src}>
-              Insert from URL
-            </button>
-          </div>
-        </div>
-        
-        <div className="dialog-divider"></div>
-        
-        <div className="dialog-section">
-          <h4>Option 2: Upload an Image</h4>
           <div className="dialog-form">
             <div className="form-field">
               <label htmlFor="fileUpload">Select Image</label>
@@ -150,6 +109,7 @@ export function InsertImageDialog({
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
+                ref={fileInputRef}
               />
             </div>
             
@@ -158,6 +118,17 @@ export function InsertImageDialog({
                 <p>Selected file: {file.name}</p>
               </div>
             )}
+
+            <div className="form-field">
+              <label htmlFor="altText">Alt Text (optional)</label>
+              <input
+                id="altText"
+                type="text"
+                value={altText}
+                onChange={(e) => setAltText(e.target.value)}
+                placeholder="Descriptive text for the image"
+              />
+            </div>
             
             <button 
               onClick={handleFileUpload} 
