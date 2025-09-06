@@ -133,6 +133,7 @@ interface GetContentItemsParams {
   searchQuery?: string;
   client: SupabaseClient<Database>; // Make client required
   showPremiumOnly?: boolean;
+  includeUnpublished?: boolean;
 }
 
 // Get all content items for management (admin view)
@@ -141,7 +142,8 @@ export async function getContentItems({
   categories,
   searchQuery,
   client, // Add required client parameter
-  showPremiumOnly = false
+  showPremiumOnly = false,
+  includeUnpublished = false
 }: GetContentItemsParams) { // Use the defined interface
   // Ensure client is provided
   if (!client) {
@@ -163,6 +165,11 @@ export async function getContentItems({
       )
     `)
     // RLS handles visibility based on authenticated client
+
+  // By default, show only published content unless includeUnpublished is true
+  if (!includeUnpublished) {
+    query = query.eq('published', true)
+  }
 
   // Apply age groups filter if provided (use the provided client)
   if (ageGroups && ageGroups.length > 0) {
