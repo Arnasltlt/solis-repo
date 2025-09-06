@@ -7,6 +7,7 @@ import { Logo } from '@/components/ui/logo'
 interface PageHeaderProps {
   title: string
   backUrl?: string
+  showLogo?: boolean
 }
 
 /**
@@ -17,7 +18,7 @@ interface PageHeaderProps {
  * - Page title
  * - Back button to return to previous page
  */
-export function PageHeader({ title, backUrl }: PageHeaderProps) {
+export function PageHeader({ title, backUrl, showLogo = true }: PageHeaderProps) {
   const router = useRouter()
 
   return (
@@ -25,7 +26,7 @@ export function PageHeader({ title, backUrl }: PageHeaderProps) {
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Logo size="medium" />
+            {showLogo && <Logo size="medium" />}
             {title && <h1 className="text-xl font-semibold">{title}</h1>}
           </div>
           {backUrl && (

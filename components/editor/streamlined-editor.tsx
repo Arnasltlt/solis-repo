@@ -30,7 +30,7 @@
  */
 'use client'
 
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
@@ -61,6 +61,28 @@ import { cn } from '@/lib/utils'
 import { Node, mergeAttributes } from '@tiptap/core'
 import Youtube from '@tiptap/extension-youtube'
 import { InstagramBlock } from '@/lib/extensions/instagram-block'
+// Extend TipTap Image to support width attribute for simple resizing
+const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: '320px',
+        renderHTML: attributes => {
+          if (!attributes.width) return {}
+          return {
+            style: `width: ${attributes.width}; height: auto;`
+          }
+        },
+        parseHTML: element => {
+          const style = (element as HTMLElement).getAttribute('style') || ''
+          const match = /width:\s*([^;]+);?/i.exec(style)
+          return match ? match[1] : null
+        }
+      }
+    }
+  }
+})
 
 // Simple video URL validation
 const validateVideoUrl = (url: string): string | null => {
@@ -283,6 +305,9 @@ export function StreamlinedEditor({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const [imageUrl, setImageUrl] = useState('')
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
   const [linkDialogOpen, setLinkDialogOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
   const [linkText, setLinkText] = useState('')
@@ -307,7 +332,7 @@ export function StreamlinedEditor({
           class: 'text-blue-600 underline hover:text-blue-800'
         }
       }),
-      Image.configure({
+      ResizableImage.configure({
         inline: false,
         HTMLAttributes: {
           class: 'max-w-full h-auto rounded-lg my-4'
@@ -411,6 +436,57 @@ export function StreamlinedEditor({
     setImageDialogOpen(false)
     toast({ title: 'Image added', description: 'Image has been inserted into your content' })
   }, [editor, imageUrl])
+
+  const handleImageFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) {
+      setSelectedImageFile(null)
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      setImageError('Only image files are allowed')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('Image must be less than 5MB')
+      return
+    }
+    setImageError(null)
+    setSelectedImageFile(file)
+  }, [])
+
+  const handleImageUpload = useCallback(async () => {
+    if (!selectedImageFile) return
+    try {
+      setIsUploadingImage(true)
+      setImageError(null)
+      const formData = new FormData()
+      formData.append('file', selectedImageFile)
+      formData.append('type', 'editor')
+      const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_access_token') : ''
+      const response = await fetch('/api/manage/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: formData
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || 'Failed to upload image')
+      }
+      const result = await response.json()
+      if (!result.url) throw new Error('Upload succeeded but no URL was returned')
+      editor?.chain().focus().setImage({ src: result.url }).run()
+      setSelectedImageFile(null)
+      setImageDialogOpen(false)
+      toast({ title: 'Image uploaded', description: 'Image has been inserted into your content' })
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }, [editor, selectedImageFile])
 
   // Handle link insertion
   const handleLinkInsert = useCallback(() => {
@@ -669,6 +745,48 @@ export function StreamlinedEditor({
           editor={editor}
           className="prose prose-lg max-w-none focus:outline-none min-h-[300px]"
         />
+        {!readOnly && (
+          <BubbleMenu
+            editor={editor}
+            pluginKey="image-resize-menu"
+            tippyOptions={{ placement: 'top' }}
+            shouldShow={({ editor }) => editor.isActive('image')}
+          >
+            <div className="flex items-center gap-1 bg-white border rounded-md p-1 shadow-sm">
+              <button
+                type="button"
+                className="px-2 py-1 text-xs rounded hover:bg-gray-100"
+                onClick={() => editor.chain().focus().updateAttributes('image', { width: '320px' }).run()}
+              >320px</button>
+              <button
+                type="button"
+                className="px-2 py-1 text-xs rounded hover:bg-gray-100"
+                onClick={() => editor.chain().focus().updateAttributes('image', { width: '480px' }).run()}
+              >480px</button>
+              <button
+                type="button"
+                className="px-2 py-1 text-xs rounded hover:bg-gray-100"
+                onClick={() => editor.chain().focus().updateAttributes('image', { width: '640px' }).run()}
+              >640px</button>
+              <button
+                type="button"
+                className="px-2 py-1 text-xs rounded hover:bg-gray-100"
+                onClick={() => editor.chain().focus().updateAttributes('image', { width: '1024px' }).run()}
+              >1024px</button>
+              <div className="h-4 w-px bg-gray-200 mx-1" />
+              <button
+                type="button"
+                className="px-2 py-1 text-xs rounded hover:bg-gray-100"
+                onClick={() => editor.chain().focus().updateAttributes('image', { width: '100%' }).run()}
+              >Full</button>
+              <button
+                type="button"
+                className="px-2 py-1 text-xs rounded hover:bg-gray-100"
+                onClick={() => editor.chain().focus().updateAttributes('image', { width: null }).run()}
+              >Auto</button>
+            </div>
+          </BubbleMenu>
+        )}
       </div>
 
       {/* Video Embed Styles */}
@@ -712,12 +830,20 @@ export function StreamlinedEditor({
       `}</style>
 
       {/* Image Dialog */}
-      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+      <Dialog open={imageDialogOpen} onOpenChange={(open) => {
+        setImageDialogOpen(open)
+        if (!open) {
+          setSelectedImageFile(null)
+          setImageUrl('')
+          setIsUploadingImage(false)
+          setImageError(null)
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Image</DialogTitle>
             <DialogDescription>
-              Enter the URL of the image you want to add to your content.
+              Upload an image or enter an image URL
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -727,6 +853,25 @@ export function StreamlinedEditor({
               onChange={(e) => setImageUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleImageInsert()}
             />
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-gray-300"></div>
+              <span className="flex-shrink mx-4 text-gray-600 text-sm">OR</span>
+              <div className="flex-grow border-t border-gray-300"></div>
+            </div>
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageFileChange}
+                className="block w-full text-sm text-gray-600"
+              />
+              {selectedImageFile && (
+                <div className="text-sm text-gray-700">Selected: {selectedImageFile.name}</div>
+              )}
+              {imageError && (
+                <div className="text-sm text-red-600">{imageError}</div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setImageDialogOpen(false)}>
@@ -734,6 +879,9 @@ export function StreamlinedEditor({
             </Button>
             <Button onClick={handleImageInsert} disabled={!imageUrl.trim()}>
               Add Image
+            </Button>
+            <Button onClick={handleImageUpload} disabled={!selectedImageFile || isUploadingImage}>
+              {isUploadingImage ? 'Uploading...' : 'Upload & Insert'}
             </Button>
           </DialogFooter>
         </DialogContent>

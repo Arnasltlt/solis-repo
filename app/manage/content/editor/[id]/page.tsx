@@ -45,11 +45,7 @@ export default async function ContentEditorPage({ params }: { params: { id: stri
     return (
       <div className="container py-8">
         <div className="mb-6">
-          <PageHeader title="Content Editor" backUrl="/" />
-          
-          <div className="mt-4 flex justify-between items-center">
-            <p className="text-gray-600">Edit your content body</p>
-          </div>
+          <PageHeader title="Content Editor" backUrl="/" showLogo={false} />
         </div>
         
         <ContentEditor contentId={params.id} initialContent={serializedContent} />
