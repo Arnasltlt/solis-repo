@@ -133,11 +133,6 @@ interface GetContentItemsParams {
   searchQuery?: string;
   client: SupabaseClient<Database>; // Make client required
   showPremiumOnly?: boolean;
-  /**
-   * When true, include content that has not been published yet.
-   * This should only be enabled for administrators.
-   */
-  includeUnpublished?: boolean;
 }
 
 // Get all content items for management (admin view)
@@ -146,8 +141,7 @@ export async function getContentItems({
   categories,
   searchQuery,
   client, // Add required client parameter
-  showPremiumOnly = false,
-  includeUnpublished = false
+  showPremiumOnly = false
 }: GetContentItemsParams) { // Use the defined interface
   // Ensure client is provided
   if (!client) {
@@ -169,11 +163,6 @@ export async function getContentItems({
       )
     `)
     // RLS handles visibility based on authenticated client
-
-  // Only show published content for non-admins
-  if (!includeUnpublished) {
-    query = query.eq('published', true)
-  }
 
   // Apply age groups filter if provided (use the provided client)
   if (ageGroups && ageGroups.length > 0) {
@@ -611,16 +600,18 @@ export async function getContentById(id: string, adminClient?: SupabaseClient) {
 
 export async function getContentBySlug(
   slug: string,
-  client: SupabaseClient<Database>, // Expect an authenticated client
-  includeUnpublished = false
+  // adminClient?: SupabaseClient // Remove optional adminClient
+  client: SupabaseClient<Database> // Expect an authenticated client
 ) {
+  // const client = getClient(adminClient) // REMOVE THIS LINE
+
   // Add check to ensure a client was actually passed
   if (!client) {
     throw new Error('Supabase client is required for getContentBySlug');
   }
 
-  // Build query using the provided authenticated client
-  let query = client
+  // Proceed with the query using the provided authenticated client
+  const { data, error } = await client
     .from('content_items')
     .select(`
       *,
@@ -632,14 +623,10 @@ export async function getContentBySlug(
         category:categories(*)
       )
     `)
+    // Let RLS handle published status based on user role (admin vs others)
+    // .eq('published', true)
     .eq('slug', slug)
-
-  // Restrict to published content unless explicitly allowed
-  if (!includeUnpublished) {
-    query = query.eq('published', true)
-  }
-
-  const { data, error } = await query.single()
+    .single()
 
   if (error) {
     console.error(`Error fetching content by slug "${slug}":`, error); // Log error
@@ -673,8 +660,7 @@ export async function getContentBySlug(
 
 export async function getAdjacentContentSlugs(
   slug: string,
-  client: SupabaseClient<Database>,
-  includeUnpublished = false
+  client: SupabaseClient<Database>
 ) {
   if (!client) {
     throw new Error('Supabase client is required for getAdjacentContentSlugs');
@@ -690,27 +676,19 @@ export async function getAdjacentContentSlugs(
     throw currentError || new Error('Current content not found');
   }
 
-  let nextQuery = client
+  const { data: nextData } = await client
     .from('content_items')
     .select('slug')
     .gt('created_at', current.created_at)
     .order('created_at', { ascending: true })
-    .limit(1)
+    .limit(1);
 
-  let prevQuery = client
+  const { data: prevData } = await client
     .from('content_items')
     .select('slug')
     .lt('created_at', current.created_at)
     .order('created_at', { ascending: false })
-    .limit(1)
-
-  if (!includeUnpublished) {
-    nextQuery = nextQuery.eq('published', true)
-    prevQuery = prevQuery.eq('published', true)
-  }
-
-  const { data: nextData } = await nextQuery
-  const { data: prevData } = await prevQuery
+    .limit(1);
 
   return {
     next: nextData?.[0]?.slug ?? null,

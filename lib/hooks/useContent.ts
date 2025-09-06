@@ -3,7 +3,6 @@ import { getContentItems } from '@/lib/services/content'
 import type { ContentItem, Database } from '@/lib/types/database'
 import { handleError } from '@/lib/utils/error-handling'
 import { createBrowserClient } from '@supabase/ssr'
-import { useAuthorization } from '@/hooks/useAuthorization'
 
 interface UseContentOptions {
   ageGroups?: string[]
@@ -23,7 +22,6 @@ export function useContent({
   const [content, setContent] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(initialLoad)
   const [error, setError] = useState<Error | null>(null)
-  const { isAdmin } = useAuthorization()
 
   // Create Supabase client instance - useMemo ensures it's stable
   const supabase = useMemo(() => createBrowserClient<Database>(
@@ -43,8 +41,7 @@ export function useContent({
         categories, 
         searchQuery,
         showPremiumOnly,
-        client: supabase,
-        includeUnpublished: isAdmin()
+        client: supabase
       })
       setContent(data)
     } catch (err) {
@@ -55,7 +52,7 @@ export function useContent({
     } finally {
       setIsLoading(false)
     }
-  }, [ageGroups, categories, searchQuery, showPremiumOnly, supabase, isAdmin])
+  }, [ageGroups, categories, searchQuery, showPremiumOnly, supabase])
 
   // Initial fetch and when filters change
   useEffect(() => {
